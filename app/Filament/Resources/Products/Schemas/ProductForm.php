@@ -5,6 +5,9 @@ namespace App\Filament\Resources\Products\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
+use App\Models\Category;
+use App\Models\Unit;
+use App\Models\PaperRollType;
 
 class ProductForm
 {
@@ -24,6 +27,19 @@ class ProductForm
                         'fini' => 'Produit Fini',
                     ])
                     ->required(),
+                Select::make('category_id')
+                    ->label('Catégorie')
+                    ->options(Category::all()->pluck('name', 'id'))
+                    ->nullable(),
+                Select::make('unit_id')
+                    ->label('Unité')
+                    ->options(Unit::all()->pluck('name', 'id'))
+                    ->nullable(),
+                Select::make('paper_roll_type_id')
+                    ->label('Type de Rouleau')
+                    ->options(PaperRollType::all()->pluck('name', 'id'))
+                    ->nullable()
+                    ->visible(fn ($get) => $get('type') === 'papier_roll'),
                 TextInput::make('gsm')
                     ->label('GSM')
                     ->numeric()

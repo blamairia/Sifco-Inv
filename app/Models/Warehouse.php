@@ -14,4 +14,14 @@ class Warehouse extends Model
     protected $casts = [
         'is_system' => 'boolean',
     ];
+
+    public function stockLevels()
+    {
+        return $this->hasMany(StockLevel::class);
+    }
+
+    public function rolls()
+    {
+        return $this->hasMany(Roll::class);
+    }
 }
