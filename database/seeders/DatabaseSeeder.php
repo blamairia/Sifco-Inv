@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,7 +16,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Create the system warehouse for production consumption
+        Warehouse::firstOrCreate(
+            ['name' => 'PRODUCTION_CONSUMED'],
+            ['is_system' => true]
+        );
 
         User::factory()->create([
             'name' => 'Test User',
