@@ -19,8 +19,7 @@ class WarehouseForm
                     ->unique(ignoreRecord: true),
                 Toggle::make('is_system')
                     ->label('Entrepôt Système')
-                    ->disabled(fn ($record) => $record?->is_system)
-                    ->help('Les entrepôts système ne peuvent pas être modifiés'),
+                    ->disabled(fn ($record) => $record?->is_system),
             ]);
     }
 }
