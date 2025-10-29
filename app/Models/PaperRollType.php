@@ -25,4 +25,9 @@ class PaperRollType extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function rollSpecifications()
+    {
+        return $this->hasMany(RollSpecification::class);
+    }
 }

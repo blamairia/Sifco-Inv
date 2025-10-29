@@ -25,10 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropForeignKeyIfExists(['category_id']);
-            $table->dropForeignKeyIfExists(['subcategory_id']);
-            $table->dropForeignKeyIfExists(['unit_id']);
-            $table->dropForeignKeyIfExists(['paper_roll_type_id']);
+            $table->dropForeignKeyIfExists('products_category_id_foreign');
+            $table->dropForeignKeyIfExists('products_subcategory_id_foreign');
+            $table->dropForeignKeyIfExists('products_unit_id_foreign');
+            $table->dropForeignKeyIfExists('products_paper_roll_type_id_foreign');
             $table->dropColumn(['category_id', 'subcategory_id', 'unit_id', 'paper_roll_type_id']);
         });
     }

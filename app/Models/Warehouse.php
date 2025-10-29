@@ -24,4 +24,9 @@ class Warehouse extends Model
     {
         return $this->hasMany(Roll::class);
     }
+
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class);
+    }
 }

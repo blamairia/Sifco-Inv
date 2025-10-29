@@ -49,6 +49,11 @@ class Product extends Model
         return $this->belongsTo(PaperRollType::class);
     }
 
+    public function rollSpecifications()
+    {
+        return $this->hasMany(RollSpecification::class);
+    }
+
     public function stockLevels()
     {
         return $this->hasMany(StockLevel::class);

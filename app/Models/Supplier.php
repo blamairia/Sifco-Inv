@@ -12,4 +12,14 @@ class Supplier extends Model
         'phone',
         'email',
     ];
+
+    public function rollSpecifications()
+    {
+        return $this->hasMany(RollSpecification::class);
+    }
+
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class);
+    }
 }
