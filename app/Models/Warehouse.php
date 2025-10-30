@@ -15,9 +15,9 @@ class Warehouse extends Model
         'is_system' => 'boolean',
     ];
 
-    public function stockLevels()
+    public function stockQuantities()
     {
-        return $this->hasMany(StockLevel::class);
+        return $this->hasMany(StockQuantity::class);
     }
 
     public function rolls()
@@ -25,8 +25,13 @@ class Warehouse extends Model
         return $this->hasMany(Roll::class);
     }
 
-    public function receipts()
+    public function stockMovementsFrom()
     {
-        return $this->hasMany(Receipt::class);
+        return $this->hasMany(StockMovement::class, 'warehouse_from_id');
+    }
+
+    public function stockMovementsTo()
+    {
+        return $this->hasMany(StockMovement::class, 'warehouse_to_id');
     }
 }

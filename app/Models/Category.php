@@ -11,13 +11,10 @@ class Category extends Model
         'description',
     ];
 
-    public function subcategories()
-    {
-        return $this->hasMany(Subcategory::class);
-    }
-
     public function products()
     {
-        return $this->hasMany(Product::class);
+        return $this->belongsToMany(Product::class, 'product_category')
+            ->withPivot('is_primary')
+            ->withTimestamps();
     }
 }
