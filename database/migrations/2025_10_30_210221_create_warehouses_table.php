@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->boolean('is_system')->default(false);
+            $table->boolean('is_system')->default(false)->comment('System warehouses like PRODUCTION_CONSUMED');
             $table->timestamps();
         });
     }

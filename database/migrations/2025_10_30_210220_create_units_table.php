@@ -11,13 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('paper_roll_types', function (Blueprint $table) {
+        Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->string('type_code')->unique();
-            $table->string('name');
-            $table->integer('grammage');
-            $table->integer('laise');
-            $table->decimal('weight', 10, 2);
+            $table->string('name')->unique();
+            $table->string('symbol', 10)->unique();
             $table->text('description')->nullable();
             $table->timestamps();
         });
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('paper_roll_types');
+        Schema::dropIfExists('units');
     }
 };
