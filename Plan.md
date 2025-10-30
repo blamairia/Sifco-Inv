@@ -1,177 +1,237 @@
-# CartonStock MVP Plan
+# CartonStock MVP Plan – v2.0 (Restructured)
 
-## High-Level Scope (SRS v1.0)
+## 🎯 Executive Summary
 
-- **Core:** Track products, stock levels per warehouse, and individual paper rolls.
-- **Features:** Receive materials from suppliers, move stock between warehouses, issue stock to production (via a virtual `PRODUCTION_CONSUMED` warehouse), and perform manual stock adjustments.
-- **Reporting:** A dashboard showing key metrics, a low stock alert page, and an inventory valuation view with CSV export.
-- **Data:** Includes a suppliers directory and uses weighted average costing.
-- **Tech:** Laravel 11 + Filament v4 on Windows/MySQL. UI in French.
+**Phase 1 COMPLETED:** Slices 1-2 created basic data structure.  
+**Phase 2 CURRENT:** Complete architectural redesign for **SIFCO procedure alignment** + **scalability**.
 
----
-
-## Slices
-
-- [x] **Slice 1: Core master data** (Products, Warehouses, Suppliers)
-- [x] **Slice 2: Stock storage structure** (stock_levels, rolls) - COMPLETED with architectural refactor
-- [ ] **Slice 3: Receipts (stock in)** - RollSpecification & Receipt infrastructure ready
-- [ ] **Slice 4: Stock movement**
-- [ ] **Slice 5: Manual adjustments**
-- [ ] **Slice 6: Dashboard & Alerts**
-- [ ] **Slice 7: Valuation + CSV export**
+**Key Changes:**
+- ❌ Deprecated: Overcomplicated Product/Roll/PaperRollType hierarchy
+- ✅ Introduced: Explicit procedure tables (Bon d'Entrée, Bon de Sortie, Bon de Transfert, Bon de Réintégration)
+- ✅ Introduced: `stock_movements` table for complete audit trail + CUMP versioning
+- ✅ Renamed: `stock_levels` → `stock_quantities` for clarity
+- ✅ Flattened: Categories/Subcategories → Many-to-Many model
+- ✅ Scalable: Per-product + per-warehouse quantity tracking with separate tables
 
 ---
 
-## Current Status
+## 🔄 High-Level Scope (v2.0 Aligned to SIFCO Procedure)
 
-### Slice 1: Core Master Data - COMPLETED ✅
+**Core:** Track products per warehouse with complete audit trail (Bon de réception, Bon d'entrée, Bon de sortie, Bon de transfert, Bon de réintégration).
+
+**Features:**
+- **Réception/Entrée:** Receive materials + calculate CUMP (coût moyen pondéré / weighted average)
+- **Sorties:** Issue to production with CUMP valuation
+- **Transferts:** Move between warehouses preserving CUMP
+- **Réintégration:** Return goods at original CUMP
+- **Avis de Rupture:** Low-stock alerts based on min_stock + safety_stock
+- **Valorisation:** Valuation report with CUMP snapshot at each warehouse/product
+
+**Procedure Documents:** Bon de réception → Bon d'entrée → stock_movements → Rolls + stock_quantities
+
+**Tech:** Laravel 11 + Filament v4 on Windows/MySQL. UI in French.
+
+---
+
+## 📊 Slice Roadmap (v2.0)
+
+- [x] **Slice 1: Core master data** (Products, Warehouses, Suppliers) ✅ DONE
+- [x] **Slice 2: Stock storage structure** (stock_levels, rolls, hierarchy) ✅ DONE
+- [ ] **Slice 2.5: Architectural Refactor** ← **CURRENT: Database redesign + procedure alignment**
+  - [ ] Create new tables: stock_movements, stock_quantities, bon_*, stock_adjustments, low_stock_alerts
+  - [ ] Update models and relationships
+  - [ ] Create Filament resources
+- [ ] **Slice 3: Bon d'Entrée Workflow** (receipts with CUMP calculation)
+- [ ] **Slice 4: Bon de Sortie & Bon de Transfert** (movements)
+- [ ] **Slice 5: Bon de Réintégration** (returns with CUMP preservation)
+- [ ] **Slice 6: Manual adjustments + Low-stock alerts**
+- [ ] **Slice 7: Dashboard & Reports**
+- [ ] **Slice 8: Valuation + CSV export**
+
+---
+
+## ✅ COMPLETED: Slice 1 & 2 Legacy (Phase 1)
+
+### Slice 1: Core Master Data - DONE ✅
 
 **Database Tables Created:**
-- `products`: `id`, `name`, `type` (enum: 'papier_roll', 'consommable', 'fini'), `gsm`, `flute`, `width`, `min_stock`, `safety_stock`, `avg_cost`, `category_id`, `subcategory_id`, `unit_id`, `paper_roll_type_id`, `timestamps`
-- `warehouses`: `id`, `name` (unique), `is_system` (boolean), `timestamps`
-- `suppliers`: `id`, `name`, `contact_person`, `phone`, `email`, `timestamps`
+- `products`, `warehouses`, `suppliers`, `units`, `categories`, `subcategories`, `paper_roll_types`
 
 **Filament Resources Implemented:**
-- ProductResource (with form and table views in French)
-- WarehouseResource (with deletion protection for system warehouses)
-- SupplierResource (with form and table views in French)
+- ProductResource, WarehouseResource, SupplierResource, etc.
 
-**Sample Data Seeded:**
-- 4 warehouses (including PRODUCTION_CONSUMED system warehouse)
-- 3 suppliers with full contact details
-- 7 products covering all three types with relationships
-- 2 admin users (admin@cartonstock.dz / admin123, test@cartonstock.dz / test123)
+**Sample Data:** 4 warehouses, 3 suppliers, 7 products
 
 ---
 
-### Slice 2: Stock Storage Structure - COMPLETED ✅
+### Slice 2: Stock Storage Structure - DONE ✅
 
-**Critical Architectural Refactor**
+**Tables Created:**
+- `stock_levels`, `rolls`, `roll_specifications`, `receipts`, `receipt_items`
 
-**Problem Solved:**
-The original design conflated two separate concepts:
-- Individual physical rolls with unique EAN-13 barcodes (qty=1 per roll)
-- Product specifications that could represent many rolls
-
-**Solution Implemented:**
-Three-tier hierarchy for roll management:
-
-1. **PaperRollType** (Attributes): Define paper characteristics (KL, TLB, TLM, FL) with grammage, laise, weight
-2. **RollSpecification** (Specifications): Define unique combinations of Product + PaperRollType + Supplier with purchase_price
-3. **Roll** (Individual): Track individual rolls with unique EAN-13 code
-
-**Database Tables Created:**
-- `units`: `id`, `name` (unique), `symbol` (unique), `description`, `timestamps` 
-- `categories`: `id`, `name` (unique), `description`, `timestamps`
-- `subcategories`: `id`, `category_id` (FK), `name`, `description`, `timestamps`
-- `paper_roll_types`: `id`, `type_code` (unique), `name`, `grammage`, `laise`, `weight`, `description`, `timestamps`
-- `stock_levels`: `id`, `product_id` (FK), `warehouse_id` (FK), `qty` (decimal), unique(product_id, warehouse_id), `timestamps`
-- `rolls`: `id`, `product_id` (FK), `warehouse_id` (FK), `roll_specification_id` (FK new), `ean_13` (unique), `qty`, `status` (enum), `batch_number`, `received_date`, `timestamps`
-- `roll_specifications`: `id`, `product_id` (FK), `paper_roll_type_id` (FK), `supplier_id` (FK nullable), `purchase_price`, `description`, `is_active`, unique(product_id, paper_roll_type_id, supplier_id), `timestamps`
-- `receipts`: `id`, `receipt_number` (unique), `supplier_id` (FK), `warehouse_id` (FK), `receipt_date`, `total_amount`, `status` (enum: draft/received/verified), `notes`, `timestamps`
-- `receipt_items`: `id`, `receipt_id` (FK), `roll_specification_id` (FK), `qty_received`, `total_price`, `notes`, `timestamps`
-
-**Filament Resources Implemented:**
-- UnitResource (Unités) - ✓ Configured
-- CategoryResource (Catégories) - ✓ Configured
-- SubcategoryResource (Sous-catégories) - ✓ Configured
-- PaperRollTypeResource (Types de Rouleau) - ✓ Configured
-- StockLevelResource (Niveaux de Stock) - ✓ Configured
-- RollResource (Rouleaux) - ✓ Configured with EAN-13 tracking
-- RollSpecificationResource (Spécifications de Rouleau) - 🔄 In progress (to be configured)
-- ReceiptResource (Réceptions) - 🔄 In progress (to be configured)
-
-**Sample Data Seeded:**
-- 4 units (kg, pcs, roll, L)
-- 3 categories (Papiers, Consommables, Produits Finis)
-- 5 subcategories (Papier KRAFT, Papier BLANC, Adhésifs, Encres, Cartons)
-- 4 paper roll types (KL, TLB, TLM, FL) with specifications
-- 7 stock levels distributed across warehouses
-- 4 sample rolls with EAN-13 barcodes in in_stock status
-
-**Application Status:**
-- ✓ Database fully migrated with all relationships
-- ✓ All models updated with proper relationships
-- ✓ Filament resources created (core resources configured, receipt infrastructure in progress)
-- ✓ Sample data visible in admin panel
-- 🔄 Receipt UI/workflows to be implemented in Slice 3
+**Issue:** Architecture overcomplicated + not aligned with SIFCO procedures
 
 ---
 
-### Slice 3: Receipts (Stock In) - UPCOMING
+## 🔄 CURRENT: Slice 2.5 – Architectural Refactor (Phase 2)
 
-**Infrastructure Ready:**
-- ✓ RollSpecification model (separates product attributes from inventory)
-- ✓ Receipt model (master receipt record)
-- ✓ ReceiptItem model (line items per specification)
-- ✓ Roll model updated with specification link
+### Status
 
-**To Be Implemented:**
-1. **RollSpecificationResource Configuration**
-   - Admin-only resource to define acceptable roll combinations
-   - Form: Product select → PaperRollType select → Supplier select → Purchase price input
-   - Pre-filtered to show only combinations that make sense for papier_roll products
+**Step 1: Analysis & Design** ✅ DONE
+- Created `DATABASE_REDESIGN.md` (complete new schema)
+- Created `PROCEDURE_MAPPING.md` (SIFCO procedure → code mapping)
+- Documented scalability improvements
+- Mapped all 6 procedures to database tables
 
-2. **ReceiptResource Implementation**
-   - Main receipt entry point
-   - Inline repeater for line items
-   - Product selector with quick specification preview
-   - Radio button selection for available specifications
-   - Qty input for number of rolls
-   - Auto-generation of unique EAN-13 codes on receipt confirmation
-   - Individual roll creation from receipt items
-   - Stock level updates and weighted average cost recalculation
+**Step 2: Documentation Updates** 🔄 IN PROGRESS
+- Updating PLAN.md (this file)
+- Creating SCHEMA_DICTIONARY.md (field reference)
+- Updating INDEX.md with new doc links
 
-3. **Receipt Workflow**
-   - Draft → Received → Verified status progression
-   - Roll generation logic on "Received" status
-   - Cost calculation and product weighted average update
-   - Audit trail of receipt activities
+**Step 3: Database Migrations** ⏳ NEXT
+- Create migrations for new tables
+- Populate stock_quantities from stock_levels
+- Deprecate old tables (keep for history)
 
----
+**Step 4: Models & Resources** ⏳ NEXT
+- Create models for: StockQuantity, StockMovement, BonReception, BonEntree, etc.
+- Create Filament resources with complete SIFCO workflows
 
-## TODO / Blockers
-
-- 🔄 Configure RollSpecificationResource (admin resource for setup)
-- 🔄 Configure ReceiptResource (main receipt workflow)
-- 🔄 Implement receipt line item repeater UI
-- 🔄 Implement EAN-13 code generation logic
-- 🔄 Implement roll creation on receipt confirmation
-- 🔄 Implement stock level and cost updates
+**Step 5: Implementation** ⏳ NEXT
+- Implement BON_ENTREE workflow with EAN-13 generation
+- Implement BON_SORTIE, BON_TRANSFERT, BON_REINTEGRATION workflows
+- Implement low-stock alert generation
+- Add CUMP calculation logic
 
 ---
 
-## Next Steps
+## 📋 New Tables (Phase 2)
 
-**Immediate (Slice 3 Part 1):**
-1. Configure RollSpecificationResource form and table
-2. Add sample roll specifications to seeder
-3. Verify specifications appear correctly in admin
+### Core Inventory (Redesigned)
 
-**Then (Slice 3 Part 2):**
-1. Configure ReceiptResource with Receipt form
-2. Implement ReceiptItem repeater for line items
-3. Add specification selection UI (radio buttons with attributes)
-4. Test receipt entry workflow
+| Table | Purpose | Old Name | Notes |
+|-------|---------|----------|-------|
+| `products` | Master catalog | Same | Simplified: no Category FK |
+| `product_category` | Many-to-Many | Replaces FK | Flexible categorization |
+| `categories` | Categories | Same | Simplified |
+| `suppliers` | Supplier master | Same | Enhanced |
+| `units` | UoM | Same | |
+| `stock_quantities` | Inventory aggregated | stock_levels | Renamed for clarity |
+| `rolls` | Physical inventory | Same | Enhanced: links to movements |
 
-**Finally (Slice 3 Part 3):**
-1. Implement receipt confirmation logic (generate rolls)
-2. Implement EAN-13 generation
-3. Implement stock level updates
-4. Implement cost recalculation
-5. Full end-to-end receipt testing
+### Stock Movements (New Audit Trail)
+
+| Table | Purpose | Type |
+|-------|---------|------|
+| `stock_movements` | Ledger of all movements | Core |
+| `bon_receptions` | Supplier deliveries | Procedure |
+| `bon_entrees` | Stock entry to warehouse | Procedure |
+| `bon_entree_items` | Line items for entry | Procedure |
+| `bon_sorties` | Issues to production | Procedure |
+| `bon_sortie_items` | Line items for issue | Procedure |
+| `bon_transferts` | Inter-warehouse moves | Procedure |
+| `bon_transfert_items` | Line items for transfer | Procedure |
+| `bon_reintegrations` | Returns to warehouse | Procedure |
+| `bon_reintegration_items` | Line items for return | Procedure |
+| `stock_adjustments` | Manual count corrections | Procedure |
+| `low_stock_alerts` | Avis de rupture auto-gen | Alert |
 
 ---
 
-## TODO / Blockers
+## 🔀 Key Architecture Changes
 
-- None currently. Ready to proceed with Slice 2.
+### 1. Products Simplified
+```sql
+-- OLD (overcomplicated)
+products {
+  category_id, subcategory_id, unit_id, paper_roll_type_id  ← Too many FKs
+  gsm, flute, width  ← Only for paper, nullable for others
+}
+
+-- NEW (simplified)
+products {
+  name, type (enum), unit_id
+  physical_attributes (JSON)  ← {gsm, flute, width, etc.}
+}
+product_category { product_id, category_id, is_primary }  ← M:M
+```
+
+### 2. Stock Quantity Tracking
+```sql
+-- OLD (no per-warehouse aggregation)
+stock_levels { product_id, warehouse_id, qty }  ← Missing audit
+
+-- NEW (with audit trail)
+stock_quantities { 
+  product_id, warehouse_id, total_qty, cump_snapshot, last_movement_id 
+}
+stock_movements { 
+  movement_number, product_id, qty_moved, cump_at_movement, 
+  warehouse_from, warehouse_to, movement_type 
+}  ← Complete history
+```
+
+### 3. Procedure Documents Explicit
+```sql
+-- OLD (everything in receipts)
+receipts { ... }
+receipt_items { ... }
+
+-- NEW (aligned to SIFCO)
+bon_receptions { bon_number, supplier_id, ... }  ← Supplier delivery
+bon_entrees { bon_number, warehouse_id, ... }  ← Entry to system
+bon_sorties { bon_number, destination, ... }  ← Issues
+bon_transferts { ... }  ← Transfers
+bon_reintegrations { ... }  ← Returns
+```
+
+### 4. CUMP Versioning
+```sql
+-- OLD (only avg_cost on product)
+products { avg_cost }  ← Global, not per-warehouse
+
+-- NEW (snapshot at each movement)
+stock_quantities { cump_snapshot }  ← Per warehouse/product
+stock_movements { cump_at_movement }  ← Historical version
+```
 
 ---
 
-## Next Step
+## 📚 Documentation Files
 
-- Execute **Slice 2: Stock storage structure**
-  - Create `stock_levels` table (product_id, warehouse_id, qty)
-  - Create `rolls` table for individual roll tracking with EAN-13 barcode
-  - Implement views to see stock by warehouse and per roll
+| File | Purpose | Status |
+|------|---------|--------|
+| `PLAN.md` | This file - roadmap | 🔄 Updating |
+| `DATABASE_REDESIGN.md` | ✅ **NEW** - Complete new schema | ✅ Created |
+| `PROCEDURE_MAPPING.md` | ✅ **NEW** - SIFCO procedures → code | ✅ Created |
+| `SCHEMA_DICTIONARY.md` | ⏳ **NEXT** - Field reference | 🔄 In progress |
+| `ARCHITECTURE_REVIEW.md` | Legacy - Keep for history | ℹ️ Archive |
+| `INDEX.md` | Doc index | 🔄 Updating |
+
+---
+
+## ⚠️ Known Issues / Blockers
+
+None currently. Ready to begin migrations.
+
+---
+
+## 🚀 Next Steps (Immediate)
+
+### Phase 2 Continuation:
+1. ✅ Design new schema (DONE → DATABASE_REDESIGN.md)
+2. ✅ Map procedures (DONE → PROCEDURE_MAPPING.md)
+3. 🔄 Update documentation (CURRENT)
+4. ⏳ Create migrations
+5. ⏳ Create models + relationships
+6. ⏳ Create Filament resources
+7. ⏳ Implement BON_ENTREE workflow
+8. ⏳ Test and validate
+9. ⏳ Commit
+
+### Post-Phase 2:
+- **Slice 3:** BON_ENTREE workflow with full EAN-13 + CUMP implementation
+- **Slice 4:** BON_SORTIE & BON_TRANSFERT workflows
+- **Slice 5:** BON_REINTEGRATION + manual adjustments
+- **Slice 6:** Low-stock alerts + dashboard
+- **Slice 7:** Valuation + CSV export

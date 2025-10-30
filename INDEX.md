@@ -1,18 +1,85 @@
-# 📚 Documentation Index
+# 📚 Documentation Index – v2.0
 
-**Status:** Slice 2 Complete ✅ | Ready for Slice 3
-**Updated:** 2025-10-30
-**Files:** 5 core docs, ~82KB
+**Status:** Phase 2 – Architectural Redesign 🔄 IN PROGRESS  
+**Updated:** 2025-10-30  
+**Files:** 9 core docs, ~200KB
 
 ---
 
-## 🤖 GPT Agent System Prompt
+## 📋 Documentation Files (in reading order)
 
-**Use this to brief AI agents on CartonStock architecture:**
+### Core References
+1. **README.md** – Project overview
+2. **PLAN.md** ⭐ **START HERE** – Current roadmap & status
+3. **PROCEDURE_MAPPING.md** ⭐ **ESSENTIAL** – SIFCO procedures → code mapping
 
-```
-You are assisting with CartonStock, an inventory management system for 
-cardboard factories built on Laravel 11 + Filament v4.
+### Design & Architecture
+4. **DATABASE_REDESIGN.md** – New schema for scalability
+5. **SCHEMA_DICTIONARY.md** – Field-by-field reference for all tables
+6. **ARCHITECTURE_REVIEW.md** – Legacy (for history, see DATABASE_REDESIGN.md instead)
+
+### Implementation Guides
+7. **VISUAL_ARCHITECTURE.md** – ASCII diagrams of system flow
+8. **INDEX.md** – This file
+
+### Deprecated / Legacy
+- ARCHITECTURE_REVIEW.md (kept for history; refer to DATABASE_REDESIGN.md)
+
+---
+
+## 🎯 Quick Start by Role
+
+### 👨‍💻 Backend Developer
+1. Read: **PLAN.md** (understand current phase)
+2. Read: **PROCEDURE_MAPPING.md** (understand SIFCO workflows)
+3. Read: **SCHEMA_DICTIONARY.md** (reference table fields)
+4. Read: **DATABASE_REDESIGN.md** (understand scalability design)
+5. Code: Create migrations, models, resources (see Slice 2.5 in PLAN.md)
+
+### 👨‍💼 Product Manager / Stakeholder
+1. Read: **PLAN.md** (roadmap & status)
+2. Read: **PROCEDURE_MAPPING.md** (how SIFCO procedures are implemented)
+3. Reference: **SCHEMA_DICTIONARY.md** (if you need field details)
+
+### 🏭 Business / SIFCO Staff
+1. Read: **PROCEDURE_MAPPING.md** (your workflows → system)
+2. Reference: **PLAN.md** (when features will be ready)
+
+---
+
+## 📊 Phase 2 Progress Tracker
+
+**Architectural Redesign:**
+
+- [x] **Analysis & Design** ✅ DONE
+  - [x] Identified overcomplications in v1 schema
+  - [x] Designed new scalable schema
+  - [x] Mapped SIFCO procedures to tables
+
+- [x] **Documentation** ✅ DONE
+  - [x] DATABASE_REDESIGN.md (complete new design)
+  - [x] PROCEDURE_MAPPING.md (SIFCO → code)
+  - [x] SCHEMA_DICTIONARY.md (field reference)
+  - [x] PLAN.md (updated with new status)
+
+- 🔄 **Implementation** IN PROGRESS
+  - [ ] Create migrations (stock_quantities, stock_movements, bon_*, adjustments, alerts)
+  - [ ] Create models (StockQuantity, StockMovement, BonEntree, etc.)
+  - [ ] Create Filament resources (all bon_* workflows)
+  - [ ] Implement BON_ENTREE workflow
+  - [ ] Test end-to-end
+  - [ ] Git commit
+
+---
+
+## 📖 Old System Prompt (Deprecated)
+
+The old system prompt below (Slice 2 era) is superseded by the content in **PROCEDURE_MAPPING.md** and **DATABASE_REDESIGN.md**.
+
+**For new context:** Use information from:
+- **PLAN.md** (current phase & status)
+- **PROCEDURE_MAPPING.md** (workflows)
+- **SCHEMA_DICTIONARY.md** (data model)
 
 ═══════════════════════════════════════════════════════════════════
 

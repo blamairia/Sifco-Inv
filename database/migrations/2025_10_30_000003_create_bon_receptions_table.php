@@ -1,0 +1,49 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Bon de Réception – Supplier Delivery Verification
+     * 
+     * SIFCO Procedure Reference:
+     * "Avant de procéder à l'établissement du bon d'entrée en stock, 
+     * le gestionnaire des stocks doit disposer de la totalité des documents du dossier de réception"
+     */
+    public function up(): void
+    {
+        Schema::create('bon_receptions', function (Blueprint $table) {
+            $table->id();
+            $table->string('bon_number', 50)->unique()->comment('BREC-{YMMDD}-{seq}');
+            $table->foreignId('supplier_id')->constrained();
+            $table->string('delivery_note_ref', 100)->nullable()->comment('Bon de livraison fournisseur');
+            $table->string('purchase_order_ref', 100)->nullable()->comment('Bon de commande');
+            $table->date('receipt_date');
+            
+            $table->enum('status', [
+                'received',
+                'verified',
+                'conformity_issue',
+                'rejected',
+            ])->default('received')->comment('Reception status');
+            
+            $table->foreignId('verified_by_id')->nullable()->constrained('users')->comment('Magasinier');
+            $table->timestamp('verified_at')->nullable();
+            
+            $table->json('conformity_issues')->nullable()->comment('{missing, surplus, damaged, other}');
+            $table->text('notes')->nullable();
+            
+            $table->timestamps();
+            $table->index('bon_number');
+            $table->index('status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('bon_receptions');
+    }
+};

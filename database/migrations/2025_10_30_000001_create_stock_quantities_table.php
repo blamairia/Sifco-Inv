@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     * 
+     * Replaces stock_levels with enhanced tracking:
+     * - Separates reserved_qty for future reservations
+     * - Adds CUMP snapshot per warehouse/product
+     * - Adds last_movement_id for traceability
+     */
+    public function up(): void
+    {
+        Schema::create('stock_quantities', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained();
+            $table->foreignId('warehouse_id')->constrained();
+            $table->decimal('total_qty', 15, 2)->default(0)->comment('Total quantity on hand');
+            $table->decimal('reserved_qty', 15, 2)->default(0)->comment('Reserved quantity (future)');
+            $table->decimal('available_qty', 15, 2)->storedAs('total_qty - reserved_qty')->comment('Calculated: total - reserved');
+            $table->decimal('cump_snapshot', 12, 2)->default(0)->comment('Current CUMP (Coût Unitaire Moyen Pondéré)');
+            $table->foreignId('last_movement_id')->nullable()->constrained('stock_movements');
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            
+            $table->unique(['product_id', 'warehouse_id']);
+            $table->index(['product_id', 'warehouse_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('stock_quantities');
+    }
+};
