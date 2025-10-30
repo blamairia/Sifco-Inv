@@ -33,21 +33,34 @@ class RollsTable
                     ->searchable()
                     ->sortable(),
                 
-                TextColumn::make('qty')
-                    ->label('Quantité')
-                    ->numeric(decimalPlaces: 2)
-                    ->sortable(),
+                TextColumn::make('batch_number')
+                    ->label('Lot')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                
+                TextColumn::make('received_date')
+                    ->label('Date Réception')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(),
                 
                 TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'in_stock' => 'success',
+                        'reserved' => 'warning',
                         'consumed' => 'gray',
+                        'damaged' => 'danger',
+                        'archived' => 'secondary',
+                        default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'in_stock' => 'En stock',
+                        'reserved' => 'Réservé',
                         'consumed' => 'Consommé',
+                        'damaged' => 'Endommagé',
+                        'archived' => 'Archivé',
                     }),
                 
                 TextColumn::make('created_at')

@@ -7,19 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 class Supplier extends Model
 {
     protected $fillable = [
+        'code',
         'name',
         'contact_person',
         'phone',
         'email',
+        'address',
+        'payment_terms',
+        'is_active',
     ];
 
-    public function rollSpecifications()
-    {
-        return $this->hasMany(RollSpecification::class);
-    }
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
 
-    public function receipts()
+    public function bonReceptions()
     {
-        return $this->hasMany(Receipt::class);
+        return $this->hasMany(BonReception::class);
     }
 }

@@ -1,73 +1,38 @@
-# 📦 SIFCO Stock Management# 📦 CartonStock MVP - Laravel 11 + Filament v4
+# 📦 CartonStock MVP - Laravel 11 + Filament v4
 
+**Status:** Phase 3.2 Complete ✅ | Ready for Phase 3.3 ⚡
 
-
-## ✅ Status: MySQL 8.0 + 22 Tables + Filament Resources Working**Status:** Phase 3.2 Complete ✅ | Ready for Phase 3.3 ⚡
-
-
-
-### Stack## 🎯 Project Overview
-
-Laravel 11 | Filament v4 | MySQL 8.0.44 | PHP 8.2.28
+## 🎯 Project Overview
 
 CartonStock is an on-premise inventory management system for cardboard/box factories built on **Laravel 11** with **Filament v4** admin UI.
 
-### DB (22 tables, 4.8s migration)
-
-**Master:** units, categories, suppliers, warehouses, products  - **Tech Stack:** Laravel 11, Filament v4, MySQL/MariaDB, PHP 8.2.28
-
-**Inventory:** product_category, stock_quantities, rolls, stock_movements  - **UI Language:** French (Français)
-
-**Workflow:** bon_receptions, bon_entrees/items, bon_sorties/items, bon_transferts/items, bon_reintegrations/items- **Current Phase:** Phase 3.2 complete - Database setup & 8 Filament resources configured
-
+- **Tech Stack:** Laravel 11, Filament v4, MySQL/MariaDB, PHP 8.2.28
+- **UI Language:** French (Français)
+- **Current Phase:** Phase 3.2 complete - Database setup & 8 Filament resources configured
 - **Next Phase:** Phase 3.3 - Workflow resources (BON_ENTREE, BON_SORTIE, etc.)
-
-### Seeders (32 records)- **Last Commit:** b3418db - feat(phase3.2): complete database setup and Filament resources
-
-5 users | 5 units | 6 categories | 3 warehouses | 5 suppliers | 8 products
+- **Last Commit:** b3418db - feat(phase3.2): complete database setup and Filament resources
 
 ---
 
-### Resources
-
-✅ Users, Units, Categories, Warehouses, Suppliers, Products, Rolls  ## 📚 Documentation
-
-⏳ StockQuantities, BonEntrees, BonSorties, BonTransferts
+## 📚 Documentation
 
 ### 🆕 Latest Updates
+- **[PHASE3_2_COMPLETE.md](PHASE3_2_COMPLETE.md)** - Phase 3.2 delivery summary ⭐ READ FIRST
+- **[PHASE3_1_FINAL_DELIVERY.md](PHASE3_1_FINAL_DELIVERY.md)** - Phase 3.1 models delivery
 
-### Key Design- **[PHASE3_2_COMPLETE.md](PHASE3_2_COMPLETE.md)** - Phase 3.2 delivery summary ⭐ READ FIRST
-
-- Products: grammage/laize/flute columns + extra_attributes JSON- **[PHASE3_1_FINAL_DELIVERY.md](PHASE3_1_FINAL_DELIVERY.md)** - Phase 3.1 models delivery
-
-- Rolls: unique EAN-13, no qty
-
-- Categories: M:M pivot (is_primary)### Phase 2 Documentation
-
-- Stock: quantities (aggregated) + movements (audit trail with CUMP)- **[PHASE2_DELIVERY.md](PHASE2_DELIVERY.md)** - Phase 2 redesign delivery
-
+### Phase 2 Documentation
+- **[PHASE2_DELIVERY.md](PHASE2_DELIVERY.md)** - Phase 2 redesign delivery
 - **[DATABASE_REDESIGN.md](DATABASE_REDESIGN.md)** - Complete database redesign
+- **[PROCEDURE_MAPPING.md](PROCEDURE_MAPPING.md)** - SIFCO procedures mapping
+- **[SCHEMA_DICTIONARY.md](SCHEMA_DICTIONARY.md)** - Field reference guide
 
-### Run- **[PROCEDURE_MAPPING.md](PROCEDURE_MAPPING.md)** - SIFCO procedures mapping
-
-```bash- **[SCHEMA_DICTIONARY.md](SCHEMA_DICTIONARY.md)** - Field reference guide
-
-php artisan serve  # admin@sifco.local / admin123
-
-```### Architecture & Planning
-
+### Architecture & Planning
 - **[ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md)** - Complete architecture walkthrough
-
-### Commits- **[VISUAL_ARCHITECTURE.md](VISUAL_ARCHITECTURE.md)** - Diagrams & query patterns
-
-`81be9ef` DB redesign | `84d52a3` Seeders | `2118088` Product resource- **[Plan.md](Plan.md)** - Project roadmap & progress tracker
-
+- **[VISUAL_ARCHITECTURE.md](VISUAL_ARCHITECTURE.md)** - Diagrams & query patterns
+- **[Plan.md](Plan.md)** - Project roadmap & progress tracker
 - **[INDEX.md](INDEX.md)** - Documentation index
 
-### Next
-
-Test resources → StockQuantity resource → BON_ENTREE workflow → CUMP calculation### For Developers
-
+### For Developers
 - **Models:** `/app/Models/` (14 models with full relationships)
 - **Migrations:** `/database/migrations/` (15 active, 10 backup)
 - **Seeders:** `/database/seeders/` (4 seeders with test data)

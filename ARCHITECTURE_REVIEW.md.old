@@ -1,127 +1,65 @@
-# 🏗️ ARCHITECTURE REVIEW# 🏗️ ARCHITECTURE REVIEW: Complete Walkthrough
+# 🏗️ ARCHITECTURE REVIEW: Complete Walkthrough
 
-
-
-## CURRENT (Phase 3.2 - Oct 30, 2025)**Purpose:** In-depth explanation of the three-tier architecture solution
-
+**Purpose:** In-depth explanation of the three-tier architecture solution
 **Audience:** Technical leads, architects, developers, decision makers
+**Read Time:** 15-20 minutes
+**Status:** ✅ Complete explanation with all requirements addressed
 
-### Schema - CLEAN & REDESIGNED**Read Time:** 15-20 minutes
+---
 
-**22 tables, MySQL 8.0, no legacy conflicts****Status:** ✅ Complete explanation with all requirements addressed
+## 📌 Your Original Question
 
-
-
-#### Master Data (7)---
-
-- `products`: code, name, type, grammage, laize, flute, type_papier + extra_attributes JSON
-
-- `categories`: M:M with products (product_category pivot)## 📌 Your Original Question
-
-- `suppliers`: code, name, contact, payment_terms
-
-- `warehouses`: name, is_system> "We have rolls and products and specifications all confused. How do we solve this so each roll has a unique EAN-13, quantities are properly tracked, and receipts work uniformly?"
-
-- `units`: name, symbol (pcs/roll/kg/m/t)
+> "We have rolls and products and specifications all confused. How do we solve this so each roll has a unique EAN-13, quantities are properly tracked, and receipts work uniformly?"
 
 **Answer:** Three-tier hierarchy: PaperRollType → RollSpecification → Roll
 
-#### Inventory (4)
+This document explains **why** this works, **how** it solves your problem, and **what** it means for your system.
 
-- `stock_quantities`: product+warehouse aggregated qty, CUMP snapshotThis document explains **why** this works, **how** it solves your problem, and **what** it means for your system.
-
-- `rolls`: unique EAN-13, status, batch, 1 roll = 1 entity
-
-- `stock_movements`: audit trail (RECEPTION/ISSUE/TRANSFER/RETURN), CUMP at movement---
-
-- `product_category`: M:M pivot with is_primary flag
+---
 
 ## ❌ The Original Problem
 
-#### Workflow (11)
+You had:
+- **Products** (abstract concepts: "A4 80gsm paper")
+- **Rolls** (physical inventory with EAN-13)
+- **Specifications** (attributes: size, weight, etc.)
 
-BON system aligned with SIFCO procedure:You had:
-
-- **Reception:** bon_receptions (supplier delivery)- **Products** (abstract concepts: "A4 80gsm paper")
-
-- **Entry:** bon_entrees + items (CUMP calculation, frais approche)- **Rolls** (physical inventory with EAN-13)
-
-- **Issue:** bon_sorties + items (to production/client)- **Specifications** (attributes: size, weight, etc.)
-
-- **Transfer:** bon_transferts + items (warehouse to warehouse)
-
-- **Return:** bon_reintegrations + items (back to stock)But **they didn't talk to each other properly:**
-
-
-
-### Models - UPDATED```
-
-`Product`: categories() M:M, unit() belongsTo, rolls/stockQuantities hasMany  Product
-
-`Category`: products() M:M  ├─ Name: "A4 Paper"
-
-Others: waiting for implementation└─ ??? Connected to what?
-
-
-
-### Filament Resources - 7/10 DONERoll
-
-✅ Users, Units, Categories, Warehouses, Suppliers, Products, Rolls  ├─ EAN-13: "5901234123457"
-
-⏳ StockQuantities, BonEntrees (complex), BonSorties├─ Quantity: 500
-
-└─ ??? What product is this?
-
-### Key Decisions
-
-1. **Hybrid Product Schema** - fast filtering (columns) + flexibility (JSON)Specification
-
-2. **No Subcategories** - M:M categories with primary flag instead├─ Size: "A4"
-
-3. **Rolls = Unique** - no qty column, each roll is individual entity├─ GSM: 80
-
-4. **Dual Stock Tables** - quantities (current state) + movements (history + audit)└─ ??? Owned by Product or Supplier or...?
+But **they didn't talk to each other properly:**
 
 ```
+Product
+├─ Name: "A4 Paper"
+└─ ??? Connected to what?
 
-### Removed/Deprecated
+Roll
+├─ EAN-13: "5901234123457"
+├─ Quantity: 500
+└─ ??? What product is this?
 
-- ❌ PaperRollType table**The confusion:**
+Specification
+├─ Size: "A4"
+├─ GSM: 80
+└─ ??? Owned by Product or Supplier or...?
+```
 
-- ❌ RollSpecification table  - Is a "specification" tied to a product or a supplier?
-
-- ❌ Subcategories table- Can the same product have different specifications?
-
-- ❌ stock_levels (replaced by stock_quantities)- How do you group rolls by their actual characteristics?
-
+**The confusion:**
+- Is a "specification" tied to a product or a supplier?
+- Can the same product have different specifications?
+- How do you group rolls by their actual characteristics?
 - When you receive 500 units, where do you store the details about WHAT exactly arrived?
 
-### Tech Debt
+---
 
-- Old Phase 2/3.1 documentation (PHASE*.md files)---
+## ✅ The Solution: Three-Tier Hierarchy
 
-- Product resource needs category M:M field update
+### Architecture Overview
 
-- Roll resource needs product/warehouse selects check## ✅ The Solution: Three-Tier Hierarchy
-
-- Missing: CUMP calculation helpers
-
-- Missing: EAN-13 generation logic### Architecture Overview
-
-
-
-### Next Actions```
-
-1. Test all resources CRUDTIER 1: PaperRollType (Attributes Only)
-
-2. Create StockQuantity resource────────────────────────────────────────
-
-3. Build BON_ENTREE step-by-step (most complex)"A4 80gsm"
-
-4. Implement CUMP on bon_entree_items├─ Size: "A4"
-
-5. Auto-generate EAN-13 for rolls├─ Grammage: 80 gsm
-
+```
+TIER 1: PaperRollType (Attributes Only)
+────────────────────────────────────────
+"A4 80gsm"
+├─ Size: "A4"
+├─ Grammage: 80 gsm
 ├─ Laise: 210mm
 ├─ FL (Face Length): 297mm
 └─ Weight: Calculated from dimensions

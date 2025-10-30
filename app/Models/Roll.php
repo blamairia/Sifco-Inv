@@ -9,16 +9,15 @@ class Roll extends Model
     protected $fillable = [
         'product_id',
         'warehouse_id',
-        'roll_specification_id',
         'ean_13',
-        'qty',
-        'status',
         'batch_number',
         'received_date',
+        'received_from_movement_id',
+        'status',
+        'notes',
     ];
 
     protected $casts = [
-        'qty' => 'decimal:2',
         'received_date' => 'date',
     ];
 
@@ -32,8 +31,8 @@ class Roll extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
-    public function rollSpecification()
+    public function receivedFromMovement()
     {
-        return $this->belongsTo(RollSpecification::class);
+        return $this->belongsTo(StockMovement::class, 'received_from_movement_id');
     }
 }
