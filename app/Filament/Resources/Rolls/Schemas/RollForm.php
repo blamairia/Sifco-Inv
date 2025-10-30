@@ -13,11 +13,12 @@ class RollForm
         return $schema
             ->components([
                 Select::make('product_id')
-                    ->label('Produit')
-                    ->relationship('product', 'name')
+                    ->label('Produit (Bobines uniquement)')
+                    ->relationship('product', 'name', fn ($query) => $query->where('is_roll', true))
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->helperText('Seuls les produits marqués comme bobines sont disponibles'),
                 
                 Select::make('warehouse_id')
                     ->label('Magasin')

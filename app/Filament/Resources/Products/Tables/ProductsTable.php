@@ -30,11 +30,16 @@ class ProductsTable
                     ->searchable(),
                 TextColumn::make('type_papier')
                     ->searchable(),
-                TextColumn::make('unit_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('unit.name')
+                    ->label('Unité')
+                    ->sortable()
+                    ->searchable(),
                 IconColumn::make('is_active')
                     ->boolean(),
+                IconColumn::make('is_roll')
+                    ->label('Bobine')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('min_stock')
                     ->numeric()
                     ->sortable(),

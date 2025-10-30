@@ -18,6 +18,7 @@ class Product extends Model
         'extra_attributes',
         'unit_id',
         'is_active',
+        'is_roll',
         'min_stock',
         'safety_stock',
     ];
@@ -27,6 +28,7 @@ class Product extends Model
         'laize' => 'integer',
         'extra_attributes' => 'array',
         'is_active' => 'boolean',
+        'is_roll' => 'boolean',
         'min_stock' => 'decimal:2',
         'safety_stock' => 'decimal:2',
     ];

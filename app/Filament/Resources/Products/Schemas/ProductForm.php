@@ -6,7 +6,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Schemas\Schema;
@@ -17,7 +17,7 @@ class ProductForm
     {
         return $schema
             ->components([
-                \Filament\Forms\Components\Section::make('Informations Générales')
+                Section::make('Informations Générales')
                     ->schema([
                         TextInput::make('code')
                             ->label('Code Produit')
@@ -55,10 +55,15 @@ class ProductForm
                         Toggle::make('is_active')
                             ->label('Actif')
                             ->default(true),
+                        
+                        Toggle::make('is_roll')
+                            ->label('Est une Bobine')
+                            ->helperText('Cochez si ce produit est une bobine/roll')
+                            ->default(false),
                     ])
                     ->columns(2),
                 
-                \Filament\Forms\Components\Section::make('Attributs Papier')
+                Section::make('Attributs Papier')
                     ->schema([
                         TextInput::make('grammage')
                             ->label('Grammage (g/m²)')
@@ -85,9 +90,9 @@ class ProductForm
                     ->columns(2)
                     ->collapsible(),
                 
-                \Filament\Forms\Components\Section::make('Attributs Supplémentaires (JSON)')
+                Section::make('Attributs Supplémentaires (JSON)')
                     ->schema([
-                        \Filament\Forms\Components\KeyValue::make('extra_attributes')
+                        KeyValue::make('extra_attributes')
                             ->label('Attributs Extra')
                             ->keyLabel('Attribut')
                             ->valueLabel('Valeur')
@@ -97,7 +102,7 @@ class ProductForm
                     ->collapsible()
                     ->collapsed(),
                 
-                \Filament\Forms\Components\Section::make('Gestion Stock')
+                Section::make('Gestion Stock')
                     ->schema([
                         TextInput::make('min_stock')
                             ->label('Stock Minimum')

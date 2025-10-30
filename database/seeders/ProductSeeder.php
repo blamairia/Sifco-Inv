@@ -19,25 +19,26 @@ class ProductSeeder extends Seeder
         $catConsommable = \App\Models\Category::where('name', 'Consommables Production')->first();
         $catFini = \App\Models\Category::where('name', 'Produits Finis')->first();
         
-        // Paper Rolls
+        // Paper Rolls (flagged as rolls)
         $p1 = \App\Models\Product::create([
             'code' => 'PROD-KR80-001', 'name' => 'Kraft Blanc 80g/m²', 'type' => 'papier_roll',
             'description' => 'Papier kraft blanchi', 'grammage' => 80, 'laize' => 1600,
-            'type_papier' => 'Kraftliner', 'unit_id' => $unitRoll?->id, 'min_stock' => 50, 'safety_stock' => 20,
+            'type_papier' => 'Kraftliner', 'unit_id' => $unitRoll?->id, 'is_roll' => true,
+            'min_stock' => 50, 'safety_stock' => 20,
         ]);
         $p1->categories()->attach($catKraft->id, ['is_primary' => true]);
         
         $p2 = \App\Models\Product::create([
             'code' => 'PROD-TS120-002', 'name' => 'Test 120g/m² Cannelure', 'type' => 'papier_roll',
             'grammage' => 120, 'laize' => 1400, 'flute' => 'B', 'type_papier' => 'Test/Fluting',
-            'unit_id' => $unitRoll?->id, 'min_stock' => 40, 'safety_stock' => 15,
+            'unit_id' => $unitRoll?->id, 'is_roll' => true, 'min_stock' => 40, 'safety_stock' => 15,
         ]);
         $p2->categories()->attach($catTest->id, ['is_primary' => true]);
         
         $p3 = \App\Models\Product::create([
             'code' => 'PROD-REC60-003', 'name' => 'Recyclé 60g/m²', 'type' => 'papier_roll',
             'grammage' => 60, 'laize' => 1500, 'type_papier' => 'Recyclé',
-            'unit_id' => $unitRoll?->id, 'min_stock' => 30, 'safety_stock' => 10,
+            'unit_id' => $unitRoll?->id, 'is_roll' => true, 'min_stock' => 30, 'safety_stock' => 10,
         ]);
         $p3->categories()->attach($catRecycle->id, ['is_primary' => true]);
         
