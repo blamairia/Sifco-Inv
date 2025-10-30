@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Categories\Tables;
+namespace App\Filament\Resources\Users\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -8,7 +8,7 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class CategoriesTable
+class UsersTable
 {
     public static function configure(Table $table): Table
     {
@@ -19,13 +19,19 @@ class CategoriesTable
                     ->sortable(),
                 
                 TextColumn::make('name')
-                    ->label('Nom de la catégorie')
+                    ->label('Nom')
                     ->searchable()
                     ->sortable(),
                 
-                TextColumn::make('description')
-                    ->label('Description')
-                    ->limit(50),
+                TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->sortable(),
+                
+                TextColumn::make('email_verified_at')
+                    ->label('Email vérifié')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
                 
                 TextColumn::make('created_at')
                     ->label('Créé le')

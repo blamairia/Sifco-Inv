@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('warehouse_id')->constrained();
             $table->decimal('total_qty', 15, 2)->default(0)->comment('Total quantity on hand');
             $table->decimal('reserved_qty', 15, 2)->default(0)->comment('Reserved quantity (future)');
-            $table->decimal('available_qty', 15, 2)->storedAs('total_qty - reserved_qty')->comment('Calculated: total - reserved');
+            $table->decimal('available_qty', 15, 2)->default(0)->comment('Available quantity (calculated: total - reserved)');
             $table->decimal('cump_snapshot', 12, 2)->default(0)->comment('Current CUMP (Coût Unitaire Moyen Pondéré)');
             $table->foreignId('last_movement_id')->nullable()->constrained('stock_movements');
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();

@@ -2,11 +2,9 @@
 
 namespace App\Filament\Resources\Rolls\Schemas;
 
-use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use App\Models\Product;
-use App\Models\Warehouse;
+use Filament\Schemas\Schema;
 
 class RollForm
 {
@@ -16,28 +14,39 @@ class RollForm
             ->components([
                 Select::make('product_id')
                     ->label('Produit')
-                    ->options(Product::where('type', 'papier_roll')->pluck('name', 'id'))
-                    ->required(),
-                Select::make('warehouse_id')
-                    ->label('Entrepôt')
-                    ->options(Warehouse::all()->pluck('name', 'id'))
-                    ->required(),
-                TextInput::make('ean_13')
-                    ->label('EAN-13')
+                    ->relationship('product', 'name')
                     ->required()
+                    ->searchable()
+                    ->preload(),
+                
+                Select::make('warehouse_id')
+                    ->label('Magasin')
+                    ->relationship('warehouse', 'name')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+                
+                TextInput::make('ean_13')
+                    ->label('Code EAN-13')
+                    ->required()
+                    ->unique(ignoreRecord: true)
                     ->maxLength(13)
-                    ->unique(ignoreRecord: true),
+                    ->minLength(13),
+                
                 TextInput::make('qty')
                     ->label('Quantité')
-                    ->numeric()
                     ->required()
+                    ->numeric()
+                    ->default(0)
                     ->minValue(0),
+                
                 Select::make('status')
                     ->label('Statut')
                     ->options([
-                        'in_stock' => 'En Stock',
+                        'in_stock' => 'En stock',
                         'consumed' => 'Consommé',
                     ])
+                    ->required()
                     ->default('in_stock'),
             ]);
     }

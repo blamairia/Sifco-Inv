@@ -14,15 +14,31 @@ class SuppliersTable
     {
         return $table
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+                
                 TextColumn::make('name')
-                    ->label('Nom')
-                    ->searchable(),
+                    ->label('Nom du fournisseur')
+                    ->searchable()
+                    ->sortable(),
+                
                 TextColumn::make('contact_person')
-                    ->label('Contact'),
+                    ->label('Personne de contact')
+                    ->searchable(),
+                
                 TextColumn::make('phone')
                     ->label('Téléphone'),
+                
                 TextColumn::make('email')
-                    ->label('Email'),
+                    ->label('Email')
+                    ->searchable(),
+                
+                TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

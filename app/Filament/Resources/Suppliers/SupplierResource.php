@@ -22,6 +22,10 @@ class SupplierResource extends Resource
 
     protected static ?string $navigationLabel = 'Fournisseurs';
 
+    protected static ?string $modelLabel = 'Fournisseur';
+
+    protected static ?string $pluralModelLabel = 'Fournisseurs';
+
     public static function form(Schema $schema): Schema
     {
         return SupplierForm::configure($schema);

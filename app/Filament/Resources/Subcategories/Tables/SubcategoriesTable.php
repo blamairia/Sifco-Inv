@@ -14,16 +14,40 @@ class SubcategoriesTable
     {
         return $table
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+                
                 TextColumn::make('category.name')
-                    ->label('Catégorie'),
+                    ->label('Catégorie')
+                    ->searchable()
+                    ->sortable(),
+                
                 TextColumn::make('name')
-                    ->label('Nom')
-                    ->searchable(),
+                    ->label('Nom de la sous-catégorie')
+                    ->searchable()
+                    ->sortable(),
+                
                 TextColumn::make('description')
-                    ->label('Description'),
+                    ->label('Description')
+                    ->limit(50),
+                
+                TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([])
-            ->recordActions([EditAction::make()])
-            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->filters([
+                //
+            ])
+            ->recordActions([
+                EditAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
     }
 }

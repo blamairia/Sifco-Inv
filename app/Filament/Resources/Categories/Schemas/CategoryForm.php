@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Categories\Schemas;
 
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
 
 class CategoryForm
 {
@@ -12,14 +13,14 @@ class CategoryForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Nom')
+                    ->label('Nom de la catégorie')
                     ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true),
-                TextInput::make('description')
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
+                
+                Textarea::make('description')
                     ->label('Description')
-                    ->maxLength(1000)
-                    ->nullable(),
+                    ->rows(3),
             ]);
     }
 }

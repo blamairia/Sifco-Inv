@@ -20,7 +20,11 @@ class WarehouseResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $navigationLabel = 'Entrepôts';
+    protected static ?string $navigationLabel = 'Magasins';
+
+    protected static ?string $modelLabel = 'Magasin';
+
+    protected static ?string $pluralModelLabel = 'Magasins';
 
     public static function form(Schema $schema): Schema
     {

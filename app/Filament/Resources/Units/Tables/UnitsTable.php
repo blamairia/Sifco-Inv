@@ -14,13 +14,29 @@ class UnitsTable
     {
         return $table
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+                
                 TextColumn::make('name')
-                    ->label('Nom')
-                    ->searchable(),
+                    ->label('Nom de l\'unité')
+                    ->searchable()
+                    ->sortable(),
+                
                 TextColumn::make('symbol')
-                    ->label('Symbole'),
+                    ->label('Symbole')
+                    ->searchable()
+                    ->sortable(),
+                
                 TextColumn::make('description')
-                    ->label('Description'),
+                    ->label('Description')
+                    ->limit(50),
+                
+                TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

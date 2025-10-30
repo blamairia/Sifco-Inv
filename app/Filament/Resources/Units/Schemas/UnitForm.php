@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Units\Schemas;
 
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
 
 class UnitForm
 {
@@ -12,19 +13,20 @@ class UnitForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Nom')
+                    ->label('Nom de l\'unité')
                     ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true),
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
+                
                 TextInput::make('symbol')
                     ->label('Symbole')
                     ->required()
-                    ->maxLength(10)
-                    ->unique(ignoreRecord: true),
-                TextInput::make('description')
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
+                
+                Textarea::make('description')
                     ->label('Description')
-                    ->maxLength(1000)
-                    ->nullable(),
+                    ->rows(3),
             ]);
     }
 }

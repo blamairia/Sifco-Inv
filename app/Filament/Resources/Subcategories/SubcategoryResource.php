@@ -22,6 +22,10 @@ class SubcategoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Sous-catégories';
 
+    protected static ?string $modelLabel = 'Sous-catégorie';
+
+    protected static ?string $pluralModelLabel = 'Sous-catégories';
+
     public static function form(Schema $schema): Schema
     {
         return SubcategoryForm::configure($schema);

@@ -5,8 +5,8 @@ namespace App\Filament\Resources\Warehouses\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class WarehousesTable
@@ -15,12 +15,26 @@ class WarehousesTable
     {
         return $table
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+                
                 TextColumn::make('name')
-                    ->label('Nom')
-                    ->searchable(),
+                    ->label('Nom du magasin')
+                    ->searchable()
+                    ->sortable(),
+                
                 IconColumn::make('is_system')
                     ->label('Système')
-                    ->boolean(),
+                    ->boolean()
+                    ->trueIcon('heroicon-o-lock-closed')
+                    ->falseIcon('heroicon-o-lock-open'),
+                
+                TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

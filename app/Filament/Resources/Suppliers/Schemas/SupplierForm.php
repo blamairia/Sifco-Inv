@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Suppliers\Schemas;
 
-use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
 
 class SupplierForm
 {
@@ -12,21 +12,23 @@ class SupplierForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Nom du Fournisseur')
+                    ->label('Nom du fournisseur')
                     ->required()
                     ->maxLength(255),
+                
                 TextInput::make('contact_person')
-                    ->label('Personne Contact')
-                    ->maxLength(255)
-                    ->nullable(),
+                    ->label('Personne de contact')
+                    ->maxLength(255),
+                
                 TextInput::make('phone')
                     ->label('Téléphone')
                     ->tel()
-                    ->nullable(),
+                    ->maxLength(255),
+                
                 TextInput::make('email')
                     ->label('Email')
                     ->email()
-                    ->nullable(),
+                    ->maxLength(255),
             ]);
     }
 }

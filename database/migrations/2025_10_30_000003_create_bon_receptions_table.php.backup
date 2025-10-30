@@ -33,7 +33,7 @@ return new class extends Migration
             $table->foreignId('verified_by_id')->nullable()->constrained('users')->comment('Magasinier');
             $table->timestamp('verified_at')->nullable();
             
-            $table->json('conformity_issues')->nullable()->comment('{missing, surplus, damaged, other}');
+            $table->json('conformity_issues')->nullable()->comment('missing, surplus, damaged, other');
             $table->text('notes')->nullable();
             
             $table->timestamps();

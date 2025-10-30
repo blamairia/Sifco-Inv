@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Warehouses\Schemas;
 
-use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Schema;
 
 class WarehouseForm
 {
@@ -13,13 +13,15 @@ class WarehouseForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Nom de l\'Entrepôt')
+                    ->label('Nom du magasin')
                     ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true),
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
+                
                 Toggle::make('is_system')
-                    ->label('Entrepôt Système')
-                    ->disabled(fn ($record) => $record?->is_system),
+                    ->label('Magasin système')
+                    ->helperText('Les magasins système ne peuvent pas être supprimés')
+                    ->default(false),
             ]);
     }
 }

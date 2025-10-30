@@ -20,7 +20,11 @@ class RollResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $navigationLabel = 'Rouleaux';
+    protected static ?string $navigationLabel = 'Bobines';
+
+    protected static ?string $modelLabel = 'Bobine';
+
+    protected static ?string $pluralModelLabel = 'Bobines';
 
     public static function form(Schema $schema): Schema
     {

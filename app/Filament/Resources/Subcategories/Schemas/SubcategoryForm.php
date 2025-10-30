@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\Subcategories\Schemas;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
 use App\Models\Category;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
 
 class SubcategoryForm
 {
@@ -15,16 +16,19 @@ class SubcategoryForm
             ->components([
                 Select::make('category_id')
                     ->label('Catégorie')
-                    ->options(Category::all()->pluck('name', 'id'))
-                    ->required(),
+                    ->relationship('category', 'name')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+                
                 TextInput::make('name')
-                    ->label('Nom')
+                    ->label('Nom de la sous-catégorie')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('description')
+                
+                Textarea::make('description')
                     ->label('Description')
-                    ->maxLength(1000)
-                    ->nullable(),
+                    ->rows(3),
             ]);
     }
 }
