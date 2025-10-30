@@ -7,60 +7,50 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
+        'code',
         'name',
         'type',
-        'gsm',
+        'description',
+        'grammage',
+        'laize',
         'flute',
-        'width',
+        'type_papier',
+        'extra_attributes',
+        'unit_id',
+        'is_active',
         'min_stock',
         'safety_stock',
-        'avg_cost',
-        'category_id',
-        'subcategory_id',
-        'unit_id',
-        'paper_roll_type_id',
     ];
 
     protected $casts = [
-        'gsm' => 'integer',
-        'width' => 'integer',
+        'grammage' => 'integer',
+        'laize' => 'integer',
+        'extra_attributes' => 'array',
+        'is_active' => 'boolean',
         'min_stock' => 'decimal:2',
         'safety_stock' => 'decimal:2',
-        'avg_cost' => 'decimal:2',
     ];
 
-    public function category()
+    // Many-to-Many with categories
+    public function categories()
     {
-        return $this->belongsTo(Category::class);
-    }
-
-    public function subcategory()
-    {
-        return $this->belongsTo(Subcategory::class);
+        return $this->belongsToMany(Category::class, 'product_category')
+            ->withPivot('is_primary');
     }
 
     public function unit()
     {
         return $this->belongsTo(Unit::class);
     }
-
-    public function paperRollType()
-    {
-        return $this->belongsTo(PaperRollType::class);
-    }
-
-    public function rollSpecifications()
-    {
-        return $this->hasMany(RollSpecification::class);
-    }
-
-    public function stockLevels()
-    {
-        return $this->hasMany(StockLevel::class);
-    }
-
+    
     public function rolls()
     {
         return $this->hasMany(Roll::class);
     }
+    
+    public function stockQuantities()
+    {
+        return $this->hasMany(StockQuantity::class);
+    }
+
 }

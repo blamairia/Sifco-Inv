@@ -11,9 +11,11 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        // Call all individual seeders
+        // Call all individual seeders in dependency order
         $this->call([
             UserSeeder::class,
+            UnitSeeder::class,
+            CategorySeeder::class,
             WarehouseSeeder::class,
             SupplierSeeder::class,
             ProductSeeder::class,
