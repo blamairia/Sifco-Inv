@@ -201,7 +201,29 @@
 - [ ] Display generated EAN-13 codes after validation
 - [ ] Add print/PDF export for bon_entrees
 
-**Estimated Time:** 3-4 days  
+### 3.7 Stock Viewing Resource 📊
+**Goal:** Verify stock operations from Slices 3-6 with read-only stock visibility
+
+- [ ] Create StockQuantityResource (read-only)
+  - Table columns: product, warehouse, total_qty, reserved_qty, available_qty, cump, total_value (qty × cump)
+  - Filters: warehouse, product, category, low stock (qty <= min_stock)
+  - Sort by: product name, warehouse, quantity, value
+  - Search: product name/code, warehouse name
+- [ ] Add StockMovementResource (read-only audit log)
+  - Table columns: date, type, product, warehouse, qty_change, cump_before, cump_after, reference (bon number), user
+  - Filters: movement type, warehouse, product, date range
+  - Sort by: movement_date (desc default)
+  - Click reference → redirect to bon detail page
+- [ ] Add actions:
+  - View movements for specific product/warehouse
+  - Export to CSV
+- [ ] Testing:
+  - Verify stock updates after BonEntree validation
+  - Verify stock deductions after BonSortie issue
+  - Verify CUMP changes visible
+  - Verify movements link to correct bons
+
+**Estimated Time:** 3-4 days (includes 3.7)  
 **Dependencies:** None (all tables exist)  
 **Blocker Risk:** Low
 
