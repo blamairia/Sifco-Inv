@@ -1,0 +1,443 @@
+# 📚 Documentation Index – v3.0
+
+**Status:** Phase 3 – Bon d'Entrée Workflow Implementation 🔄 IN PROGRESS  
+**Updated:** 2025-11-02  
+**Database:** MySQL 8.0.44 | 27 tables | Laravel 11 | Filament v4.0.0  
+**Files:** 10 core docs
+
+---
+
+## 📋 Documentation Files (in reading order)
+
+### Core References
+1. **README.md** – Project overview + tech stack
+2. **PLAN.md** ⭐ **START HERE** – Current roadmap & status (Phase 3)
+3. **PROCEDURE_MAPPING.md** ⭐ **ESSENTIAL** – SIFCO procedures → code mapping
+
+### Design & Architecture
+4. **DATABASE_REDESIGN.md** – Complete schema (27 tables)
+5. **UML_DIAGRAMS.md** ⭐ **NEW** – Use case + class diagrams + ERD
+6. **SCHEMA_DICTIONARY.md** – Field-by-field reference
+7. **VISUAL_ARCHITECTURE.md** – ASCII diagrams of system flow
+
+### Implementation Guides
+8. **INDEX.md** – This file
+9. **ARCHITECTURE_REVIEW.md** – Legacy (for history)
+
+### Phase Completion Logs
+10. **PHASE3_2_COMPLETE.md** – Slice 2.5 completion notes
+
+---
+
+## 🎯 Quick Start by Role
+
+### 👨‍💻 Backend Developer
+1. Read: **PLAN.md** (understand current phase)
+2. Read: **PROCEDURE_MAPPING.md** (understand SIFCO workflows)
+3. Read: **SCHEMA_DICTIONARY.md** (reference table fields)
+4. Read: **DATABASE_REDESIGN.md** (understand scalability design)
+5. Code: Create migrations, models, resources (see Slice 2.5 in PLAN.md)
+
+### 👨‍💼 Product Manager / Stakeholder
+1. Read: **PLAN.md** (roadmap & status)
+2. Read: **PROCEDURE_MAPPING.md** (how SIFCO procedures are implemented)
+3. Reference: **SCHEMA_DICTIONARY.md** (if you need field details)
+
+### 🏭 Business / SIFCO Staff
+1. Read: **PROCEDURE_MAPPING.md** (your workflows → system)
+2. Reference: **PLAN.md** (when features will be ready)
+
+---
+
+## 📊 Phase Progress Tracker
+
+### ✅ Phase 2 Complete (Slice 2.5 – Architectural Redesign)
+
+- [x] **Analysis & Design** ✅ DONE
+  - [x] Identified overcomplications in v1 schema
+  - [x] Designed new scalable schema
+  - [x] Mapped SIFCO procedures to tables
+
+- [x] **Documentation** ✅ DONE
+  - [x] DATABASE_REDESIGN.md (complete new design)
+  - [x] PROCEDURE_MAPPING.md (SIFCO → code)
+  - [x] SCHEMA_DICTIONARY.md (field reference)
+  - [x] UML_DIAGRAMS.md (use case + class + ERD)
+  - [x] PLAN.md (updated roadmap)
+
+- [x] **Implementation** ✅ DONE
+  - [x] Created 27 tables via migrations
+  - [x] Migrated to MySQL 8.0.44
+  - [x] Created models (Product, Category, Roll, StockQuantity, StockMovement, etc.)
+  - [x] Created Filament resources (Products, Rolls, Categories, Suppliers, Warehouses, Units, Users)
+  - [x] Added is_roll flag for product filtering
+  - [x] Fixed Filament v4 Section component imports
+  - [x] Seeded test data (8 products, 3 warehouses, 3 suppliers)
+  - [x] Git commits (multiple)
+
+### 🔄 Phase 3 In Progress (Slice 3 – Bon d'Entrée Workflow)
+
+- [ ] Create BonReception + BonEntree Filament resources
+- [ ] Implement EAN-13 generation for rolls
+- [ ] Implement CUMP calculation logic
+- [ ] Test end-to-end receipt workflow
+- [ ] Create stock_movements on entry
+
+---
+
+## 📖 Old System Prompt (Deprecated)
+
+The old system prompt below (Slice 2 era) is superseded by the content in **PROCEDURE_MAPPING.md** and **DATABASE_REDESIGN.md**.
+
+**For new context:** Use information from:
+- **PLAN.md** (current phase & status)
+- **PROCEDURE_MAPPING.md** (workflows)
+- **SCHEMA_DICTIONARY.md** (data model)
+
+═══════════════════════════════════════════════════════════════════
+
+CORE ARCHITECTURE (Three-Tier Hierarchy)
+═══════════════════════════════════════════════════════════════════
+
+1. PaperRollType (Attributes Only)
+   - Defines: size, grammage, laise, FL, weight
+   - Single source of truth: "What is an A4 80gsm roll?"
+   - No quantity or ownership
+   - Used for grouping and querying
+   
+2. RollSpecification (Purchasing Decision)
+   - Links: Product + PaperRollType + Supplier + Price
+   - Means: "We buy THIS product, WITH these specs, FROM this supplier"
+   - Multiple suppliers can provide same product/type combo
+   - Each has different pricing, lead times
+   - Referenced when receipts arrive
+   
+3. Roll (Individual Physical Inventory)
+   - One Roll record = ONE physical roll
+   - UNIQUE EAN-13 (globally unique, never duplicated)
+   - Has: warehouse, batch, expiry, status
+   - Quantity ALWAYS = 1
+   - Created during receipt confirmation
+
+═══════════════════════════════════════════════════════════════════
+
+REQUIREMENTS SOLVED
+═══════════════════════════════════════════════════════════════════
+
+✓ Each roll has unique EAN-13
+  → UNIQUE constraint on Roll.ean_13
+  → Cannot create duplicates
+  
+✓ One quantity per roll
+  → 1 Roll record = 1 physical roll
+  → Never group units in one record
+  
+✓ Group quantities by attributes
+  → PaperRollType defines attributes
+  → Query through Roll → RollSpecification → PaperRollType
+  
+✓ Unified receipt workflow
+  → Single Receipt table for all types
+  → Single ReceiptItem table for details
+  → One code path processes everything
+  
+✓ Complete audit trail
+  → All transactions tracked
+  → Historical pricing preserved
+  → Never delete, just mark inactive
+
+═══════════════════════════════════════════════════════════════════
+
+RECEIPT WORKFLOW
+═══════════════════════════════════════════════════════════════════
+
+Step 1: Receipt Created
+  - receipt_number: "REC-2025-001"
+  - supplier_id: 5
+  - warehouse_id: 1
+  - status: "pending"
+  
+Step 2: ReceiptItems Added
+  - roll_specification_id: 42
+  - quantity_received: 500
+  
+Step 3: Receipt Confirmed (Status → "confirmed")
+  - Triggers Roll creation
+  
+Step 4: 500 Roll Records Created
+  - Each with unique EAN-13
+  - Each with roll_specification_id: 42
+  - Each with warehouse_id: 1
+  - All with status: "active"
+  
+Step 5: StockLevel Updated
+  - Aggregates count by warehouse + paper_roll_type
+  - Quick queries: "How many A4 80gsm in warehouse 1?"
+  
+Step 6: Audit Trail Complete
+  - Can trace any roll back to receipt
+  - Can see what was paid
+  - Can see which supplier provided it
+
+═══════════════════════════════════════════════════════════════════
+
+CORE DATABASE TABLES
+═══════════════════════════════════════════════════════════════════
+
+PaperRollType (Attributes)
+├─ id, size, grammage, laise, fl, weight
+├─ UNIQUE(size, grammage, laise, fl)
+└─ Purpose: Single definition of roll type
+
+RollSpecification (Purchasing Decision)
+├─ id, product_id, paper_roll_type_id, supplier_id, unit_price
+├─ UNIQUE(product_id, paper_roll_type_id, supplier_id)
+└─ Purpose: "Who provides what, at what price"
+
+Receipt (Transaction Header)
+├─ id, receipt_number, receipt_date, supplier_id, warehouse_id
+├─ receipt_type: purchase/internal/return
+├─ UNIQUE(receipt_number)
+└─ Purpose: Top-level receipt document
+
+ReceiptItem (Transaction Details)
+├─ id, receipt_id, roll_specification_id, quantity_received, quantity_accepted
+├─ UNIQUE(receipt_id, roll_specification_id)
+└─ Purpose: Individual line items
+
+Roll (Physical Inventory)
+├─ id, ean_13, roll_specification_id, warehouse_id
+├─ batch_number, received_date, expiry_date, status
+├─ quantity: always 1
+├─ UNIQUE(ean_13)
+└─ Purpose: Physical roll tracking
+
+StockLevel (Aggregated View)
+├─ warehouse_id, paper_roll_type_id, quantity
+├─ UNIQUE(warehouse_id, paper_roll_type_id)
+└─ Purpose: Fast stock queries
+
+Product, Warehouse, Supplier (Master Data)
+└─ Referenced by other tables
+
+═══════════════════════════════════════════════════════════════════
+
+QUERY PATTERNS (Examples)
+═══════════════════════════════════════════════════════════════════
+
+"How many A4 80gsm rolls in Warehouse 1?"
+SELECT COUNT(*) FROM rolls r
+JOIN roll_specifications rs ON r.roll_specification_id = rs.id
+JOIN paper_roll_types prt ON rs.paper_roll_type_id = prt.id
+WHERE prt.size = 'A4' AND prt.grammage = 80 AND r.warehouse_id = 1;
+
+"What did we pay for roll with EAN 5901234123457?"
+SELECT rs.unit_price FROM rolls r
+JOIN roll_specifications rs ON r.roll_specification_id = rs.id
+WHERE r.ean_13 = '5901234123457';
+
+"Where did this roll come from?"
+SELECT r.receipt_number, s.name, ri.quantity_received
+FROM rolls r
+JOIN roll_specifications rs ON r.roll_specification_id = rs.id
+JOIN receipt_items ri ON rs.id = ri.roll_specification_id
+JOIN receipts rec ON ri.receipt_id = rec.id
+JOIN suppliers s ON rec.supplier_id = s.id
+WHERE r.ean_13 = '5901234123457';
+
+═══════════════════════════════════════════════════════════════════
+
+IMPORTANT PRINCIPLES
+═══════════════════════════════════════════════════════════════════
+
+1. Separate Concerns
+   - Don't mix attributes (PaperRollType) with purchasing (RollSpecification)
+   - Don't mix purchasing with inventory (Roll)
+   - Each tier has one responsibility
+
+2. Uniqueness
+   - EAN-13 ONLY goes on Roll (individual physical items)
+   - Never put EAN-13 on RollSpecification (purchasing decision)
+   - Never duplicate EAN-13 values
+
+3. Quantity Handling
+   - 1 Roll record = 1 physical roll
+   - Never group quantities in one record
+   - Count Roll records to get total quantity
+
+4. Audit Trail
+   - Never delete, just mark status as inactive
+   - All historical data preserved
+   - Can trace any roll back to receipt
+   - Can see pricing at time of purchase
+
+5. Flexibility
+   - Multiple suppliers can provide same product/type
+   - Same product can have different suppliers
+   - Pricing per supplier combination
+   - Easy to compare suppliers
+
+═══════════════════════════════════════════════════════════════════
+
+WHEN MAKING CHANGES
+═══════════════════════════════════════════════════════════════════
+
+DO:
+✓ Preserve three-tier hierarchy
+✓ Maintain UNIQUE constraints
+✓ Keep audit trail (add status field vs delete)
+✓ Consider receipt workflow impact
+✓ Test queries through all three tiers
+
+DON'T:
+✗ Put EAN-13 on RollSpecification
+✗ Group quantity in one Roll record
+✗ Delete historical data
+✗ Mix concerns between tiers
+✗ Duplicate EAN-13 codes
+
+═══════════════════════════════════════════════════════════════════
+
+CURRENT IMPLEMENTATION STATUS
+═══════════════════════════════════════════════════════════════════
+
+✅ Completed:
+  - Slice 1: Master data (Products, Warehouses, Suppliers)
+  - Slice 2: Stock storage with architectural refactor
+  - All 12 models created with relationships
+  - All 14 migrations executed successfully
+  - All 11 Filament resources created
+  - Database fully tested
+
+⏳ Next (Slice 3):
+  - Configure RollSpecificationResource UI
+  - Configure ReceiptResource UI
+  - Test complete receipt workflow
+
+═══════════════════════════════════════════════════════════════════
+
+REFERENCE DOCUMENTS
+═══════════════════════════════════════════════════════════════════
+
+- ARCHITECTURE_REVIEW.md: Complete explanation (20 min read)
+- VISUAL_ARCHITECTURE.md: Diagrams & SQL patterns (15 min read)
+- README.md: Quick overview (5 min read)
+- Plan.md: Current status & roadmap (5 min read)
+
+═══════════════════════════════════════════════════════════════════
+```
+
+---
+
+## 🎯 Quick Navigation
+
+| Goal | Read |
+|------|------|
+| New to project? | README.md → ARCHITECTURE_REVIEW.md → Plan.md |
+| Need status? | Plan.md |
+| Understand architecture? | ARCHITECTURE_REVIEW.md |
+| Building Slice 3? | ARCHITECTURE_REVIEW.md + VISUAL_ARCHITECTURE.md |
+| Show me queries/diagrams? | VISUAL_ARCHITECTURE.md |
+| I'm a manager? | README.md + Plan.md |
+
+---
+
+## 📄 Five Core Documentation Files
+
+### README.md
+- **Purpose:** Project overview & quick start
+- **Read Time:** 5 min
+- **Contains:** Status, tech stack, architecture, getting started
+- **Status:** ✅ Current
+
+### ARCHITECTURE_REVIEW.md ⭐ CENTRAL HUB
+- **Purpose:** In-depth architecture explanation
+- **Read Time:** 20 min
+- **Contains:** Problem & solution, three-tier hierarchy, database schema, queries, FAQ, Slice 3 roadmap
+- **Status:** ✅ Complete
+
+### VISUAL_ARCHITECTURE.md
+- **Purpose:** Diagrams & implementation patterns
+- **Read Time:** 15 min
+- **Contains:** ASCII diagrams, database relationships, SQL patterns, workflows, state transitions
+- **Status:** ✅ Complete
+
+### Plan.md
+- **Purpose:** Project roadmap & progress
+- **Read Time:** 5 min
+- **Contains:** Slice tracking, status, TODO items
+- **Status:** ✅ Current
+
+### INDEX.md (THIS FILE)
+- **Purpose:** Navigation guide
+- **Contains:** Quick paths, file summaries, GPT system prompt, next steps
+- **Status:** ✅ Streamlined
+
+---
+
+## 📊 Coverage
+
+| Topic | File |
+|-------|------|
+| Project Overview | README.md |
+| Architecture Design | ARCHITECTURE_REVIEW.md |
+| Database Schema | ARCHITECTURE_REVIEW.md |
+| Queries & Patterns | VISUAL_ARCHITECTURE.md |
+| Diagrams | VISUAL_ARCHITECTURE.md |
+| Progress | Plan.md |
+| Implementation | ARCHITECTURE_REVIEW.md |
+
+---
+
+## ✅ Cleanup Done
+
+**Removed (redundant/old):**
+- ❌ ARCHITECTURE.md
+- ❌ STRUCTURAL_SOLUTION.md
+- ❌ SOLUTION_SUMMARY.md
+- ❌ ARCHITECTURE_STATUS.md
+- ❌ SESSION_SUMMARY.md
+
+**Kept (essential):**
+- ✅ README.md
+- ✅ ARCHITECTURE_REVIEW.md
+- ✅ VISUAL_ARCHITECTURE.md
+- ✅ Plan.md
+- ✅ INDEX.md
+
+---
+
+## 🗂️ Project Structure
+
+```
+Docs (5 files):
+├─ README.md ..................... Entry point
+├─ ARCHITECTURE_REVIEW.md ........ Design hub ⭐
+├─ VISUAL_ARCHITECTURE.md ........ Diagrams & queries
+├─ Plan.md ....................... Roadmap
+└─ INDEX.md ...................... You are here (with system prompt)
+
+Code:
+app/Models/ ...................... 12 models
+app/Filament/Resources/ .......... 11 resources
+database/migrations/ ............. 14 migrations
+
+Database:
+14 tables, 30+ foreign keys, 10+ indexes
+```
+
+---
+
+## 🚀 Ready for Slice 3
+
+Next: Implement Receipt Workflow
+- Configure RollSpecificationResource
+- Configure ReceiptResource
+- Test complete flow
+
+See ARCHITECTURE_REVIEW.md "Slice 3 Implementation" section.
+
+---
+
+**Last Updated:** 2025-10-30
+Bookmark this file for quick navigation & system prompt.
