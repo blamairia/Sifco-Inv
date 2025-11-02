@@ -58,11 +58,15 @@ class BonSortiesTable
                     ->date('d/m/Y')
                     ->sortable(),
                 
-                TextColumn::make('bonSortieItems_sum_value_issued')
+                TextColumn::make('total_value')
                     ->label('Valeur Totale')
-                    ->sum('bonSortieItems', 'value_issued')
+                    ->state(function ($record) {
+                        return $record->bonSortieItems->sum(function ($item) {
+                            return $item->qty_issued * $item->cump_at_issue;
+                        });
+                    })
                     ->money('MAD')
-                    ->sortable(),
+                    ->sortable(false),
                 
                 TextColumn::make('created_at')
                     ->label('Créé le')
