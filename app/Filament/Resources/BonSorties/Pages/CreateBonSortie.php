@@ -17,10 +17,27 @@ class CreateBonSortie extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Generate bon_number if not set
+        if (empty($data['bon_number'])) {
+            $data['bon_number'] = \App\Models\BonSortie::generateBonNumber();
+        }
+        
         // Validate stock availability
         $this->validateStockAvailability($data);
         
         return $data;
+    }
+    
+    protected function afterCreate(): void
+    {
+        // Ensure items were created
+        if ($this->record->bonSortieItems()->count() === 0) {
+            Notification::make()
+                ->title('Attention')
+                ->warning()
+                ->body('Le bon a été créé mais aucun article n\'a été ajouté.')
+                ->send();
+        }
     }
 
     protected function validateStockAvailability(array $data): void

@@ -159,9 +159,12 @@ class BonSortieForm
                                     ->dehydrated()
                                     ->columnSpan(2),
                                 
-                                Placeholder::make('value_issued')
+                                TextInput::make('value_issued')
                                     ->label('Valeur Totale')
-                                    ->content(fn ($get) => number_format(($get('qty_issued') ?? 0) * ($get('cump_at_issue') ?? 0), 2) . ' DH')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->disabled()
+                                    ->dehydrated()
                                     ->columnSpan(2),
                                 
                                 Placeholder::make('stock_available')

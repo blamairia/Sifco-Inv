@@ -144,7 +144,7 @@ class EditBonSortie extends EditRecord
                 // Deduct stock (total_qty only, CUMP unchanged)
                 $stockQty->decrement('total_qty', $item->qty_issued);
                 
-                // Create stock movement
+                // Create stock movement (value_moved is auto-calculated by DB)
                 \App\Models\StockMovement::create([
                     'movement_number' => 'MVT-' . now()->format('YmdHis') . '-' . $item->product_id,
                     'product_id' => $item->product_id,
@@ -153,7 +153,7 @@ class EditBonSortie extends EditRecord
                     'movement_type' => 'ISSUE',
                     'qty_moved' => $item->qty_issued,
                     'cump_at_movement' => $item->cump_at_issue,
-                    'value_moved' => $item->qty_issued * $item->cump_at_issue,
+                    // value_moved is a generated column: qty_moved * cump_at_movement
                     'status' => 'confirmed',
                     'reference_number' => $this->record->bon_number,
                     'user_id' => auth()->id(),
