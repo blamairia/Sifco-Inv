@@ -104,7 +104,18 @@ class BonSortieForm
                             ->schema([
                                 Select::make('product_id')
                                     ->label('Produit')
-                                    ->relationship('product', 'name')
+                                    ->options(function (callable $get) {
+                                        $warehouseId = $get('../../warehouse_id');
+                                        if (!$warehouseId) {
+                                            return [];
+                                        }
+                                        
+                                        // Only show products that have stock in this warehouse
+                                        return \App\Models\Product::whereHas('stockQuantities', function ($query) use ($warehouseId) {
+                                            $query->where('warehouse_id', $warehouseId)
+                                                  ->where('total_qty', '>', 0);
+                                        })->pluck('name', 'id');
+                                    })
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -123,6 +134,7 @@ class BonSortieForm
                                             }
                                         }
                                     })
+                                    ->helperText('Seulement les produits en stock')
                                     ->columnSpan(4),
                                 
                                 TextInput::make('qty_issued')

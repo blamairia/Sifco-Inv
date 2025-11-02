@@ -24,6 +24,20 @@ class EditBonSortie extends EditRecord
                 ->modalHeading('Émettre le bon de sortie')
                 ->modalDescription('Cette action va déduire le stock. Continuer ?')
                 ->action(function () {
+                    // Check if stock was already processed
+                    $alreadyProcessed = \App\Models\StockMovement::where('reference_number', $this->record->bon_number)
+                        ->where('movement_type', 'ISSUE')
+                        ->exists();
+                    
+                    if ($alreadyProcessed) {
+                        Notification::make()
+                            ->title('Stock déjà déduit')
+                            ->warning()
+                            ->body('Le stock a déjà été déduit pour ce bon.')
+                            ->send();
+                        return;
+                    }
+                    
                     $this->validateStockAvailability();
                     $this->processStockExit();
                     
@@ -35,7 +49,10 @@ class EditBonSortie extends EditRecord
                     Notification::make()
                         ->title('Bon émis avec succès')
                         ->success()
+                        ->body('Stock déduit et mouvement enregistré.')
                         ->send();
+                        
+                    $this->redirect($this->getResource()::getUrl('index'));
                 }),
 
             Actions\Action::make('confirm')
@@ -129,16 +146,19 @@ class EditBonSortie extends EditRecord
                 
                 // Create stock movement
                 \App\Models\StockMovement::create([
+                    'movement_number' => 'MVT-' . now()->format('YmdHis') . '-' . $item->product_id,
                     'product_id' => $item->product_id,
-                    'warehouse_id' => $this->record->warehouse_id,
-                    'type' => 'ISSUE',
-                    'reference_type' => 'App\\Models\\BonSortie',
-                    'reference_id' => $this->record->id,
-                    'quantity_change' => -$item->qty_issued,
-                    'unit_cost' => $item->cump_at_issue,
-                    'cump_before' => $stockQty->cump,
-                    'cump_after' => $stockQty->cump, // CUMP unchanged for exits
-                    'movement_date' => now(),
+                    'warehouse_from_id' => $this->record->warehouse_id,
+                    'warehouse_to_id' => null,
+                    'movement_type' => 'ISSUE',
+                    'qty_moved' => $item->qty_issued,
+                    'cump_at_movement' => $item->cump_at_issue,
+                    'value_moved' => $item->qty_issued * $item->cump_at_issue,
+                    'status' => 'confirmed',
+                    'reference_number' => $this->record->bon_number,
+                    'user_id' => auth()->id(),
+                    'performed_at' => now(),
+                    'notes' => "Sortie vers: {$this->record->destination}",
                 ]);
             }
         });
