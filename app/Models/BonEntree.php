@@ -116,4 +116,28 @@ class BonEntree extends Model
         
         $this->save();
     }
+
+    /**
+     * Check if bon can be edited
+     */
+    public function canBeEdited(): bool
+    {
+        return $this->status !== 'received';
+    }
+
+    /**
+     * Check if bon can transition to given status
+     */
+    public function canTransitionTo(string $newStatus): bool
+    {
+        $allowedTransitions = [
+            'draft' => ['pending', 'cancelled'],
+            'pending' => ['validated', 'cancelled', 'draft'],
+            'validated' => ['received', 'cancelled', 'pending'],
+            'received' => ['received'],
+            'cancelled' => ['draft'],
+        ];
+        
+        return in_array($newStatus, $allowedTransitions[$this->status] ?? []);
+    }
 }

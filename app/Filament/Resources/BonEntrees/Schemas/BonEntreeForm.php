@@ -46,7 +46,8 @@ class BonEntreeForm
                             ->relationship('warehouse', 'name')
                             ->searchable()
                             ->preload()
-                            ->nullable(),
+                            ->required(fn ($get) => in_array($get('status'), ['validated', 'received']))
+                            ->helperText('Requis pour valider ou recevoir'),
                         
                         Select::make('status')
                             ->label('Statut')
@@ -58,7 +59,9 @@ class BonEntreeForm
                                 'cancelled' => 'Annulé',
                             ])
                             ->required()
-                            ->default('draft'),
+                            ->default('draft')
+                            ->reactive()
+                            ->disabled(fn ($record) => $record && $record->status === 'received'),
                     ])
                     ->columns(2),
                 
@@ -135,6 +138,7 @@ class BonEntreeForm
                                     ->searchable()
                                     ->preload()
                                     ->required()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->columnSpan(4),
                                 
                                 TextInput::make('qty_entered')
@@ -144,6 +148,7 @@ class BonEntreeForm
                                     ->default(1)
                                     ->minValue(0.01)
                                     ->reactive()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(fn ($state, callable $set, callable $get) => 
                                         $set('line_total_ttc', $state * ($get('price_ttc') ?? 0))
                                     )
@@ -156,6 +161,7 @@ class BonEntreeForm
                                     ->prefix('DH')
                                     ->default(0)
                                     ->reactive()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                         $set('price_ttc', $state);
                                         $set('line_total_ttc', ($get('qty_entered') ?? 0) * $state);
@@ -170,6 +176,7 @@ class BonEntreeForm
                                     ->prefix('DH')
                                     ->default(0)
                                     ->reactive()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(fn ($state, callable $set, callable $get) => 
                                         $set('line_total_ttc', ($get('qty_entered') ?? 0) * $state)
                                     )
@@ -185,6 +192,7 @@ class BonEntreeForm
                             ->addActionLabel('Ajouter Produit')
                             ->reorderable(false)
                             ->collapsible()
+                            ->disabled(fn ($record) => $record && $record->status === 'received')
                             ->itemLabel(fn (array $state): ?string => 
                                 $state['product_id'] ? \App\Models\Product::find($state['product_id'])?->name : 'Nouveau produit'
                             ),

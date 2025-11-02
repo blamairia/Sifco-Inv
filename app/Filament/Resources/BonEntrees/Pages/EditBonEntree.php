@@ -28,6 +28,9 @@ class EditBonEntree extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Validate business rules
+        $this->validateBusinessRules($data);
+        
         // Calculate totals from line items
         $items = $data['bonEntreeItems'] ?? [];
         
@@ -38,6 +41,69 @@ class EditBonEntree extends EditRecord
         $data['total_amount_ttc'] = $data['total_amount_ht'] + ($data['frais_approche'] ?? 0);
         
         return $data;
+    }
+
+    protected function validateBusinessRules(array $data): void
+    {
+        $status = $data['status'] ?? 'draft';
+        $items = $data['bonEntreeItems'] ?? [];
+        
+        // Can't validate or receive without items
+        if (in_array($status, ['validated', 'received']) && empty($items)) {
+            Notification::make()
+                ->title('Validation échouée')
+                ->danger()
+                ->body('Impossible de valider/recevoir un bon sans articles.')
+                ->send();
+            
+            $this->halt();
+        }
+        
+        // Warehouse required for validated/received
+        if (in_array($status, ['validated', 'received']) && empty($data['warehouse_id'])) {
+            Notification::make()
+                ->title('Validation échouée')
+                ->danger()
+                ->body('Un entrepôt de destination est requis pour valider ou recevoir.')
+                ->send();
+            
+            $this->halt();
+        }
+        
+        // Can't change status from received
+        if ($this->record->status === 'received' && $status !== 'received') {
+            Notification::make()
+                ->title('Modification interdite')
+                ->danger()
+                ->body('Impossible de modifier le statut d\'un bon déjà reçu.')
+                ->send();
+            
+            $this->halt();
+        }
+        
+        // Validate status transitions
+        $this->validateStatusTransition($this->record->status, $status);
+    }
+
+    protected function validateStatusTransition(string $oldStatus, string $newStatus): void
+    {
+        $allowedTransitions = [
+            'draft' => ['pending', 'cancelled'],
+            'pending' => ['validated', 'cancelled', 'draft'],
+            'validated' => ['received', 'cancelled', 'pending'],
+            'received' => ['received'], // No changes allowed
+            'cancelled' => ['draft'], // Can reopen
+        ];
+        
+        if (!in_array($newStatus, $allowedTransitions[$oldStatus] ?? [])) {
+            Notification::make()
+                ->title('Transition invalide')
+                ->danger()
+                ->body("Impossible de passer de '{$oldStatus}' à '{$newStatus}'.")
+                ->send();
+            
+            $this->halt();
+        }
     }
 
     protected function afterSave(): void
