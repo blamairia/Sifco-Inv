@@ -72,7 +72,7 @@ class ViewStockQuantity extends ViewRecord
                 ->label('Voir les Mouvements')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
-                ->url(fn ($record) => route('filament.admin.resources.stock-movements.stock-movements.index', [
+                ->url(fn ($record) => route('filament.admin.resources.stock-movements.index', [
                     'tableFilters' => [
                         'product_id' => ['value' => $record->product_id],
                         'warehouse_id' => ['value' => $record->warehouse_id],

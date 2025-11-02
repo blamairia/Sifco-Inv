@@ -6,7 +6,7 @@ use App\Models\StockQuantity;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Actions\Action;
+use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 
 class StockQuantitiesTable
@@ -140,7 +140,7 @@ class StockQuantitiesTable
                     ->label('Mouvements')
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
-                    ->url(fn (StockQuantity $record) => route('filament.admin.resources.stock-movements.stock-movements.index', [
+                    ->url(fn (StockQuantity $record) => route('filament.admin.resources.stock-movements.index', [
                         'tableFilters' => [
                             'product_id' => ['value' => $record->product_id],
                             'warehouse_id' => ['value' => $record->warehouse_id],
