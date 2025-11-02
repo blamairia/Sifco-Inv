@@ -106,9 +106,16 @@ class StockQuantitiesTable
                     ->multiple()
                     ->preload(),
                 
-                SelectFilter::make('product.category_id')
+                SelectFilter::make('category_id')
                     ->label('Catégorie')
-                    ->relationship('product.category', 'name')
+                    ->options(\App\Models\Category::pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data) {
+                        if (!$data['value']) return $query;
+                        
+                        return $query->whereHas('product.categories', function (Builder $q) use ($data) {
+                            $q->where('categories.id', $data['value']);
+                        });
+                    })
                     ->multiple()
                     ->preload(),
                 

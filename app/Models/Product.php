@@ -54,5 +54,20 @@ class Product extends Model
     {
         return $this->hasMany(StockQuantity::class);
     }
+    
+    // Helper to get primary category
+    public function category()
+    {
+        return $this->belongsToMany(Category::class, 'product_category')
+            ->withPivot('is_primary')
+            ->wherePivot('is_primary', true)
+            ->first();
+    }
+    
+    // Accessor for primary category
+    public function getCategoryAttribute()
+    {
+        return $this->categories()->wherePivot('is_primary', true)->first();
+    }
 
 }
