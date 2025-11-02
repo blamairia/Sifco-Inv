@@ -76,12 +76,15 @@ class BonEntreeForm
                 
                 Section::make('Montants')
                     ->schema([
-                        TextInput::make('total_amount_ht')
+                        Placeholder::make('total_amount_ht_display')
                             ->label('Montant Total HT')
-                            ->numeric()
-                            ->prefix('DH')
-                            ->default(0)
-                            ->required(),
+                            ->content(function ($get) {
+                                $items = $get('bonEntreeItems') ?? [];
+                                $total = collect($items)->sum(function ($item) {
+                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                });
+                                return number_format($total, 2) . ' DH';
+                            }),
                         
                         TextInput::make('frais_approche')
                             ->label('Frais d\'Approche')
@@ -89,15 +92,35 @@ class BonEntreeForm
                             ->numeric()
                             ->prefix('DH')
                             ->default(0)
-                            ->required(),
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $items = $get('bonEntreeItems') ?? [];
+                                $totalQty = collect($items)->sum('qty_entered');
+                                
+                                if ($totalQty > 0) {
+                                    $fraisPerUnit = $state / $totalQty;
+                                    $updatedItems = collect($items)->map(function ($item) use ($fraisPerUnit) {
+                                        $item['price_ttc'] = ($item['price_ht'] ?? 0) + $fraisPerUnit;
+                                        $item['line_total_ttc'] = ($item['qty_entered'] ?? 0) * $item['price_ttc'];
+                                        return $item;
+                                    })->toArray();
+                                    
+                                    $set('bonEntreeItems', $updatedItems);
+                                }
+                            }),
                         
-                        TextInput::make('total_amount_ttc')
+                        Placeholder::make('total_amount_ttc_display')
                             ->label('Montant Total TTC')
                             ->helperText('HT + Frais d\'approche')
-                            ->numeric()
-                            ->prefix('DH')
-                            ->default(0)
-                            ->required(),
+                            ->content(function ($get) {
+                                $items = $get('bonEntreeItems') ?? [];
+                                $totalHT = collect($items)->sum(function ($item) {
+                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                });
+                                $frais = $get('frais_approche') ?? 0;
+                                return number_format($totalHT + $frais, 2) . ' DH';
+                            }),
                     ])
                     ->columns(3),
                 

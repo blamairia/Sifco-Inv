@@ -102,4 +102,18 @@ class BonEntree extends Model
             ]);
         }
     }
+
+    /**
+     * Recalculate all totals from line items
+     */
+    public function recalculateTotals(): void
+    {
+        $this->total_amount_ht = $this->bonEntreeItems->sum(function ($item) {
+            return $item->qty_entered * $item->price_ht;
+        });
+        
+        $this->total_amount_ttc = $this->total_amount_ht + $this->frais_approche;
+        
+        $this->save();
+    }
 }
