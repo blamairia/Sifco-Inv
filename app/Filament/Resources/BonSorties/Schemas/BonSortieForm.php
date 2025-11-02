@@ -143,11 +143,7 @@ class BonSortieForm
                                     ->required()
                                     ->default(1)
                                     ->minValue(0.01)
-                                    ->reactive()
                                     ->disabled(fn ($record) => $record && $record->bonSortie && in_array($record->bonSortie->status, ['confirmed', 'archived']))
-                                    ->afterStateUpdated(fn ($state, callable $set, callable $get) => 
-                                        $set('value_issued', $state * ($get('cump_at_issue') ?? 0))
-                                    )
                                     ->columnSpan(2),
                                 
                                 TextInput::make('cump_at_issue')
@@ -159,12 +155,9 @@ class BonSortieForm
                                     ->dehydrated()
                                     ->columnSpan(2),
                                 
-                                TextInput::make('value_issued')
+                                Placeholder::make('value_issued')
                                     ->label('Valeur Totale')
-                                    ->numeric()
-                                    ->prefix('DH')
-                                    ->disabled()
-                                    ->dehydrated()
+                                    ->content(fn ($get) => number_format(($get('qty_issued') ?? 0) * ($get('cump_at_issue') ?? 0), 2) . ' DH')
                                     ->columnSpan(2),
                                 
                                 Placeholder::make('stock_available')

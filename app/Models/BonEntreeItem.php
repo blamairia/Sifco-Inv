@@ -16,14 +16,14 @@ class BonEntreeItem extends Model
         'qty_entered',
         'price_ht',
         'price_ttc',
-        'line_total_ttc',
+        // line_total_ttc is a generated column: qty_entered * price_ttc
     ];
 
     protected $casts = [
         'qty_entered' => 'decimal:2',
         'price_ht' => 'decimal:2',
         'price_ttc' => 'decimal:2',
-        'line_total_ttc' => 'decimal:2',
+        'line_total_ttc' => 'decimal:2', // Generated column, read-only
     ];
 
     // Relationships

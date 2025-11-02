@@ -139,7 +139,7 @@ class BonEntreeForm
                                     $fraisPerUnit = $state / $totalQty;
                                     $updatedItems = collect($items)->map(function ($item) use ($fraisPerUnit) {
                                         $item['price_ttc'] = ($item['price_ht'] ?? 0) + $fraisPerUnit;
-                                        $item['line_total_ttc'] = ($item['qty_entered'] ?? 0) * $item['price_ttc'];
+                                        // line_total_ttc is auto-calculated by DB
                                         return $item;
                                     })->toArray();
                                     
@@ -181,11 +181,7 @@ class BonEntreeForm
                                     ->required()
                                     ->default(1)
                                     ->minValue(0.01)
-                                    ->reactive()
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->afterStateUpdated(fn ($state, callable $set, callable $get) => 
-                                        $set('line_total_ttc', $state * ($get('price_ttc') ?? 0))
-                                    )
                                     ->columnSpan(2),
                                 
                                 TextInput::make('price_ht')
@@ -198,7 +194,7 @@ class BonEntreeForm
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                         $set('price_ttc', $state);
-                                        $set('line_total_ttc', ($get('qty_entered') ?? 0) * $state);
+                                        // line_total_ttc is auto-calculated by DB
                                     })
                                     ->columnSpan(2),
                                 
@@ -209,11 +205,7 @@ class BonEntreeForm
                                     ->required()
                                     ->prefix('DH')
                                     ->default(0)
-                                    ->reactive()
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->afterStateUpdated(fn ($state, callable $set, callable $get) => 
-                                        $set('line_total_ttc', ($get('qty_entered') ?? 0) * $state)
-                                    )
                                     ->columnSpan(2),
                                 
                                 Placeholder::make('line_total_ttc')
