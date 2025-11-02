@@ -35,7 +35,6 @@ class StockMovementResource extends Resource
     {
         return [
             'index' => Pages\ListStockMovements::route('/'),
-            'view' => Pages\ViewStockMovement::route('/{record}'),
         ];
     }
     

@@ -35,7 +35,6 @@ class StockQuantityResource extends Resource
     {
         return [
             'index' => Pages\ListStockQuantities::route('/'),
-            'view' => Pages\ViewStockQuantity::route('/{record}'),
         ];
     }
     
