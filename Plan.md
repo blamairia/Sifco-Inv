@@ -202,28 +202,33 @@
 - [ ] Add print/PDF export for bon_entrees
 
 ### 3.7 Stock Viewing Resource 📊
-**Goal:** Verify stock operations from Slices 3-6 with read-only stock visibility
+- [ ] Create StockQuantityResource (read-only) using `php artisan make:filament-resource`
+- [ ] Table columns:
+  - Product (with relation, searchable)
+  - Warehouse (with relation, filterable)
+  - Total Quantity
+  - Reserved Quantity (if applicable)
+  - Available Quantity (calculated: total - reserved)
+  - CUMP (formatted as currency)
+  - Total Value (qty × CUMP, formatted)
+  - Last Updated (timestamp)
+- [ ] Filters:
+  - Warehouse (select)
+  - Category (via product relationship)
+  - Stock Status (in_stock, low_stock, out_of_stock)
+- [ ] Actions:
+  - View Movements History (custom action → redirect to StockMovementResource filtered by product+warehouse)
+  - Adjust Stock (custom action → redirect to StockAdjustment create form)
+- [ ] Bulk actions: Export selected to CSV
+- [ ] Global search: by product name/code
+- [ ] Sorting: by qty, value, last_updated
+- [ ] Badge indicators: 🔴 out_of_stock (qty=0), 🟡 low_stock (qty <= min_stock), 🟢 normal
+- [ ] Create StockMovementResource (read-only audit log)
+  - Table: movement_number, date, product, warehouse, type, qty_change, CUMP before/after, reference
+  - Filters: type, warehouse, product, date range
+  - Sorting: by date (desc default)
 
-- [ ] Create StockQuantityResource (read-only)
-  - Table columns: product, warehouse, total_qty, reserved_qty, available_qty, cump, total_value (qty × cump)
-  - Filters: warehouse, product, category, low stock (qty <= min_stock)
-  - Sort by: product name, warehouse, quantity, value
-  - Search: product name/code, warehouse name
-- [ ] Add StockMovementResource (read-only audit log)
-  - Table columns: date, type, product, warehouse, qty_change, cump_before, cump_after, reference (bon number), user
-  - Filters: movement type, warehouse, product, date range
-  - Sort by: movement_date (desc default)
-  - Click reference → redirect to bon detail page
-- [ ] Add actions:
-  - View movements for specific product/warehouse
-  - Export to CSV
-- [ ] Testing:
-  - Verify stock updates after BonEntree validation
-  - Verify stock deductions after BonSortie issue
-  - Verify CUMP changes visible
-  - Verify movements link to correct bons
-
-**Estimated Time:** 3-4 days (includes 3.7)  
+**Estimated Time:** 3-4 days + 1 day for viewing  
 **Dependencies:** None (all tables exist)  
 **Blocker Risk:** Low
 
