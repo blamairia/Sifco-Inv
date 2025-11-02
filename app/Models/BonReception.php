@@ -40,11 +40,6 @@ class BonReception extends Model
         return $this->belongsTo(User::class, 'verified_by_id');
     }
 
-    public function bonEntrees(): HasMany
-    {
-        return $this->hasMany(BonEntree::class);
-    }
-
     // Scopes
     public function scopeUnverified($query)
     {

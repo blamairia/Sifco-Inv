@@ -12,12 +12,12 @@ class BonEntree extends Model
 
     protected $fillable = [
         'bon_number',
-        'bon_reception_id',
+        'supplier_id',
+        'document_number',
         'warehouse_id',
-        'receipt_date',
+        'expected_date',
+        'received_date',
         'status',
-        'entered_by_id',
-        'entered_at',
         'total_amount_ht',
         'frais_approche',
         'total_amount_ttc',
@@ -25,27 +25,22 @@ class BonEntree extends Model
     ];
 
     protected $casts = [
-        'receipt_date' => 'date',
-        'entered_at' => 'datetime',
+        'expected_date' => 'date',
+        'received_date' => 'date',
         'total_amount_ht' => 'decimal:2',
         'frais_approche' => 'decimal:2',
         'total_amount_ttc' => 'decimal:2',
     ];
 
     // Relationships
-    public function bonReception(): BelongsTo
+    public function supplier(): BelongsTo
     {
-        return $this->belongsTo(BonReception::class);
+        return $this->belongsTo(Supplier::class);
     }
 
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
-    }
-
-    public function enteredBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'entered_by_id');
     }
 
     public function bonEntreeItems(): HasMany
@@ -59,9 +54,19 @@ class BonEntree extends Model
         return $query->where('status', 'draft');
     }
 
-    public function scopeConfirmed($query)
+    public function scopePending($query)
     {
-        return $query->where('status', 'confirmed');
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeValidated($query)
+    {
+        return $query->where('status', 'validated');
+    }
+
+    public function scopeReceived($query)
+    {
+        return $query->where('status', 'received');
     }
 
     // Helper methods
