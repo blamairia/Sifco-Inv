@@ -147,11 +147,12 @@ class StockMovementsTable
                         return \App\Models\Warehouse::pluck('name', 'id')->toArray();
                     })
                     ->query(function (Builder $query, array $data) {
-                        if (!$data['value']) return $query;
+                        $value = $data['value'] ?? null;
+                        if (empty($value)) return $query;
                         
-                        return $query->where(function (Builder $q) use ($data) {
-                            $q->where('warehouse_from_id', $data['value'])
-                              ->orWhere('warehouse_to_id', $data['value']);
+                        return $query->where(function (Builder $q) use ($value) {
+                            $q->where('warehouse_from_id', $value)
+                              ->orWhere('warehouse_to_id', $value);
                         });
                     })
                     ->preload(),

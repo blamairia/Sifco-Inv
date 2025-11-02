@@ -110,10 +110,15 @@ class StockQuantitiesTable
                     ->label('Catégorie')
                     ->options(\App\Models\Category::pluck('name', 'id'))
                     ->query(function (Builder $query, array $data) {
-                        if (!$data['value']) return $query;
+                        $value = $data['values'] ?? $data['value'] ?? null;
+                        if (empty($value)) return $query;
                         
-                        return $query->whereHas('product.categories', function (Builder $q) use ($data) {
-                            $q->where('categories.id', $data['value']);
+                        return $query->whereHas('product.categories', function (Builder $q) use ($value) {
+                            if (is_array($value)) {
+                                $q->whereIn('categories.id', $value);
+                            } else {
+                                $q->where('categories.id', $value);
+                            }
                         });
                     })
                     ->multiple()
@@ -127,9 +132,10 @@ class StockQuantitiesTable
                         'normal' => 'Normal',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!$data['value']) return $query;
+                        $value = $data['value'] ?? null;
+                        if (empty($value)) return $query;
                         
-                        return match ($data['value']) {
+                        return match ($value) {
                             'out_of_stock' => $query->whereRaw('(total_qty - reserved_qty) = 0'),
                             'low_stock' => $query->whereHas('product', function (Builder $q) {
                                 $q->whereRaw('(stock_quantities.total_qty - stock_quantities.reserved_qty) <= products.min_stock')
