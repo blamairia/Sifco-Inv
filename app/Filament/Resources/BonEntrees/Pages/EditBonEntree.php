@@ -211,6 +211,10 @@ class EditBonEntree extends EditRecord
     {
         $bonEntree = $this->record;
         
+        // Recalculate totals after saving items
+        $bonEntree->refresh();
+        $bonEntree->recalculateTotals();
+        
         // Check if status changed to 'received' and warehouse is set
         if ($bonEntree->status === 'received' && $bonEntree->warehouse_id) {
             $this->processStockEntry($bonEntree);

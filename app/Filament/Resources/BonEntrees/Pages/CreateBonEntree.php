@@ -32,6 +32,13 @@ class CreateBonEntree extends CreateRecord
         return $data;
     }
 
+    protected function afterCreate(): void
+    {
+        // Recalculate totals after saving items
+        $this->record->refresh();
+        $this->record->recalculateTotals();
+    }
+
     protected function validateBusinessRules(array $data): void
     {
         $status = $data['status'] ?? 'draft';
