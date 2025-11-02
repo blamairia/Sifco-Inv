@@ -3,17 +3,19 @@
 namespace App\Filament\Resources\StockQuantities\Pages;
 
 use App\Filament\Resources\StockQuantities\StockQuantityResource;
-use Filament\Resources\Pages\ListRecords;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
+use Filament\Resources\Pages\EditRecord;
 
-class ListStockQuantities extends ListRecords
+class EditStockQuantity extends EditRecord
 {
     protected static string $resource = StockQuantityResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            // No create action - read-only resource
+            ViewAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

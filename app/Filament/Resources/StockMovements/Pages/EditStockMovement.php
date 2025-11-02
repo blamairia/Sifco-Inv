@@ -3,16 +3,19 @@
 namespace App\Filament\Resources\StockMovements\Pages;
 
 use App\Filament\Resources\StockMovements\StockMovementResource;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
+use Filament\Resources\Pages\EditRecord;
 
-class ListStockMovements extends ListRecords
+class EditStockMovement extends EditRecord
 {
     protected static string $resource = StockMovementResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            // No create action - read-only audit log
+            ViewAction::make(),
+            DeleteAction::make(),
         ];
     }
 }
