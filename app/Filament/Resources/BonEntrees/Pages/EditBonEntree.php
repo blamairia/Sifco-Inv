@@ -17,7 +17,108 @@ class EditBonEntree extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            // Validate Action
+            Actions\Action::make('validate')
+                ->label('Valider')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Valider le Bon d\'Entrée')
+                ->modalDescription('Êtes-vous sûr de vouloir valider ce bon d\'entrée ?')
+                ->visible(fn ($record) => in_array($record->status, ['draft', 'pending']))
+                ->action(function ($record) {
+                    if (!$record->warehouse_id) {
+                        Notification::make()
+                            ->title('Validation impossible')
+                            ->danger()
+                            ->body('Un entrepôt doit être sélectionné.')
+                            ->send();
+                        return;
+                    }
+                    
+                    if ($record->bonEntreeItems->isEmpty()) {
+                        Notification::make()
+                            ->title('Validation impossible')
+                            ->danger()
+                            ->body('Le bon doit contenir au moins un article.')
+                            ->send();
+                        return;
+                    }
+                    
+                    $record->update(['status' => 'validated']);
+                    
+                    Notification::make()
+                        ->title('Bon validé')
+                        ->success()
+                        ->body('Le bon d\'entrée a été validé avec succès.')
+                        ->send();
+                }),
+            
+            // Receive Action
+            Actions\Action::make('receive')
+                ->label('Recevoir')
+                ->icon('heroicon-o-inbox-arrow-down')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Recevoir le Bon d\'Entrée')
+                ->modalDescription('Cette action mettra à jour le stock. Êtes-vous sûr ?')
+                ->visible(fn ($record) => $record->status === 'validated')
+                ->action(function ($record) {
+                    $record->update([
+                        'status' => 'received',
+                        'received_date' => now(),
+                    ]);
+                    
+                    // Process stock entry
+                    $this->processStockEntry($record);
+                    
+                    Notification::make()
+                        ->title('Bon reçu')
+                        ->success()
+                        ->body('Le bon d\'entrée a été reçu et le stock a été mis à jour.')
+                        ->send();
+                }),
+            
+            // Cancel Action
+            Actions\Action::make('cancel')
+                ->label('Annuler')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Annuler le Bon d\'Entrée')
+                ->modalDescription('Êtes-vous sûr de vouloir annuler ce bon ?')
+                ->visible(fn ($record) => in_array($record->status, ['draft', 'pending', 'validated']))
+                ->action(function ($record) {
+                    $record->update(['status' => 'cancelled']);
+                    
+                    Notification::make()
+                        ->title('Bon annulé')
+                        ->warning()
+                        ->body('Le bon d\'entrée a été annulé.')
+                        ->send();
+                }),
+            
+            // Reopen Action
+            Actions\Action::make('reopen')
+                ->label('Réouvrir')
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Réouvrir le Bon')
+                ->modalDescription('Réouvrir ce bon et le remettre en brouillon ?')
+                ->visible(fn ($record) => $record->status === 'cancelled')
+                ->action(function ($record) {
+                    $record->update(['status' => 'draft']);
+                    
+                    Notification::make()
+                        ->title('Bon réouvert')
+                        ->info()
+                        ->body('Le bon a été réouvert en mode brouillon.')
+                        ->send();
+                }),
+            
+            Actions\DeleteAction::make()
+                ->visible(fn ($record) => in_array($record->status, ['draft', 'cancelled'])),
         ];
     }
 

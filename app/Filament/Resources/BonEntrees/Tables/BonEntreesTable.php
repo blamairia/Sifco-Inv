@@ -5,6 +5,9 @@ namespace App\Filament\Resources\BonEntrees\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\BulkAction;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
 
 class BonEntreesTable
 {
@@ -43,13 +46,21 @@ class BonEntreesTable
                         'received' => 'success',
                         'cancelled' => 'danger',
                     })
+                    ->icon(fn (string $state): string => match ($state) {
+                        'draft' => 'heroicon-o-pencil',
+                        'pending' => 'heroicon-o-clock',
+                        'validated' => 'heroicon-o-check-circle',
+                        'received' => 'heroicon-o-inbox-arrow-down',
+                        'cancelled' => 'heroicon-o-x-circle',
+                    })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'draft' => 'Brouillon',
                         'pending' => 'En Attente',
                         'validated' => 'Validé',
                         'received' => 'Reçu',
                         'cancelled' => 'Annulé',
-                    }),
+                    })
+                    ->sortable(),
                 
                 TextColumn::make('expected_date')
                     ->label('Date Attendue')
@@ -97,6 +108,49 @@ class BonEntreesTable
                     ->searchable()
                     ->preload(),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->toolbarActions([
+                BulkAction::make('validate')
+                    ->label('Valider')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function (Collection $records) {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if (in_array($record->status, ['draft', 'pending']) && 
+                                $record->warehouse_id && 
+                                $record->bonEntreeItems->isNotEmpty()) {
+                                $record->update(['status' => 'validated']);
+                                $count++;
+                            }
+                        }
+                        
+                        Notification::make()
+                            ->title("$count bon(s) validé(s)")
+                            ->success()
+                            ->send();
+                    }),
+                
+                BulkAction::make('cancel')
+                    ->label('Annuler')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function (Collection $records) {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if (in_array($record->status, ['draft', 'pending', 'validated'])) {
+                                $record->update(['status' => 'cancelled']);
+                                $count++;
+                            }
+                        }
+                        
+                        Notification::make()
+                            ->title("$count bon(s) annulé(s)")
+                            ->warning()
+                            ->send();
+                    }),
+            ]);
     }
 }

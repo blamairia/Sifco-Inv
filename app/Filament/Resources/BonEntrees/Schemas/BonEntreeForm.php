@@ -9,6 +9,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Split;
 use Filament\Schemas\Schema;
 
 class BonEntreeForm
@@ -17,6 +18,39 @@ class BonEntreeForm
     {
         return $schema
             ->components([
+                Section::make('Informations du Bon')
+                    ->schema([
+                        Placeholder::make('status_info')
+                            ->label('Statut Actuel')
+                            ->content(function ($record) {
+                                if (!$record) return 'Nouveau';
+                                
+                                $badges = [
+                                    'draft' => '🟡 Brouillon',
+                                    'pending' => '🟠 En Attente',
+                                    'validated' => '🔵 Validé',
+                                    'received' => '🟢 Reçu',
+                                    'cancelled' => '🔴 Annulé',
+                                ];
+                                
+                                return $badges[$record->status] ?? $record->status;
+                            }),
+                        
+                        Placeholder::make('created_info')
+                            ->label('Créé le')
+                            ->content(fn ($record) => $record ? $record->created_at->format('d/m/Y H:i') : '-')
+                            ->visible(fn ($record) => $record !== null),
+                        
+                        Placeholder::make('received_info')
+                            ->label('Reçu le')
+                            ->content(fn ($record) => $record && $record->received_date 
+                                ? $record->received_date->format('d/m/Y H:i') 
+                                : '-')
+                            ->visible(fn ($record) => $record && $record->status === 'received'),
+                    ])
+                    ->columns(3)
+                    ->visible(fn ($record) => $record !== null),
+                
                 Section::make('Informations Générales')
                     ->schema([
                         TextInput::make('bon_number')
