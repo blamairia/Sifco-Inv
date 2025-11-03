@@ -132,18 +132,27 @@ class BonTransfertForm
                                             if ($roll) {
                                                 $set('product_id', $roll->product_id);
                                                 $set('cump_at_transfer', $roll->cump);
-                                                $set('qty_transferred', $roll->weight);
+                                                // ROLLS ARE ALWAYS QUANTITY = 1 (not weight!)
+                                                $set('qty_transferred', 1);
                                             }
                                         }
                                     })
                                     ->helperText('Seulement les bobines en stock dans l\'entrepôt source')
                                     ->columnSpan(4),
 
-                                TextInput::make('qty_transferred')
-                                    ->label('Poids (kg)')
-                                    ->numeric()
-                                    ->disabled()
-                                    ->dehydrated()
+                                Hidden::make('qty_transferred')
+                                    ->default(1) // ROLLS ARE ALWAYS 1 UNIT
+                                    ->dehydrated(),
+
+                                Placeholder::make('roll_weight')
+                                    ->label('Poids')
+                                    ->content(function ($get) {
+                                        if ($rollId = $get('roll_id')) {
+                                            $roll = Roll::find($rollId);
+                                            return $roll ? number_format($roll->weight, 2) . ' kg' : '-';
+                                        }
+                                        return '-';
+                                    })
                                     ->columnSpan(2),
 
                                 TextInput::make('cump_at_transfer')

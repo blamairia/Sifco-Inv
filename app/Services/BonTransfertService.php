@@ -40,7 +40,7 @@ class BonTransfertService
 
             // Update bon status
             $bonTransfert->update([
-                'status' => 'transferred',
+                'status' => 'in_transit',
                 'transferred_at' => now(),
             ]);
 
@@ -88,41 +88,44 @@ class BonTransfertService
 
     /**
      * Process roll transfer: update roll's warehouse_id
+     * IMPORTANT: Rolls are ALWAYS tracked as 1 unit (not by weight)
      */
     protected function processRollItem(BonTransfert $bonTransfert, $item): void
     {
         $roll = Roll::findOrFail($item->roll_id);
 
         // Create transfer OUT movement (source warehouse)
+        // ROLLS ARE ALWAYS QTY = 1 (one roll = one unit)
         $movementOut = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-OUT'),
             'product_id' => $item->product_id,
             'warehouse_from_id' => $bonTransfert->warehouse_from_id,
             'warehouse_to_id' => $bonTransfert->warehouse_to_id,
             'movement_type' => 'TRANSFER',
-            'qty_moved' => -$item->qty_transferred,
+            'qty_moved' => -1, // ALWAYS -1 for roll transfer OUT
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
             'user_id' => auth()->id() ?? 1,
             'performed_at' => now(),
             'status' => 'confirmed',
-            'notes' => "Transfer to " . $bonTransfert->warehouseTo->name . " - " . $bonTransfert->warehouseTo->warehouse_type,
+            'notes' => "Transfer Roll EAN: {$roll->ean_13} to " . $bonTransfert->warehouseTo->name,
         ]);
 
         // Create transfer IN movement (destination warehouse)
+        // ROLLS ARE ALWAYS QTY = 1 (one roll = one unit)
         $movementIn = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-IN'),
             'product_id' => $item->product_id,
             'warehouse_from_id' => $bonTransfert->warehouse_from_id,
             'warehouse_to_id' => $bonTransfert->warehouse_to_id,
             'movement_type' => 'TRANSFER',
-            'qty_moved' => $item->qty_transferred,
+            'qty_moved' => 1, // ALWAYS 1 for roll transfer IN
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
             'user_id' => auth()->id() ?? 1,
             'performed_at' => now(),
             'status' => 'confirmed',
-            'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name . " - " . $bonTransfert->warehouseFrom->warehouse_type,
+            'notes' => "Transfer Roll EAN: {$roll->ean_13} from " . $bonTransfert->warehouseFrom->name,
         ]);
 
         // Update roll's warehouse
@@ -131,18 +134,18 @@ class BonTransfertService
             'received_from_movement_id' => $movementIn->id,
         ]);
 
-        // Update source warehouse stock quantity (decrease)
+        // Update source warehouse stock quantity (decrease by 1 roll)
         $this->decrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_from_id,
-            $item->qty_transferred
+            1 // ALWAYS 1 for rolls
         );
 
-        // Update destination warehouse stock quantity (increase)
+        // Update destination warehouse stock quantity (increase by 1 roll)
         $this->incrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_to_id,
-            $item->qty_transferred
+            1 // ALWAYS 1 for rolls
         );
     }
 

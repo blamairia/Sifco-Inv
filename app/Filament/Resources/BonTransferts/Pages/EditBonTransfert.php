@@ -52,11 +52,32 @@ class EditBonTransfert extends EditRecord
                     }
                 }),
 
+            Actions\Action::make('receive')
+                ->label('Recevoir')
+                ->icon('heroicon-o-inbox-arrow-down')
+                ->color('primary')
+                ->visible(fn () => $this->record->status === 'in_transit')
+                ->requiresConfirmation()
+                ->modalHeading('Recevoir le transfert')
+                ->modalDescription('Confirmer la réception du transfert')
+                ->action(function () {
+                    $this->record->update([
+                        'status' => 'received',
+                        'received_at' => now(),
+                        'received_by_id' => auth()->id() ?? 1,
+                    ]);
+                    
+                    Notification::make()
+                        ->title('Transfert reçu')
+                        ->success()
+                        ->send();
+                }),
+
             Actions\Action::make('confirm')
                 ->label('Confirmer')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn () => $this->record->status === 'transferred')
+                ->visible(fn () => $this->record->status === 'received')
                 ->requiresConfirmation()
                 ->action(function () {
                     $this->record->update(['status' => 'confirmed']);
@@ -106,7 +127,7 @@ class EditBonTransfert extends EditRecord
                 ->requiresConfirmation()
                 ->modalHeading('Annuler le bon de transfert')
                 ->modalDescription('Êtes-vous sûr de vouloir annuler ce bon ?')
-                ->visible(fn ($record) => in_array($record->status, ['draft', 'transferred']))
+                ->visible(fn ($record) => in_array($record->status, ['draft', 'in_transit']))
                 ->action(function ($record) {
                     $record->update(['status' => 'cancelled']);
                     

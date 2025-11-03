@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('warehouse_from_id')->constrained('warehouses')->cascadeOnDelete();
             $table->foreignId('warehouse_to_id')->constrained('warehouses')->cascadeOnDelete();
             $table->date('transfer_date');
-            $table->enum('status', ['draft', 'in_transit', 'received', 'confirmed', 'archived'])->default('draft');
+            $table->enum('status', ['draft', 'in_transit', 'received', 'confirmed', 'cancelled', 'archived'])->default('draft');
             $table->foreignId('requested_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('transferred_at')->nullable();
             $table->timestamp('received_at')->nullable();
