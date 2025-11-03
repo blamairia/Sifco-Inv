@@ -2,12 +2,19 @@
 
 namespace App\Filament\Resources\BonSorties\Schemas;
 
+use App\Models\Product;
+use App\Models\Roll;
+use App\Models\StockQuantity;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -66,6 +73,12 @@ class BonSortieForm
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, $set) {
+                                // Clear the repeaters when warehouse changes
+                                $set('rollItems', []);
+                                $set('productItems', []);
+                            })
                             ->helperText('Entrepôt d\'où sortent les produits'),
                         
                         TextInput::make('destination')
@@ -84,7 +97,6 @@ class BonSortieForm
                             ])
                             ->required()
                             ->default('draft')
-                            ->reactive()
                             ->disabled(fn ($record) => $record && in_array($record->status, ['confirmed', 'archived'])),
                     ])
                     ->columns(2),
@@ -96,37 +108,177 @@ class BonSortieForm
                             ->required()
                             ->default(now()),
                     ]),
-                
-                Section::make('Articles / Produits')
+
+                Section::make('Bobines')
                     ->schema([
-                        Repeater::make('bonSortieItems')
-                            ->relationship()
+                        Repeater::make('rollItems')
+                            ->label('Bobines à sortir')
+                            ->relationship(
+                                name: 'bonSortieItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'roll')
+                            )
                             ->schema([
-                                Select::make('product_id')
-                                    ->label('Produit')
-                                    ->options(function (callable $get) {
-                                        $warehouseId = $get('../../warehouse_id');
+                                Hidden::make('item_type')->default('roll'),
+                                Select::make('roll_id')
+                                    ->label('Bobine')
+                                    ->options(function ($get, $livewire) {
+                                        $warehouseId = $livewire->data['warehouse_id'] ?? null;
+                                        
                                         if (!$warehouseId) {
                                             return [];
                                         }
                                         
-                                        // Only show products that have stock in this warehouse
-                                        return \App\Models\Product::whereHas('stockQuantities', function ($query) use ($warehouseId) {
-                                            $query->where('warehouse_id', $warehouseId)
-                                                  ->where('total_qty', '>', 0);
-                                        })->pluck('name', 'id');
+                                        // Get all already selected roll IDs from all repeater items
+                                        $selectedRollIds = collect($get('../../rollItems') ?? [])
+                                            ->pluck('roll_id')
+                                            ->filter()
+                                            ->toArray();
+                                        
+                                        // Get current item's roll_id to allow keeping it in the dropdown
+                                        $currentRollId = $get('roll_id');
+                                        
+                                        return Roll::with('bonEntreeItem')
+                                            ->where('status', 'in_stock')
+                                            ->where('warehouse_id', $warehouseId)
+                                            ->when(count($selectedRollIds) > 0, function ($query) use ($selectedRollIds, $currentRollId) {
+                                                // Exclude already selected rolls, but keep the current one
+                                                $query->where(function ($q) use ($selectedRollIds, $currentRollId) {
+                                                    $q->whereNotIn('id', $selectedRollIds)
+                                                      ->orWhere('id', $currentRollId);
+                                                });
+                                            })
+                                            ->get()
+                                            ->mapWithKeys(fn ($roll) => [
+                                                $roll->id => "{$roll->ean_13} | {$roll->batch_number} | {$roll->weight} kg"
+                                            ])
+                                            ->toArray();
                                     })
                                     ->searchable()
-                                    ->preload()
                                     ->required()
                                     ->reactive()
-                                    ->disabled(fn ($record) => $record && $record->bonSortie && in_array($record->bonSortie->status, ['confirmed', 'archived']))
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                        // Get current CUMP for the product from warehouse
-                                        $warehouseId = $get('../../warehouse_id');
-                                        if ($state && $warehouseId) {
-                                            $stockQty = \App\Models\StockQuantity::where('product_id', $state)
+                                    ->afterStateUpdated(function ($state, $set) {
+                                        if ($state) {
+                                            $roll = Roll::with('bonEntreeItem')->find($state);
+                                            if ($roll) {
+                                                $set('product_id', $roll->product_id);
+                                                $set('cump_at_issue', $roll->cump);
+                                                $set('qty_issued', $roll->weight);
+                                            }
+                                        }
+                                    })
+                                    ->helperText('Seulement les bobines en stock dans l\'entrepôt sélectionné')
+                                    ->columnSpan(4),
+
+                                TextInput::make('qty_issued')
+                                    ->label('Poids (kg)')
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(0.01)
+                                    ->step(0.01)
+                                    ->suffix('kg')
+                                    ->reactive()
+                                    ->rules([
+                                        function ($get) {
+                                            return function (string $attribute, $value, $fail) use ($get) {
+                                                $rollId = $get('roll_id');
+                                                if ($rollId && $value) {
+                                                    $roll = Roll::with('bonEntreeItem')->find($rollId);
+                                                    if ($roll && $value > $roll->weight) {
+                                                        $fail("Le poids ne peut pas dépasser le poids de la bobine ({$roll->weight} kg).");
+                                                    }
+                                                }
+                                            };
+                                        }
+                                    ])
+                                    ->helperText(function ($get) {
+                                        $rollId = $get('roll_id');
+                                        if ($rollId) {
+                                            $roll = Roll::with('bonEntreeItem')->find($rollId);
+                                            return $roll ? "Poids total de la bobine: {$roll->weight} kg" : null;
+                                        }
+                                        return null;
+                                    })
+                                    ->columnSpan(2),
+
+                                TextInput::make('cump_at_issue')
+                                    ->label('CUMP')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(2),
+                                
+                                Placeholder::make('value_issued')
+                                    ->label('Valeur Totale')
+                                    ->content(function ($get) {
+                                        $qty = $get('qty_issued') ?? 0;
+                                        $cump = $get('cump_at_issue') ?? 0;
+                                        return number_format($qty * $cump, 2) . ' DH';
+                                    })
+                                    ->columnSpan(2),
+
+                                Hidden::make('product_id')->dehydrated(),
+                            ])
+                            ->columns(10)
+                            ->addActionLabel('Ajouter Bobine')
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => 
+                                $state['roll_id'] ? Roll::find($state['roll_id'])?->ean_13 : 'Nouvelle bobine'
+                            )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'roll';
+                                $roll = Roll::with('bonEntreeItem')->find($data['roll_id']);
+                                if ($roll) {
+                                    $data['product_id'] = $roll->product_id;
+                                    $data['qty_issued'] = $roll->weight;
+                                    $data['cump_at_issue'] = $roll->cump;
+                                }
+                                return $data;
+                            }),
+                    ])
+                    ->collapsible()
+                    ->columnSpanFull(),
+
+                Section::make('Autres Produits')
+                    ->schema([
+                        Repeater::make('productItems')
+                            ->label('Produits à sortir')
+                            ->relationship(
+                                name: 'bonSortieItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'product')
+                            )
+                            ->schema([
+                                Hidden::make('item_type')->default('product'),
+                                Select::make('product_id')
+                                    ->label('Produit')
+                                    ->options(function ($get, $livewire) {
+                                        $warehouseId = $livewire->data['warehouse_id'] ?? null;
+                                        
+                                        if (!$warehouseId) {
+                                            return [];
+                                        }
+                                        
+                                        return Product::where('is_roll', false)
+                                            ->where('is_active', true)
+                                            ->whereHas('stockQuantities', function ($query) use ($warehouseId) {
+                                                $query->where('warehouse_id', $warehouseId)
+                                                      ->where('available_qty', '>', 0);
+                                            })
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, $set, $livewire) {
+                                        if ($state) {
+                                            $warehouseId = $livewire->data['warehouse_id'] ?? null;
+                                            
+                                            // Get CUMP from the specific warehouse stock quantity
+                                            $stockQty = StockQuantity::where('product_id', $state)
                                                 ->where('warehouse_id', $warehouseId)
+                                                ->where('available_qty', '>', 0)
                                                 ->first();
                                             
                                             if ($stockQty) {
@@ -134,7 +286,7 @@ class BonSortieForm
                                             }
                                         }
                                     })
-                                    ->helperText('Seulement les produits en stock')
+                                    ->helperText('Seulement les produits en stock dans l\'entrepôt sélectionné')
                                     ->columnSpan(4),
                                 
                                 TextInput::make('qty_issued')
@@ -143,7 +295,6 @@ class BonSortieForm
                                     ->required()
                                     ->default(1)
                                     ->minValue(0.01)
-                                    ->disabled(fn ($record) => $record && $record->bonSortie && in_array($record->bonSortie->status, ['confirmed', 'archived']))
                                     ->columnSpan(2),
                                 
                                 TextInput::make('cump_at_issue')
@@ -157,36 +308,24 @@ class BonSortieForm
                                 
                                 Placeholder::make('value_issued')
                                     ->label('Valeur Totale')
-                                    ->content(fn ($get) => number_format(($get('qty_issued') ?? 0) * ($get('cump_at_issue') ?? 0), 2) . ' DH')
-                                    ->columnSpan(2),
-                                
-                                Placeholder::make('stock_available')
-                                    ->label('Stock Disponible')
                                     ->content(function ($get) {
-                                        $productId = $get('product_id');
-                                        $warehouseId = $get('../../warehouse_id');
-                                        
-                                        if ($productId && $warehouseId) {
-                                            $stockQty = \App\Models\StockQuantity::where('product_id', $productId)
-                                                ->where('warehouse_id', $warehouseId)
-                                                ->first();
-                                            
-                                            return $stockQty ? number_format($stockQty->available_qty, 2) : '0.00';
-                                        }
-                                        
-                                        return '-';
+                                        $qty = $get('qty_issued') ?? 0;
+                                        $cump = $get('cump_at_issue') ?? 0;
+                                        return number_format($qty * $cump, 2) . ' DH';
                                     })
                                     ->columnSpan(2),
                             ])
                             ->columns(12)
-                            ->defaultItems(1)
                             ->addActionLabel('Ajouter Produit')
                             ->reorderable(false)
                             ->collapsible()
-                            ->disabled(fn ($record) => $record && in_array($record->status, ['confirmed', 'archived']))
                             ->itemLabel(fn (array $state): ?string => 
-                                $state['product_id'] ? \App\Models\Product::find($state['product_id'])?->name : 'Nouveau produit'
-                            ),
+                                $state['product_id'] ? Product::find($state['product_id'])?->name : 'Nouveau produit'
+                            )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'product';
+                                return $data;
+                            }),
                     ])
                     ->columnSpanFull()
                     ->collapsible(),

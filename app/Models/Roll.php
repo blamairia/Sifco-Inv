@@ -22,6 +22,11 @@ class Roll extends Model
         'received_date' => 'date',
     ];
 
+    protected $appends = [
+        'weight',
+        'cump',
+    ];
+
     // Relationships
     public function bonEntreeItem()
     {
@@ -52,5 +57,16 @@ class Roll extends Model
     public function scopeForWarehouse($query, $warehouseId)
     {
         return $query->where('warehouse_id', $warehouseId);
+    }
+
+    // Accessors - Get weight and CUMP from the related BonEntreeItem
+    public function getWeightAttribute()
+    {
+        return $this->bonEntreeItem?->qty_entered ?? 0;
+    }
+
+    public function getCumpAttribute()
+    {
+        return $this->bonEntreeItem?->price_ttc ?? 0;
     }
 }

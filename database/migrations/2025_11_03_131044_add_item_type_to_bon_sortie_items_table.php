@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('rolls', function (Blueprint $table) {
-            $table->foreignId('bon_entree_item_id')->nullable()->after('id')->constrained('bon_entree_items')->nullOnDelete();
+        Schema::table('bon_sortie_items', function (Blueprint $table) {
+            $table->string('item_type', 20)->default('product')->after('id');
         });
     }
 
@@ -21,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('rolls', function (Blueprint $table) {
-            $table->dropForeign(['bon_entree_item_id']);
-            $table->dropColumn('bon_entree_item_id');
+        Schema::table('bon_sortie_items', function (Blueprint $table) {
+            $table->dropColumn('item_type');
         });
     }
 };

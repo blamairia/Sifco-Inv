@@ -192,6 +192,18 @@ class BonEntreeForm
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->columnSpan(2),
                                 
+                                TextInput::make('qty_entered')
+                                    ->label('Poids (kg)')
+                                    ->helperText('Poids de la bobine en kilogrammes')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(0.01)
+                                    ->step(0.01)
+                                    ->suffix('kg')
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(2),
+                                
                                 TextInput::make('price_ht')
                                     ->label('Prix HT')
                                     ->numeric()
@@ -202,7 +214,6 @@ class BonEntreeForm
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $set('price_ttc', $state);
-                                        $set('qty_entered', 1); // Always 1 for bobines
                                     })
                                     ->columnSpan(2),
                                 
@@ -218,7 +229,7 @@ class BonEntreeForm
                                 
                                 Placeholder::make('line_total')
                                     ->label('Total')
-                                    ->content(fn ($get) => number_format($get('price_ttc') ?? 0, 2) . ' DH')
+                                    ->content(fn ($get) => number_format(($get('price_ttc') ?? 0) * ($get('qty_entered') ?? 1), 2) . ' DH')
                                     ->columnSpan(1),
                             ])
                             ->columns(12)
@@ -232,7 +243,7 @@ class BonEntreeForm
                             )
                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                 $data['item_type'] = 'bobine';
-                                $data['qty_entered'] = 1;
+                                // qty_entered (weight) is now entered by the user
                                 return $data;
                             })
                             ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {

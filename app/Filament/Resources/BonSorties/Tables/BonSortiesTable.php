@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources\BonSorties\Tables;
 
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Filament\Tables\Filters\SelectFilter;
+use App\Models\BonSortie;
+use App\Services\BonSortieService;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 
 class BonSortiesTable
@@ -90,8 +96,45 @@ class BonSortiesTable
                     ->searchable()
                     ->preload(),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->toolbarActions([
+            ->actions([
+                EditAction::make(),
+                ViewAction::make(),
+                Action::make('issue')
+                        ->label('Émettre')
+                        ->icon('heroicon-o-arrow-up-circle')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Émettre le bon de sortie')
+                        ->modalDescription('Êtes-vous sûr de vouloir émettre ce bon? Cette action mettra à jour les niveaux de stock et ne pourra pas être annulée.')
+                        ->visible(fn (BonSortie $record): bool => $record->status === 'draft')
+                        ->action(function (BonSortie $record, BonSortieService $bonSortieService) {
+                            if ($record->bonSortieItems()->count() === 0) {
+                                Notification::make()
+                                    ->title('Action impossible')
+                                    ->body('Vous ne pouvez pas émettre un bon de sortie vide.')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            try {
+                                $bonSortieService->issue($record);
+                                Notification::make()
+                                    ->title('Bon de sortie émis avec succès')
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Erreur lors de l\'émission')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                DeleteAction::make()
+                    ->visible(fn (BonSortie $record): bool => $record->status === 'draft'),
+            ])
+            ->bulkActions([
                 BulkAction::make('confirm')
                     ->label('Confirmer')
                     ->icon('heroicon-o-check-circle')
@@ -131,6 +174,7 @@ class BonSortiesTable
                             ->info()
                             ->send();
                     }),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }
