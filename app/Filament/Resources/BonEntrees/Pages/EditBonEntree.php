@@ -258,10 +258,31 @@ class EditBonEntree extends EditRecord
             ]);
         }
 
+        // Process rolls - update their status and link to warehouse
+        foreach ($bonEntree->rolls as $roll) {
+            $roll->update([
+                'warehouse_id' => $bonEntree->warehouse_id,
+                'received_date' => $bonEntree->received_date ?? now(),
+                'status' => $roll->ean_13 ? 'in_stock' : 'pending_ean', // If EAN entered, mark as in_stock
+            ]);
+        }
+
+        $rollsCount = $bonEntree->rolls->count();
+        $rollsWithEan = $bonEntree->rolls->where('ean_13', '!=', null)->count();
+        
+        $message = "Stock mis à jour pour {$bonEntree->bonEntreeItems->count()} produit(s).";
+        if ($rollsCount > 0) {
+            $rollsPending = $rollsCount - $rollsWithEan;
+            $message .= " {$rollsCount} bobine(s) enregistrée(s)";
+            if ($rollsPending > 0) {
+                $message .= " ({$rollsPending} en attente de code EAN)";
+            }
+        }
+
         Notification::make()
             ->title('Stock mis à jour')
             ->success()
-            ->body("Le stock a été mis à jour pour {$bonEntree->bonEntreeItems->count()} produit(s).")
+            ->body($message)
             ->send();
     }
 

@@ -226,6 +226,73 @@ class BonEntreeForm
                     ->columnSpanFull()
                     ->collapsible(),
                 
+                Section::make('Bobines')
+                    ->description('Saisie des bobines individuelles avec codes EAN-13')
+                    ->schema([
+                        Repeater::make('rolls')
+                            ->relationship()
+                            ->schema([
+                                Select::make('product_id')
+                                    ->label('Produit (Bobine)')
+                                    ->options(function () {
+                                        return \App\Models\Product::where('is_roll', true)
+                                            ->pluck('name', 'id');
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(3),
+                                
+                                TextInput::make('ean_13')
+                                    ->label('Code EAN-13')
+                                    ->helperText('Scanner ou saisir manuellement')
+                                    ->maxLength(13)
+                                    ->placeholder('Scannez ou entrez le code-barres')
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(3),
+                                
+                                TextInput::make('batch_number')
+                                    ->label('N° Lot')
+                                    ->maxLength(50)
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(2),
+                                
+                                Select::make('status')
+                                    ->label('Statut')
+                                    ->options([
+                                        'pending_ean' => 'En attente EAN',
+                                        'in_stock' => 'En stock',
+                                        'consumed' => 'Consommée',
+                                        'transferred' => 'Transférée',
+                                    ])
+                                    ->default('pending_ean')
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(2),
+                                
+                                Textarea::make('notes')
+                                    ->label('Notes')
+                                    ->rows(2)
+                                    ->maxLength(255)
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(2),
+                            ])
+                            ->columns(12)
+                            ->defaultItems(0)
+                            ->addActionLabel('Ajouter Bobine')
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->disabled(fn ($record) => $record && $record->status === 'received')
+                            ->itemLabel(fn (array $state): ?string => 
+                                $state['ean_13'] ? "EAN: {$state['ean_13']}" : ($state['product_id'] ? \App\Models\Product::find($state['product_id'])?->name : 'Nouvelle bobine')
+                            ),
+                    ])
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->collapsed(),
+                
                 Section::make('Notes')
                     ->schema([
                         Textarea::make('notes')

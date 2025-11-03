@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Roll extends Model
 {
     protected $fillable = [
+        'bon_entree_id',
         'product_id',
         'warehouse_id',
         'ean_13',
@@ -34,5 +35,10 @@ class Roll extends Model
     public function receivedFromMovement()
     {
         return $this->belongsTo(StockMovement::class, 'received_from_movement_id');
+    }
+
+    public function bonEntree()
+    {
+        return $this->belongsTo(BonEntree::class);
     }
 }
