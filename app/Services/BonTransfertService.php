@@ -97,30 +97,32 @@ class BonTransfertService
         $movementOut = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-OUT'),
             'product_id' => $item->product_id,
-            'warehouse_id' => $bonTransfert->warehouse_from_id,
-            'movement_type' => 'transfer_out',
-            'movement_date' => now(),
+            'warehouse_from_id' => $bonTransfert->warehouse_from_id,
+            'warehouse_to_id' => $bonTransfert->warehouse_to_id,
+            'movement_type' => 'TRANSFER',
             'qty_moved' => -$item->qty_transferred,
-            'cump_before' => $item->cump_at_transfer,
-            'cump_after' => $item->cump_at_transfer, // CUMP preserved
-            'reference_type' => 'App\\Models\\BonTransfert',
-            'reference_id' => $bonTransfert->id,
-            'notes' => "Transfer to " . $bonTransfert->warehouseTo->name,
+            'cump_at_movement' => $item->cump_at_transfer,
+            'reference_number' => $bonTransfert->bon_number,
+            'user_id' => auth()->id() ?? 1,
+            'performed_at' => now(),
+            'status' => 'confirmed',
+            'notes' => "Transfer to " . $bonTransfert->warehouseTo->name . " - " . $bonTransfert->warehouseTo->warehouse_type,
         ]);
 
         // Create transfer IN movement (destination warehouse)
         $movementIn = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-IN'),
             'product_id' => $item->product_id,
-            'warehouse_id' => $bonTransfert->warehouse_to_id,
-            'movement_type' => 'transfer_in',
-            'movement_date' => now(),
+            'warehouse_from_id' => $bonTransfert->warehouse_from_id,
+            'warehouse_to_id' => $bonTransfert->warehouse_to_id,
+            'movement_type' => 'TRANSFER',
             'qty_moved' => $item->qty_transferred,
-            'cump_before' => $item->cump_at_transfer,
-            'cump_after' => $item->cump_at_transfer, // CUMP preserved
-            'reference_type' => 'App\\Models\\BonTransfert',
-            'reference_id' => $bonTransfert->id,
-            'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name,
+            'cump_at_movement' => $item->cump_at_transfer,
+            'reference_number' => $bonTransfert->bon_number,
+            'user_id' => auth()->id() ?? 1,
+            'performed_at' => now(),
+            'status' => 'confirmed',
+            'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name . " - " . $bonTransfert->warehouseFrom->warehouse_type,
         ]);
 
         // Update roll's warehouse
@@ -157,30 +159,32 @@ class BonTransfertService
         $movementOut = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-OUT'),
             'product_id' => $item->product_id,
-            'warehouse_id' => $bonTransfert->warehouse_from_id,
-            'movement_type' => 'transfer_out',
-            'movement_date' => now(),
+            'warehouse_from_id' => $bonTransfert->warehouse_from_id,
+            'warehouse_to_id' => $bonTransfert->warehouse_to_id,
+            'movement_type' => 'TRANSFER',
             'qty_moved' => -$item->qty_transferred,
-            'cump_before' => $item->cump_at_transfer,
-            'cump_after' => $item->cump_at_transfer, // CUMP preserved
-            'reference_type' => 'App\\Models\\BonTransfert',
-            'reference_id' => $bonTransfert->id,
-            'notes' => "Transfer to " . $bonTransfert->warehouseTo->name,
+            'cump_at_movement' => $item->cump_at_transfer,
+            'reference_number' => $bonTransfert->bon_number,
+            'user_id' => auth()->id() ?? 1,
+            'performed_at' => now(),
+            'status' => 'confirmed',
+            'notes' => "Transfer to " . $bonTransfert->warehouseTo->name . " - " . $bonTransfert->warehouseTo->warehouse_type,
         ]);
 
         // Create transfer IN movement (destination warehouse)
         $movementIn = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-IN'),
             'product_id' => $item->product_id,
-            'warehouse_id' => $bonTransfert->warehouse_to_id,
-            'movement_type' => 'transfer_in',
-            'movement_date' => now(),
+            'warehouse_from_id' => $bonTransfert->warehouse_from_id,
+            'warehouse_to_id' => $bonTransfert->warehouse_to_id,
+            'movement_type' => 'TRANSFER',
             'qty_moved' => $item->qty_transferred,
-            'cump_before' => $item->cump_at_transfer,
-            'cump_after' => $item->cump_at_transfer, // CUMP preserved
-            'reference_type' => 'App\\Models\\BonTransfert',
-            'reference_id' => $bonTransfert->id,
-            'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name,
+            'cump_at_movement' => $item->cump_at_transfer,
+            'reference_number' => $bonTransfert->bon_number,
+            'user_id' => auth()->id() ?? 1,
+            'performed_at' => now(),
+            'status' => 'confirmed',
+            'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name . " - " . $bonTransfert->warehouseFrom->warehouse_type,
         ]);
 
         // Update source warehouse stock quantity (decrease)
