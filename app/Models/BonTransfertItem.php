@@ -11,7 +11,9 @@ class BonTransfertItem extends Model
 
     protected $fillable = [
         'bon_transfert_id',
+        'item_type',
         'product_id',
+        'roll_id',
         'qty_transferred',
         'cump_at_transfer',
         'value_transferred',
@@ -31,5 +33,21 @@ class BonTransfertItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function roll(): BelongsTo
+    {
+        return $this->belongsTo(Roll::class);
+    }
+
+    // Scopes
+    public function scopeRolls($query)
+    {
+        return $query->where('item_type', 'roll');
+    }
+
+    public function scopeProducts($query)
+    {
+        return $query->where('item_type', 'product');
     }
 }
