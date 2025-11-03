@@ -18,7 +18,17 @@ class BonTransfertResource extends Resource
 {
     protected static ?string $model = BonTransfert::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-path';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Gestion des Bons';
+
+    protected static ?string $navigationLabel = 'Bons de Transfert';
+
+    protected static ?string $modelLabel = 'Bon de Transfert';
+
+    protected static ?string $pluralModelLabel = 'Bons de Transfert';
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {

@@ -18,7 +18,9 @@ class BonEntreeResource extends Resource
 {
     protected static ?string $model = BonEntree::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowDownCircle;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-down-circle';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Gestion des Bons';
 
     protected static ?string $navigationLabel = 'Bons d\'Entrée';
 

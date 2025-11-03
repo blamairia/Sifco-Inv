@@ -18,7 +18,9 @@ class BonSortieResource extends Resource
 {
     protected static ?string $model = BonSortie::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpCircle;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-up-circle';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Gestion des Bons';
 
     protected static ?string $navigationLabel = 'Bons de Sortie';
 
