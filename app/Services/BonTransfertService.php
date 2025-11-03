@@ -132,21 +132,17 @@ class BonTransfertService
         ]);
 
         // Update source warehouse stock quantity (decrease)
-        $this->updateStockQuantity(
+        $this->decrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_from_id,
-            -$item->qty_transferred,
-            $item->cump_at_transfer,
-            $movementOut->id
+            $item->qty_transferred
         );
 
         // Update destination warehouse stock quantity (increase)
-        $this->updateStockQuantity(
+        $this->incrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_to_id,
-            $item->qty_transferred,
-            $item->cump_at_transfer,
-            $movementIn->id
+            $item->qty_transferred
         );
     }
 
@@ -188,50 +184,59 @@ class BonTransfertService
         ]);
 
         // Update source warehouse stock quantity (decrease)
-        $this->updateStockQuantity(
+        $this->decrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_from_id,
-            -$item->qty_transferred,
-            $item->cump_at_transfer,
-            $movementOut->id
+            $item->qty_transferred
         );
 
         // Update destination warehouse stock quantity (increase)
-        $this->updateStockQuantity(
+        $this->incrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_to_id,
-            $item->qty_transferred,
-            $item->cump_at_transfer,
-            $movementIn->id
+            $item->qty_transferred
         );
     }
 
     /**
-     * Update stock quantity for a product in a warehouse
-     * CUMP is PRESERVED during transfer (not recalculated)
+     * Decrement stock quantity (for source warehouse during transfer)
      */
-    protected function updateStockQuantity(
+    protected function decrementStockQuantity(
         int $productId,
         int $warehouseId,
-        float $qtyChange,
-        float $cump,
-        int $lastMovementId
+        float $qtyToDecrement
     ): void {
-        $stockQty = StockQuantity::firstOrNew([
-            'product_id' => $productId,
-            'warehouse_id' => $warehouseId,
-        ]);
+        $stockQty = StockQuantity::where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->firstOrFail();
 
-        $stockQty->total_qty = ($stockQty->total_qty ?? 0) + $qtyChange;
-        $stockQty->available_qty = ($stockQty->available_qty ?? 0) + $qtyChange;
-        
-        // IMPORTANT: Preserve CUMP during transfer (do not recalculate)
-        if (!$stockQty->exists || $stockQty->cump_snapshot == 0) {
-            $stockQty->cump_snapshot = $cump;
+        $stockQty->decrement('total_qty', $qtyToDecrement);
+    }
+
+    /**
+     * Increment stock quantity (for destination warehouse during transfer)
+     */
+    protected function incrementStockQuantity(
+        int $productId,
+        int $warehouseId,
+        float $qtyToIncrement
+    ): void {
+        $stockQty = StockQuantity::where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->first();
+
+        if ($stockQty) {
+            // Increment existing stock
+            $stockQty->increment('total_qty', $qtyToIncrement);
+        } else {
+            // Create new stock quantity record for destination warehouse
+            StockQuantity::create([
+                'product_id' => $productId,
+                'warehouse_id' => $warehouseId,
+                'total_qty' => $qtyToIncrement,
+                'cump_snapshot' => 0, // Will be set properly on first reception
+            ]);
         }
-        
-        $stockQty->last_movement_id = $lastMovementId;
-        $stockQty->save();
     }
 
     /**
