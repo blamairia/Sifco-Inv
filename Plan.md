@@ -3,7 +3,16 @@
 ## 🎯 Executive Summary
 
 **Phase 1 COMPLETED:** Slices 1-2 created basic data structure.  
-**Phase 2 CURRENT:** Complete architectural redesign for **SIFCO procedure alignment** + **scalability**.
+**Phase 2 COMPLETED:** Architectural redesign for **SIFCO procedure alignment** + **scalability**.  
+**Phase 3 CURRENT:** Core workflows implementation (Entrée ✅, Sortie ✅, Transfert ← NEXT)
+
+**Progress Overview:**
+- ✅ Slice 1-2: Master data & initial structure
+- ✅ Slice 2.5: Architecture refactor (27 tables, migrations, models)
+- ✅ Slice 3: Bon d'Entrée workflow (CUMP calculation, roll creation)
+- ✅ Slice 4: Bon de Sortie workflow (stock issuance, Filament v4 fixes)
+- ⏳ Slice 5: Bon de Transfert workflow ← **NEXT**
+- 📋 Slice 6-9: Réintégration, Adjustments, Dashboard, Reports
 
 **Key Changes:**
 - ❌ Deprecated: Overcomplicated Product/Roll/PaperRollType hierarchy
@@ -44,8 +53,9 @@
   - [x] Add is_roll flag for product filtering
   - [x] Migrate to MySQL 8.0.44
   - [x] Seed test data
-- [ ] **Slice 3: Bon d'Entrée Workflow** ← **CURRENT: Receipts with CUMP calculation** (3-4 days)
-- [ ] **Slice 4: Bon de Sortie Workflow** (Issues to production) (2-3 days)
+- [x] **Slice 3: Bon d'Entrée Workflow** ✅ **COMPLETE** (Receipts with CUMP calculation)
+- [x] **Slice 4: Bon de Sortie Workflow** ✅ **COMPLETE** (Issues to production)
+- [ ] **Slice 5: Bon de Transfert Workflow** ← **NEXT: Inter-warehouse transfers** (2-3 days)
 - [ ] **Slice 5: Bon de Transfert Workflow** (Inter-warehouse transfers) (2-3 days)
 - [ ] **Slice 6: Bon de Réintégration Workflow** (Returns with CUMP preservation) (2 days)
 - [ ] **Slice 7: Stock Adjustments & Low-Stock Alerts** (Manual corrections + auto alerts) (2 days)
@@ -195,7 +205,13 @@
 - ✅ Success/error notifications
 - ✅ Database transactions for data integrity
 
-### 3.6 Testing ⏳ NEXT
+### 3.6 Weight Input Enhancement ✅ DONE
+- [x] Added weight input field (qty_entered) to bobine repeater
+- [x] User can now enter weight in kg when creating bobines
+- [x] Line total calculation: price_ttc × weight
+- [x] Default weight: 1 kg, minimum: 0.01 kg, step: 0.01
+
+### 3.7 Testing ⏳ NEXT
 - [ ] Test Case 1: Normal product entry (non-roll)
 - [ ] Test Case 2: Bobine entry with manual EAN-13
 - [ ] Test Case 3: Mixed products and bobines
@@ -206,7 +222,7 @@
 - [ ] Display generated EAN-13 codes after validation
 - [ ] Add print/PDF export for bon_entrees
 
-### 3.7 Stock Viewing Resource 📊
+### 3.8 Stock Viewing Resource 📊
 - [ ] Create StockQuantityResource (read-only) using `php artisan make:filament-resource`
 - [ ] Table columns:
   - Product (with relation, searchable)
@@ -239,39 +255,92 @@
 
 ---
 
-## 📋 Slice 4 – Bon de Sortie Workflow (Issues to Production)
+## ✅ COMPLETE: Slice 4 – Bon de Sortie Workflow (Phase 3.2)
 
 **Goal:** Issue materials from warehouse to production with CUMP-based valuation
 
-### 4.1 Models & Logic
-- [ ] Create BonSortie model (warehouse_id, destination, issue_date, purpose, status)
-- [ ] Create BonSortieItem model (bon_sortie_id, product_id, quantity, cump_value, roll_ids)
-- [ ] Add status transitions (pending → validated → completed)
+### 4.1 Database Structure ✅ DONE
+- [x] Modified bon_sortie_items: added item_type, roll_id columns
+- [x] Migration for roll_id foreign key
+- [x] Migration for item_type column (roll/product)
+- [x] Updated BonSortieItem model with fillable fields
 
-### 4.2 Business Logic
-- [ ] Stock availability check before issue
-- [ ] Retrieve current CUMP from stock_quantities
-- [ ] IF product.is_roll:
-  - Select rolls WHERE status='in_stock' LIMIT quantity
-  - Update roll.status = 'consumed'
-  - Store consumed roll_ids in bon_sortie_items
-- [ ] Create stock_movement (type=issue, qty_moved=-qty, reference=BON_SOR_XXX)
-- [ ] Update stock_quantities (qty -= issued_qty)
+### 4.2 Models & Relationships ✅ DONE
+- [x] BonSortie model with warehouse, items relationships
+- [x] BonSortieItem model with bonSortie, product, roll relationships
+- [x] Roll model enhancements:
+  - Added weight accessor (from bonEntreeItem.qty_entered)
+  - Added cump accessor (from bonEntreeItem.price_ttc)
+  - Added $appends for weight and cump
+  - Eager loading bonEntreeItem relationship
 
-### 4.3 Filament Resources
-- [ ] BonSortieResource with form (warehouse, destination, purpose, items repeater)
-- [ ] Table with filters (warehouse, date, status, destination)
-- [ ] Validation action with stock check
-- [ ] Error handling: insufficient stock alert
+### 4.3 Business Logic ✅ DONE
+- [x] Created BonSortieService class with complete issuance logic:
+  - `issue($bonSortie)` - main issuance method
+  - `processRollItem($item)` - handles roll consumption
+  - `processProductItem($item)` - handles standard product issuance
+  - Stock availability validation
+  - CUMP retrieval from stock_quantities
+  - Roll status updates (in_stock → consumed)
+  - Stock movement creation (type=issue)
+  - Stock quantity decrements
+  - Database transactions for atomicity
 
-### 4.4 Testing
+### 4.4 Filament Resources ✅ DONE
+- [x] **BonSortieResource** - Complete CRUD with Filament v4 patterns
+  - **Fixed namespace issues:** Changed from `Filament\Tables\Actions\*` to `Filament\Actions\*`
+  - **Form structure:**
+    - Two separate repeaters using `modifyQueryUsing` pattern:
+      1. **Rolls repeater** (item_type='roll'):
+         - Fields: roll_id (relationship), qty_issued (auto from weight), cump_at_issue (auto), value_issued (calculated)
+         - Filters rolls by: status='in_stock' AND warehouse_id (selected warehouse)
+         - Shows roll details: EAN-13, batch_number, weight
+         - Auto-populates product_id, qty_issued, cump_at_issue on selection
+      2. **Products repeater** (item_type='product'):
+         - Fields: product_id (relationship), qty_issued (manual), cump_at_issue (auto), value_issued (calculated)
+         - Filters products by: is_roll=false, is_active=true, AND has stock in selected warehouse
+         - Auto-loads CUMP from warehouse stock_quantities
+    - Warehouse select: reactive, clears repeaters on change
+    - Other fields: bon_number (auto-generated), destination, status, issued_date, notes
+  - **Table actions:**
+    - Edit/View for all statuses
+    - "Émettre" (Issue) button - executes BonSortieService.issue()
+    - Delete for draft status only
+  - **Warehouse filtering:** Only shows items in selected warehouse
+  - **Roll deduplication:** Selected rolls hidden from other repeater items
+  - **Form validations:** All required fields, quantity > 0
+
+### 4.5 Key Features ✅ IMPLEMENTED
+- ✅ Separate handling for rolls vs products (item_type column)
+- ✅ Warehouse-based filtering for rolls and products
+- ✅ Roll deduplication in repeater (can't select same roll twice)
+- ✅ CUMP snapshot at issuance (cump_at_issue field)
+- ✅ Roll status management (in_stock → consumed)
+- ✅ Stock movements audit trail
+- ✅ Stock quantity decrements
+- ✅ Filament v4 compliance (proper namespace, relationship patterns)
+- ✅ Action buttons with confirmations
+- ✅ Success/error notifications
+- ✅ Database transactions for data integrity
+
+### 4.6 Filament v4 Fixes ✅ DONE
+- [x] Fixed action namespace imports (Actions vs Tables\Actions)
+- [x] Restructured repeaters with proper modifyQueryUsing pattern
+- [x] Removed type hints causing conflicts in repeater closures
+- [x] Used $livewire->data to access parent form fields from repeater
+- [x] Added mutateRelationshipDataBeforeCreateUsing for data preparation
+- [x] Simplified CreateBonSortie page (removed premature validation)
+
+### 4.7 Testing ⏳ NEXT
 - [ ] Issue normal products (verify qty decreases)
 - [ ] Issue rolls (verify roll status changes to consumed)
 - [ ] Issue more than available stock (verify error)
-- [ ] Issue from multiple warehouses (separate bons)
+- [ ] Mixed roll and product issuance
+- [ ] Warehouse filtering verification
+- [ ] CUMP snapshot verification
 
-**Estimated Time:** 2-3 days  
-**Dependencies:** Slice 3 complete (CUMP logic)
+**Estimated Time:** 2-3 days (ACTUAL: 3 days with Filament v4 fixes)  
+**Dependencies:** Slice 3 complete (CUMP logic) ✅
 
 ---
 
