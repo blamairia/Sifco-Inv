@@ -6,6 +6,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\BulkAction;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -109,38 +112,93 @@ class BonEntreesTable
                     ->preload(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->toolbarActions([
-                BulkAction::make('validate')
+            ->actions([
+                EditAction::make(),
+                ViewAction::make(),
+                
+                Action::make('validate')
                     ->label('Valider')
                     ->icon('heroicon-o-check-circle')
-                    ->color('success')
+                    ->color('warning')
                     ->requiresConfirmation()
-                    ->action(function (Collection $records) {
-                        $count = 0;
-                        foreach ($records as $record) {
-                            if (in_array($record->status, ['draft', 'pending']) && 
-                                $record->warehouse_id && 
-                                $record->bonEntreeItems->isNotEmpty()) {
-                                $record->update(['status' => 'validated']);
-                                $count++;
-                            }
+                    ->modalHeading('Valider le Bon d\'Entrée')
+                    ->modalDescription('Cette action va calculer les frais d\'approche et passer le bon en statut "En Attente".')
+                    ->visible(fn ($record) => $record->status === 'draft')
+                    ->action(function ($record) {
+                        try {
+                            $service = new \App\Services\BonEntreeService();
+                            $service->validate($record);
+                            
+                            Notification::make()
+                                ->title('Bon validé avec succès')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Erreur de validation')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
                         }
-                        
-                        Notification::make()
-                            ->title("$count bon(s) validé(s)")
-                            ->success()
-                            ->send();
                     }),
                 
-                BulkAction::make('cancel')
+                Action::make('receive')
+                    ->label('Recevoir')
+                    ->icon('heroicon-o-inbox-arrow-down')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Recevoir le Bon d\'Entrée')
+                    ->modalDescription('Cette action va créer les bobines, mettre à jour les stocks et calculer le CUMP. Cette opération ne peut pas être annulée.')
+                    ->visible(fn ($record) => $record->status === 'pending')
+                    ->action(function ($record) {
+                        \Illuminate\Support\Facades\Log::channel('stderr')->info('!!!!!! RECEIVE ACTION CLICKED IN TABLE !!!!!!');
+                        try {
+                            $service = new \App\Services\BonEntreeService();
+                            $service->receive($record);
+                            
+                            $bobinesCount = $record->bonEntreeItems()->bobines()->count();
+                            $message = $bobinesCount > 0 
+                                ? "Bon reçu avec succès. {$bobinesCount} bobine(s) créée(s)."
+                                : "Bon reçu avec succès.";
+                            
+                            Notification::make()
+                                ->title($message)
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Erreur de réception')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+                
+                Action::make('cancel')
                     ->label('Annuler')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn ($record) => in_array($record->status, ['draft', 'pending']))
+                    ->action(function ($record) {
+                        $record->update(['status' => 'cancelled']);
+                        
+                        Notification::make()
+                            ->title('Bon annulé')
+                            ->warning()
+                            ->send();
+                    }),
+            ])
+            ->bulkActions([
+                BulkAction::make('cancel')
+                    ->label('Annuler les bons sélectionnés')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
                     ->action(function (Collection $records) {
                         $count = 0;
                         foreach ($records as $record) {
-                            if (in_array($record->status, ['draft', 'pending', 'validated'])) {
+                            if (in_array($record->status, ['draft', 'pending'])) {
                                 $record->update(['status' => 'cancelled']);
                                 $count++;
                             }

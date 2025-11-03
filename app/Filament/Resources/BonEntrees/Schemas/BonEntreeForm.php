@@ -116,59 +116,150 @@ class BonEntreeForm
                         Placeholder::make('total_amount_ht_display')
                             ->label('Montant Total HT')
                             ->content(function ($get) {
-                                $items = $get('bonEntreeItems') ?? [];
-                                $total = collect($items)->sum(function ($item) {
+                                $bobines = $get('bobineItems') ?? [];
+                                $products = $get('productItems') ?? [];
+                                
+                                $bobinesTotal = collect($bobines)->sum(fn($item) => $item['price_ht'] ?? 0);
+                                $productsTotal = collect($products)->sum(function ($item) {
                                     return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
                                 });
-                                return number_format($total, 2) . ' DH';
+                                
+                                return number_format($bobinesTotal + $productsTotal, 2) . ' DH';
                             }),
                         
                         TextInput::make('frais_approche')
                             ->label('Frais d\'Approche')
-                            ->helperText('Transport, D3, transitaire, etc.')
+                            ->helperText('Transport, D3, transitaire, etc. (distribués sur validation)')
                             ->numeric()
                             ->prefix('DH')
                             ->default(0)
                             ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                $items = $get('bonEntreeItems') ?? [];
-                                $totalQty = collect($items)->sum('qty_entered');
-                                
-                                if ($totalQty > 0) {
-                                    $fraisPerUnit = $state / $totalQty;
-                                    $updatedItems = collect($items)->map(function ($item) use ($fraisPerUnit) {
-                                        $item['price_ttc'] = ($item['price_ht'] ?? 0) + $fraisPerUnit;
-                                        // line_total_ttc is auto-calculated by DB
-                                        return $item;
-                                    })->toArray();
-                                    
-                                    $set('bonEntreeItems', $updatedItems);
-                                }
-                            }),
+                            ->disabled(fn ($record) => $record && $record->status !== 'draft'),
                         
                         Placeholder::make('total_amount_ttc_display')
                             ->label('Montant Total TTC')
                             ->helperText('HT + Frais d\'approche')
                             ->content(function ($get) {
-                                $items = $get('bonEntreeItems') ?? [];
-                                $totalHT = collect($items)->sum(function ($item) {
+                                $bobines = $get('bobineItems') ?? [];
+                                $products = $get('productItems') ?? [];
+                                
+                                $bobinesTotal = collect($bobines)->sum(fn($item) => $item['price_ht'] ?? 0);
+                                $productsTotal = collect($products)->sum(function ($item) {
                                     return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
                                 });
+                                
                                 $frais = $get('frais_approche') ?? 0;
-                                return number_format($totalHT + $frais, 2) . ' DH';
+                                return number_format($bobinesTotal + $productsTotal + $frais, 2) . ' DH';
                             }),
                     ])
                     ->columns(3),
                 
-                Section::make('Articles / Produits')
+                Section::make('Bobines')
+                    ->description('Ajoutez chaque bobine individuellement avec son code EAN-13')
                     ->schema([
-                        Repeater::make('bonEntreeItems')
-                            ->relationship()
+                        Repeater::make('bobineItems')
+                            ->relationship(
+                                name: 'bonEntreeItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'bobine')
+                            )
+                            ->schema([
+                                Select::make('product_id')
+                                    ->label('Produit Bobine')
+                                    ->relationship(
+                                        'product',
+                                        'name',
+                                        fn ($query) => $query->where('is_roll', true)->where('is_active', true)
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(3),
+                                
+                                TextInput::make('ean_13')
+                                    ->label('Code EAN-13')
+                                    ->required()
+                                    ->length(13)
+                                    ->numeric()
+                                    ->placeholder('1234567890123')
+                                    ->unique(table: 'bon_entree_items', ignorable: fn ($record) => $record)
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(2),
+                                
+                                TextInput::make('batch_number')
+                                    ->label('N° Lot Fournisseur')
+                                    ->maxLength(100)
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(2),
+                                
+                                TextInput::make('price_ht')
+                                    ->label('Prix HT')
+                                    ->numeric()
+                                    ->required()
+                                    ->prefix('DH')
+                                    ->default(0)
+                                    ->reactive()
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        $set('price_ttc', $state);
+                                        $set('qty_entered', 1); // Always 1 for bobines
+                                    })
+                                    ->columnSpan(2),
+                                
+                                TextInput::make('price_ttc')
+                                    ->label('Prix TTC')
+                                    ->helperText('Après frais')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->default(0)
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(2),
+                                
+                                Placeholder::make('line_total')
+                                    ->label('Total')
+                                    ->content(fn ($get) => number_format($get('price_ttc') ?? 0, 2) . ' DH')
+                                    ->columnSpan(1),
+                            ])
+                            ->columns(12)
+                            ->defaultItems(0)
+                            ->addActionLabel('➕ Ajouter Bobine')
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->disabled(fn ($record) => $record && $record->status === 'received')
+                            ->itemLabel(fn (array $state): ?string => 
+                                $state['ean_13'] ? "Bobine EAN: {$state['ean_13']}" : 'Nouvelle bobine'
+                            )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'bobine';
+                                $data['qty_entered'] = 1;
+                                return $data;
+                            })
+                            ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
+                                $data['item_type'] = 'bobine';
+                                return $data;
+                            }),
+                    ])
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->collapsed(fn ($record) => $record && $record->bonEntreeItems()->bobines()->count() === 0),
+                
+                Section::make('Produits (Non-Bobines)')
+                    ->description('Ajoutez les produits standards avec quantité')
+                    ->schema([
+                        Repeater::make('productItems')
+                            ->relationship(
+                                name: 'bonEntreeItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'product')
+                            )
                             ->schema([
                                 Select::make('product_id')
                                     ->label('Produit')
-                                    ->relationship('product', 'name')
+                                    ->relationship(
+                                        'product',
+                                        'name',
+                                        fn ($query) => $query->where('is_roll', false)->where('is_active', true)
+                                    )
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -192,9 +283,8 @@ class BonEntreeForm
                                     ->default(0)
                                     ->reactive()
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    ->afterStateUpdated(function ($state, callable $set) {
                                         $set('price_ttc', $state);
-                                        // line_total_ttc is auto-calculated by DB
                                     })
                                     ->columnSpan(2),
                                 
@@ -202,10 +292,10 @@ class BonEntreeForm
                                     ->label('Prix TTC')
                                     ->helperText('Après frais')
                                     ->numeric()
-                                    ->required()
                                     ->prefix('DH')
                                     ->default(0)
-                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->disabled()
+                                    ->dehydrated()
                                     ->columnSpan(2),
                                 
                                 Placeholder::make('line_total_ttc')
@@ -214,84 +304,26 @@ class BonEntreeForm
                                     ->columnSpan(2),
                             ])
                             ->columns(12)
-                            ->defaultItems(1)
-                            ->addActionLabel('Ajouter Produit')
+                            ->defaultItems(0)
+                            ->addActionLabel('➕ Ajouter Produit')
                             ->reorderable(false)
                             ->collapsible()
                             ->disabled(fn ($record) => $record && $record->status === 'received')
                             ->itemLabel(fn (array $state): ?string => 
                                 $state['product_id'] ? \App\Models\Product::find($state['product_id'])?->name : 'Nouveau produit'
-                            ),
-                    ])
-                    ->columnSpanFull()
-                    ->collapsible(),
-                
-                Section::make('Bobines')
-                    ->description('Saisie des bobines individuelles avec codes EAN-13')
-                    ->schema([
-                        Repeater::make('rolls')
-                            ->relationship()
-                            ->schema([
-                                Select::make('product_id')
-                                    ->label('Produit (Bobine)')
-                                    ->options(function () {
-                                        return \App\Models\Product::where('is_roll', true)
-                                            ->pluck('name', 'id');
-                                    })
-                                    ->searchable()
-                                    ->preload()
-                                    ->required()
-                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->columnSpan(3),
-                                
-                                TextInput::make('ean_13')
-                                    ->label('Code EAN-13')
-                                    ->helperText('Scanner ou saisir manuellement')
-                                    ->maxLength(13)
-                                    ->placeholder('Scannez ou entrez le code-barres')
-                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->columnSpan(3),
-                                
-                                TextInput::make('batch_number')
-                                    ->label('N° Lot')
-                                    ->maxLength(50)
-                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->columnSpan(2),
-                                
-                                Select::make('status')
-                                    ->label('Statut')
-                                    ->options([
-                                        'pending_ean' => 'En attente EAN',
-                                        'in_stock' => 'En stock',
-                                        'consumed' => 'Consommée',
-                                        'transferred' => 'Transférée',
-                                    ])
-                                    ->default('pending_ean')
-                                    ->required()
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->columnSpan(2),
-                                
-                                Textarea::make('notes')
-                                    ->label('Notes')
-                                    ->rows(2)
-                                    ->maxLength(255)
-                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
-                                    ->columnSpan(2),
-                            ])
-                            ->columns(12)
-                            ->defaultItems(0)
-                            ->addActionLabel('Ajouter Bobine')
-                            ->reorderable(false)
-                            ->collapsible()
-                            ->disabled(fn ($record) => $record && $record->status === 'received')
-                            ->itemLabel(fn (array $state): ?string => 
-                                $state['ean_13'] ? "EAN: {$state['ean_13']}" : ($state['product_id'] ? \App\Models\Product::find($state['product_id'])?->name : 'Nouvelle bobine')
-                            ),
+                            )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'product';
+                                return $data;
+                            })
+                            ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
+                                $data['item_type'] = 'product';
+                                return $data;
+                            }),
                     ])
                     ->columnSpanFull()
                     ->collapsible()
-                    ->collapsed(),
+                    ->collapsed(fn ($record) => $record && $record->bonEntreeItems()->products()->count() === 0),
                 
                 Section::make('Notes')
                     ->schema([

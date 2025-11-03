@@ -21,37 +21,27 @@ class EditBonEntree extends EditRecord
             Actions\Action::make('validate')
                 ->label('Valider')
                 ->icon('heroicon-o-check-circle')
-                ->color('success')
+                ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Valider le Bon d\'Entrée')
-                ->modalDescription('Êtes-vous sûr de vouloir valider ce bon d\'entrée ?')
-                ->visible(fn ($record) => in_array($record->status, ['draft', 'pending']))
+                ->modalDescription('Cette action va calculer les frais d\'approche et passer le bon en statut "En Attente".')
+                ->visible(fn ($record) => $record->status === 'draft')
                 ->action(function ($record) {
-                    if (!$record->warehouse_id) {
+                    try {
+                        $service = new \App\Services\BonEntreeService();
+                        $service->validate($record);
+                        
                         Notification::make()
-                            ->title('Validation impossible')
-                            ->danger()
-                            ->body('Un entrepôt doit être sélectionné.')
+                            ->title('Bon validé avec succès')
+                            ->success()
                             ->send();
-                        return;
-                    }
-                    
-                    if ($record->bonEntreeItems->isEmpty()) {
+                    } catch (\Exception $e) {
                         Notification::make()
-                            ->title('Validation impossible')
+                            ->title('Erreur de validation')
+                            ->body($e->getMessage())
                             ->danger()
-                            ->body('Le bon doit contenir au moins un article.')
                             ->send();
-                        return;
                     }
-                    
-                    $record->update(['status' => 'validated']);
-                    
-                    Notification::make()
-                        ->title('Bon validé')
-                        ->success()
-                        ->body('Le bon d\'entrée a été validé avec succès.')
-                        ->send();
                 }),
             
             // Receive Action
@@ -61,22 +51,30 @@ class EditBonEntree extends EditRecord
                 ->color('primary')
                 ->requiresConfirmation()
                 ->modalHeading('Recevoir le Bon d\'Entrée')
-                ->modalDescription('Cette action mettra à jour le stock. Êtes-vous sûr ?')
-                ->visible(fn ($record) => $record->status === 'validated')
+                ->modalDescription('Cette action va créer les bobines, mettre à jour les stocks et calculer le CUMP. Cette opération ne peut pas être annulée.')
+                ->visible(fn ($record) => $record->status === 'pending')
                 ->action(function ($record) {
-                    $record->update([
-                        'status' => 'received',
-                        'received_date' => now(),
-                    ]);
-                    
-                    // Process stock entry
-                    $this->processStockEntry($record);
-                    
-                    Notification::make()
-                        ->title('Bon reçu')
-                        ->success()
-                        ->body('Le bon d\'entrée a été reçu et le stock a été mis à jour.')
-                        ->send();
+                    \Illuminate\Support\Facades\Log::channel('stderr')->info('!!!!!! RECEIVE ACTION CLICKED IN EDIT PAGE !!!!!!');
+                    try {
+                        $service = new \App\Services\BonEntreeService();
+                        $service->receive($record);
+                        
+                        $bobinesCount = $record->bonEntreeItems()->where('item_type', 'bobine')->count();
+                        $message = $bobinesCount > 0 
+                            ? "Bon reçu avec succès. {$bobinesCount} bobine(s) créée(s)."
+                            : "Bon reçu avec succès.";
+                        
+                        Notification::make()
+                            ->title($message)
+                            ->success()
+                            ->send();
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Erreur de réception')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
                 }),
             
             // Cancel Action
@@ -87,14 +85,13 @@ class EditBonEntree extends EditRecord
                 ->requiresConfirmation()
                 ->modalHeading('Annuler le Bon d\'Entrée')
                 ->modalDescription('Êtes-vous sûr de vouloir annuler ce bon ?')
-                ->visible(fn ($record) => in_array($record->status, ['draft', 'pending', 'validated']))
+                ->visible(fn ($record) => in_array($record->status, ['draft', 'pending']))
                 ->action(function ($record) {
                     $record->update(['status' => 'cancelled']);
                     
                     Notification::make()
                         ->title('Bon annulé')
                         ->warning()
-                        ->body('Le bon d\'entrée a été annulé.')
                         ->send();
                 }),
             
@@ -215,81 +212,7 @@ class EditBonEntree extends EditRecord
         $bonEntree->refresh();
         $bonEntree->recalculateTotals();
         
-        // Check if status changed to 'received' and warehouse is set
-        if ($bonEntree->status === 'received' && $bonEntree->warehouse_id) {
-            $this->processStockEntry($bonEntree);
-        }
-    }
-
-    protected function processStockEntry($bonEntree): void
-    {
-        // Process each line item
-        foreach ($bonEntree->bonEntreeItems as $item) {
-            // Update or create stock quantity record
-            $stockQty = StockQuantity::firstOrNew([
-                'product_id' => $item->product_id,
-                'warehouse_id' => $bonEntree->warehouse_id,
-            ]);
-
-            $oldQty = $stockQty->total_qty ?? 0;
-            $oldCump = $stockQty->cump_snapshot ?? 0;
-            
-            // Calculate new CUMP
-            $newCump = $item->calculateNewCUMP();
-            
-            // Update stock quantity
-            $stockQty->total_qty = $oldQty + $item->qty_entered;
-            $stockQty->cump_snapshot = $newCump;
-            $stockQty->save();
-
-            // Create stock movement record
-            StockMovement::create([
-                'movement_number' => $this->generateMovementNumber(),
-                'product_id' => $item->product_id,
-                'warehouse_to_id' => $bonEntree->warehouse_id,
-                'movement_type' => 'RECEPTION',
-                'qty_moved' => $item->qty_entered,
-                'cump_at_movement' => $newCump,
-                'status' => 'confirmed',
-                'reference_number' => $bonEntree->bon_number,
-                'user_id' => Auth::id(),
-                'performed_at' => now(),
-                'notes' => "Entrée depuis Bon d'Entrée #{$bonEntree->bon_number}",
-            ]);
-        }
-
-        // Process rolls - update their status and link to warehouse
-        foreach ($bonEntree->rolls as $roll) {
-            $roll->update([
-                'warehouse_id' => $bonEntree->warehouse_id,
-                'received_date' => $bonEntree->received_date ?? now(),
-                'status' => $roll->ean_13 ? 'in_stock' : 'pending_ean', // If EAN entered, mark as in_stock
-            ]);
-        }
-
-        $rollsCount = $bonEntree->rolls->count();
-        $rollsWithEan = $bonEntree->rolls->where('ean_13', '!=', null)->count();
-        
-        $message = "Stock mis à jour pour {$bonEntree->bonEntreeItems->count()} produit(s).";
-        if ($rollsCount > 0) {
-            $rollsPending = $rollsCount - $rollsWithEan;
-            $message .= " {$rollsCount} bobine(s) enregistrée(s)";
-            if ($rollsPending > 0) {
-                $message .= " ({$rollsPending} en attente de code EAN)";
-            }
-        }
-
-        Notification::make()
-            ->title('Stock mis à jour')
-            ->success()
-            ->body($message)
-            ->send();
-    }
-
-    protected function generateMovementNumber(): string
-    {
-        $date = now()->format('Ymd');
-        $count = StockMovement::whereDate('created_at', now()->toDateString())->count() + 1;
-        return 'MOV-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        // No automatic stock processing here - use the table actions instead
+        // (Valider button for draft->pending, Recevoir button for pending->received)
     }
 }

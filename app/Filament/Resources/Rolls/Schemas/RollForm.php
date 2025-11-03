@@ -29,15 +29,15 @@ class RollForm
                 
                 TextInput::make('ean_13')
                     ->label('Code EAN-13')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(13)
-                    ->minLength(13)
-                    ->helperText('13 caractères numériques'),
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->helperText('Le code EAN-13 est généré automatiquement lors de la réception du Bon d\'Entrée'),
                 
                 TextInput::make('batch_number')
                     ->label('Numéro de Lot')
-                    ->maxLength(255),
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->helperText('Le numéro de lot provient du Bon d\'Entrée'),
                 
                 \Filament\Forms\Components\DatePicker::make('received_date')
                     ->label('Date de Réception')

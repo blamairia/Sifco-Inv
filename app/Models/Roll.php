@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Roll extends Model
 {
     protected $fillable = [
-        'bon_entree_id',
+        'bon_entree_item_id',
         'product_id',
         'warehouse_id',
         'ean_13',
@@ -21,6 +21,12 @@ class Roll extends Model
     protected $casts = [
         'received_date' => 'date',
     ];
+
+    // Relationships
+    public function bonEntreeItem()
+    {
+        return $this->belongsTo(BonEntreeItem::class);
+    }
 
     public function product()
     {
@@ -37,8 +43,14 @@ class Roll extends Model
         return $this->belongsTo(StockMovement::class, 'received_from_movement_id');
     }
 
-    public function bonEntree()
+    // Scopes
+    public function scopeInStock($query)
     {
-        return $this->belongsTo(BonEntree::class);
+        return $query->where('status', 'in_stock');
+    }
+
+    public function scopeForWarehouse($query, $warehouseId)
+    {
+        return $query->where('warehouse_id', $warehouseId);
     }
 }

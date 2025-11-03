@@ -33,51 +33,20 @@
 
 ---
 
-## 🎯 What's Next?
-
-**Current Status:** ✅ Slices 3 & 4 COMPLETE  
-**Next Priority:** 🔄 **Slice 5: Bon de Transfert** (Warehouse-to-Warehouse Transfers)
-
-**Ready to Start:**
-- All core infrastructure is in place
-- Stock entry (BonEntree) working with CUMP calculation
-- Stock exit (BonSortie) working with stock deduction
-- Stock viewing resources operational
-- All generated column issues resolved
-
-**Slice 5 Overview:**
-- Move products between warehouses
-- Preserve CUMP (no recalculation on transfer)
-- Create two StockMovements (transfer_out + transfer_in)
-- Update stock_quantities in both warehouses
-- Estimated time: 2-3 days
-
----
-
 ## 📊 Slice Roadmap (v2.0)
 
 - [x] **Slice 1: Core master data** (Products, Warehouses, Suppliers) ✅ DONE
 - [x] **Slice 2: Stock storage structure** (stock_levels, rolls, hierarchy) ✅ DONE
-- [x] **Slice 2.5: Architectural Refactor** ✅ DONE
+- [x] **Slice 2.5: Architectural Refactor** ✅ **COMPLETE**
   - [x] Create new tables: stock_movements, stock_quantities, bon_* (all 4 types), rolls
   - [x] Update models and relationships
   - [x] Create Filament resources (Products, Rolls, Categories, Suppliers, Warehouses, Units, Users)
   - [x] Add is_roll flag for product filtering
   - [x] Migrate to MySQL 8.0.44
   - [x] Seed test data
-- [x] **Slice 3: Bon d'Entrée Workflow** ✅ DONE
-  - [x] CRUD with repeater items
-  - [x] CUMP calculation on receive
-  - [x] Stock increase workflow
-  - [x] Status transitions (draft → pending → validated → received)
-  - [x] Stock viewing resources
-- [x] **Slice 4: Bon de Sortie Workflow** ✅ DONE
-  - [x] CRUD with product filtering by stock
-  - [x] Stock deduction on issue
-  - [x] CUMP preservation (snapshot at issue)
-  - [x] Status transitions (draft → issued → confirmed)
-  - [x] Generated columns fixed
-- [ ] **Slice 5: Bon de Transfert Workflow** ← **NEXT: Inter-warehouse transfers** (2-3 days)
+- [ ] **Slice 3: Bon d'Entrée Workflow** ← **CURRENT: Receipts with CUMP calculation** (3-4 days)
+- [ ] **Slice 4: Bon de Sortie Workflow** (Issues to production) (2-3 days)
+- [ ] **Slice 5: Bon de Transfert Workflow** (Inter-warehouse transfers) (2-3 days)
 - [ ] **Slice 6: Bon de Réintégration Workflow** (Returns with CUMP preservation) (2 days)
 - [ ] **Slice 7: Stock Adjustments & Low-Stock Alerts** (Manual corrections + auto alerts) (2 days)
 - [ ] **Slice 8: Dashboard & Reports** (KPIs, charts, inventory status) (3 days)
@@ -142,125 +111,167 @@
 
 ---
 
-## ✅ COMPLETE: Slice 3 – Bon d'Entrée Workflow (Phase 3)
+## ✅ COMPLETE: Slice 3 – Bon d'Entrée Workflow (Phase 3.1)
 
-**Goal:** Complete receipt-to-stock workflow with CUMP calculation
+**Goal:** Complete receipt-to-stock workflow with CUMP calculation and manual EAN-13 entry
 
-### 3.1 Models & Relationships ✅ DONE
-- [x] Create BonEntree model with relationships (warehouse, user)
-- [x] Create BonEntreeItem model with relationships (bon_entree, product)
-- [x] Add status enum casts (draft, pending, validated, received, cancelled)
-- [x] Add computed properties (total_amount_ttc calculated from items)
+### 3.1 Database Structure ✅ DONE
+- [x] Modified bon_entree_items: added item_type, ean_13, batch_number, roll_id
+- [x] Modified rolls: added bon_entree_item_id foreign key
+- [x] Updated BonEntreeItem model with scopes (bobines/products)
+- [x] Updated Roll model with bonEntreeItem relationship
 
-### 3.2 Business Logic - CUMP Calculation ✅ DONE
-- [x] Implemented inline CUMP calculation in EditBonEntree page
-  - Formula: `(oldQty * oldCump + newQty * newPrice) / (oldQty + newQty)`
-  - Handles first entry (no previous stock) correctly
-  - Updates stock_quantities.cump_snapshot
-  - Creates stock_movements with CUMP at time of movement
+### 3.2 Business Logic Services ✅ DONE
+- [x] Created `CumpCalculator` service class
+  - Method: `calculate($productId, $warehouseId, $newQty, $unitPrice)`
+  - Formula: `(oldQty * oldCump + newQty * unitPrice) / (oldQty + newQty)`
+  - Method: `getCurrentCump($productId, $warehouseId)` for existing CUMP retrieval
+- [x] Created `BonEntreeService` class
+  - Method: `validate($bonEntree)` - draft → pending + distribute frais d'approche
+  - Method: `receive($bonEntree)` - pending → received + create rolls + update stock
+  - Method: `processBobineItem()` - creates Roll record with manual EAN-13
+  - Method: `processProductItem()` - updates stock for normal products
+  - Method: `updateStockQuantity()` - updates/creates stock_quantities with CUMP
+  - Method: `distributeFraisApproche()` - distributes fees across items
 
 ### 3.3 Filament Resources ✅ DONE
-- [x] **BonEntreeResource** complete with:
-  - Form: warehouse_id, supplier_id, entry_date, bon_number (auto-generated), frais_approche, notes
-  - Repeater for items: product_id, qty_entered, price_ht, price_ttc (with frais distribution)
-  - Auto-calculation: frais distributed per unit, line_total_ttc (generated column)
-  - Table: lists all entries with filters (warehouse, supplier, status, date range)
-  - Status workflow: draft → pending → validated → received
-  - Actions: validate, receive (processes stock), cancel, archive
-- [x] Form validations:
-  - Quantity > 0
-  - Prices >= 0
-  - Product exists
-  - Warehouse exists
-  - Bon number uniqueness
+- [x] **BonEntreeResource** - Redesigned with two-step workflow
+  - **Two separate repeaters:**
+    1. Bobines repeater (item_type='bobine'):
+       - Fields: product_id (is_roll=true), ean_13 (manual), batch_number, price_ht, price_ttc
+       - Each row = 1 bobine (qty_entered auto-set to 1)
+       - Manual EAN-13 entry with uniqueness validation
+    2. Products repeater (item_type='product'):
+       - Fields: product_id (is_roll=false), qty_entered, price_ht, price_ttc
+       - Normal product handling with quantities
+  - Form: supplier_id, warehouse_id, document_number, dates, frais_approche, notes
+  - Status flow: draft → pending → received
+  - Frais d'approche distributed on validation
+  - **Table actions:**
+    - Edit/View for all statuses
+    - "Valider" button (draft → pending)
+    - "Recevoir" button (pending → received) - creates rolls + updates stock
+    - "Annuler" button (draft/pending → cancelled)
+  - Form validations:
+    - EAN-13: required, 13 digits, unique
+    - Quantity > 0 for products
+    - Price > 0
+    - Product active and exists
 
-### 3.4 Validation Workflow ✅ DONE
-- [x] Status workflow implemented with actions:
-  1. **Draft → Pending**: Submit for approval
-  2. **Pending → Validated**: Approve entry
-  3. **Validated → Received**: Process stock entry
-     - Calculate CUMP for each item
-     - Create stock_movement (type=RECEPTION)
-     - Update/insert stock_quantities (qty +=, new CUMP)
-     - Set received_by, received_at
-     - Transaction: rollback on error
-  4. **Cancel**: Any status → cancelled
-  5. **Archive**: received → archived
+### 3.4 Validation Workflow ✅ IMPLEMENTED
+**Two-step process:**
 
-### 3.5 Testing & Bug Fixes ✅ DONE
-- [x] Fixed generated columns issue (line_total_ttc, value_issued, value_moved)
-- [x] Removed attempts to manually set generated columns
-- [x] CUMP calculation tested and working
-- [x] Stock increase workflow validated
-- [x] StockMovement creation working
+**Step 1: Validation (draft → pending)**
+1. Distribute frais_approche across all items
+2. Update price_ttc = price_ht + (frais_per_unit)
+3. Recalculate total_amount_ht and total_amount_ttc
+4. Status = pending
 
-### 3.6 UI/UX Polish ✅ DONE
-- [x] Success notifications for all actions
-- [x] Error handling with rollback
-- [x] Confirmation dialogs before actions
-- [x] Status badges with icons and colors
-- [x] Reactive forms with auto-calculations
-- [x] Frais distribution across items
+**Step 2: Reception (pending → received)**
+1. For each bobine item:
+   - Create Roll record with manual EAN-13
+   - Link roll to bon_entree_item
+   - Calculate CUMP (qty = 1)
+   - Create stock_movement
+   - Update stock_quantity
+2. For each product item:
+   - Calculate CUMP with qty_entered
+   - Create stock_movement
+   - Update stock_quantity
+3. Set received_date
+4. Status = received
+5. Transaction: rollback on any error
 
-### 3.7 Stock Viewing Resources ✅ DONE
-- [x] **StockQuantityResource** (read-only)
-  - Table columns: product code/name, warehouse, total_qty, reserved_qty, available_qty, CUMP, total_value, status badge
-  - Filters: warehouse, category (via product), stock status (out_of_stock/low_stock/normal)
-  - Status badges: 🔴 Rupture (qty=0), 🟡 Stock Faible (qty <= min_stock), 🟢 Normal
-  - Action: View movements (filtered by product+warehouse)
-  - Global search by product name/code
-- [x] **StockMovementResource** (read-only audit log)
-  - Table: movement_number, performed_at, movement_type, product, warehouse_from/to, qty_moved, CUMP, status
-  - Type badges: RECEPTION (green), ISSUE (red), TRANSFER (blue), RETURN (yellow), ADJUSTMENT (gray)
-  - Filters: movement_type, product, warehouse (OR query for from/to), status, date_range
-  - Default sort: performed_at desc
-- [x] Fixed Filament v4 compatibility (Actions namespace, filter data access)
+### 3.5 Key Features ✅ IMPLEMENTED
+- ✅ Separate handling for bobines vs products
+- ✅ Manual EAN-13 entry with uniqueness constraint
+- ✅ Supplier batch number tracking
+- ✅ Frais d'approche distribution across all items
+- ✅ CUMP calculation per product/warehouse
+- ✅ Stock movements audit trail
+- ✅ Stock quantities updates
+- ✅ Two-step validation workflow
+- ✅ Action buttons with confirmations
+- ✅ Success/error notifications
+- ✅ Database transactions for data integrity
 
-**Estimated Time:** COMPLETED  
-**Dependencies:** None  
-**Issues Fixed:** All namespace errors, filter data access, null safety
+### 3.6 Testing ⏳ NEXT
+- [ ] Test Case 1: Normal product entry (non-roll)
+- [ ] Test Case 2: Bobine entry with manual EAN-13
+- [ ] Test Case 3: Mixed products and bobines
+- [ ] Test Case 4: CUMP calculation verification
+- [ ] Test Case 5: Frais d'approche distribution
+- [ ] Test Case 6: Stock quantity updates
+- [ ] Test Case 7: Error handling and rollback
+- [ ] Display generated EAN-13 codes after validation
+- [ ] Add print/PDF export for bon_entrees
+
+### 3.7 Stock Viewing Resource 📊
+- [ ] Create StockQuantityResource (read-only) using `php artisan make:filament-resource`
+- [ ] Table columns:
+  - Product (with relation, searchable)
+  - Warehouse (with relation, filterable)
+  - Total Quantity
+  - Reserved Quantity (if applicable)
+  - Available Quantity (calculated: total - reserved)
+  - CUMP (formatted as currency)
+  - Total Value (qty × CUMP, formatted)
+  - Last Updated (timestamp)
+- [ ] Filters:
+  - Warehouse (select)
+  - Category (via product relationship)
+  - Stock Status (in_stock, low_stock, out_of_stock)
+- [ ] Actions:
+  - View Movements History (custom action → redirect to StockMovementResource filtered by product+warehouse)
+  - Adjust Stock (custom action → redirect to StockAdjustment create form)
+- [ ] Bulk actions: Export selected to CSV
+- [ ] Global search: by product name/code
+- [ ] Sorting: by qty, value, last_updated
+- [ ] Badge indicators: 🔴 out_of_stock (qty=0), 🟡 low_stock (qty <= min_stock), 🟢 normal
+- [ ] Create StockMovementResource (read-only audit log)
+  - Table: movement_number, date, product, warehouse, type, qty_change, CUMP before/after, reference
+  - Filters: type, warehouse, product, date range
+  - Sorting: by date (desc default)
+
+**Estimated Time:** 3-4 days + 1 day for viewing  
+**Dependencies:** None (all tables exist)  
+**Blocker Risk:** Low
 
 ---
 
-## ✅ COMPLETE: Slice 4 – Bon de Sortie Workflow (Issues to Production)
+## 📋 Slice 4 – Bon de Sortie Workflow (Issues to Production)
 
 **Goal:** Issue materials from warehouse to production with CUMP-based valuation
 
-### 4.1 Models & Logic ✅ DONE
-- [x] Created BonSortie model (warehouse_id, destination, issued_date, bon_number, status)
-- [x] Created BonSortieItem model (bon_sortie_id, product_id, qty_issued, cump_at_issue, value_issued)
-- [x] Status transitions implemented (draft → issued → confirmed → archived)
+### 4.1 Models & Logic
+- [ ] Create BonSortie model (warehouse_id, destination, issue_date, purpose, status)
+- [ ] Create BonSortieItem model (bon_sortie_id, product_id, quantity, cump_value, roll_ids)
+- [ ] Add status transitions (pending → validated → completed)
 
-### 4.2 Business Logic ✅ DONE
-- [x] Stock availability check before issue (in CreateBonSortie validation)
-- [x] Product filter: only show products with stock in selected warehouse
-- [x] Retrieve current CUMP from stock_quantities on product selection
-- [x] Create stock_movement (type=ISSUE, qty_moved, reference=bon_number)
-- [x] Update stock_quantities (total_qty -= issued_qty, CUMP unchanged)
-- [x] Double-deduction prevention (check existing StockMovement)
-- [x] Transaction-safe processing with rollback on error
+### 4.2 Business Logic
+- [ ] Stock availability check before issue
+- [ ] Retrieve current CUMP from stock_quantities
+- [ ] IF product.is_roll:
+  - Select rolls WHERE status='in_stock' LIMIT quantity
+  - Update roll.status = 'consumed'
+  - Store consumed roll_ids in bon_sortie_items
+- [ ] Create stock_movement (type=issue, qty_moved=-qty, reference=BON_SOR_XXX)
+- [ ] Update stock_quantities (qty -= issued_qty)
 
-### 4.3 Filament Resources ✅ DONE
-- [x] **BonSortieResource** complete with:
-  - Form: warehouse_id, issued_date, bon_number (auto-generated), destination, notes
-  - Repeater: product_id (filtered by stock), qty_issued, cump_at_issue (auto-filled), value_issued (generated column), stock_available
-  - Table: all sortie bons with filters (warehouse, status, date)
-  - Status workflow: draft → issued → confirmed → archived
-  - Actions: issue (deducts stock), confirm, archive, reopen
-- [x] Error handling: insufficient stock alerts, validation errors
+### 4.3 Filament Resources
+- [ ] BonSortieResource with form (warehouse, destination, purpose, items repeater)
+- [ ] Table with filters (warehouse, date, status, destination)
+- [ ] Validation action with stock check
+- [ ] Error handling: insufficient stock alert
 
-### 4.4 Testing & Bug Fixes ✅ DONE
-- [x] Fixed product dropdown to only show stocked items in warehouse
-- [x] Fixed stock deduction (corrected StockMovement fields)
-- [x] Fixed generated columns (value_issued, value_moved)
-- [x] Fixed total value display in list (manual calculation instead of sum aggregator)
-- [x] Verified stock decrease workflow
-- [x] Tested insufficient stock validation
-- [x] Tested double-deduction prevention
+### 4.4 Testing
+- [ ] Issue normal products (verify qty decreases)
+- [ ] Issue rolls (verify roll status changes to consumed)
+- [ ] Issue more than available stock (verify error)
+- [ ] Issue from multiple warehouses (separate bons)
 
-**Status:** COMPLETED  
-**Dependencies:** Slice 3 (CUMP logic) ✅  
-**Issues Fixed:** All stock management bugs resolved
+**Estimated Time:** 2-3 days  
+**Dependencies:** Slice 3 complete (CUMP logic)
 
 ---
 

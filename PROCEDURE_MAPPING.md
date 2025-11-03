@@ -89,7 +89,7 @@ WHERE id = ?
 ### Step 3: Enregistrement / Entrée en Stock (System Entry)
 
 **SIFCO Reference:**
-> Le gestionnaire des stocks enregistre le bon d'entrée dans le logiciel de gestion sur la base du bon de réception... La valorisation des entrées en stocks s'effectue au coût d'achat.
+> Le gestionnaire des stocks enregistre le bon d'entrée dans le logiciel de gestion... La valorisation des entrées en stocks s'effectue au coût d'achat.
 
 **Action:**
 - Gestionnaire creates BON_ENTREE (system entry)
@@ -98,6 +98,50 @@ WHERE id = ?
 **Database Tables:**
 - `bon_entrees` (master)
 - `bon_entree_items` (line items)
+- `rolls` (for bobines)
+- `stock_quantities` (updated)
+- `stock_movements` (created)
+
+**Filament Resource:** `BonEntreeResource`
+
+**Workflow (Two-Step Validation):**
+1.  **Création (Statut: `draft`)**
+    *   User fills in supplier, warehouse, and adds items to two separate repeaters:
+        *   **Bobines:** For products where `is_roll` = true. User enters `ean_13` and `batch_number` for each bobine. Quantity is always 1.
+        *   **Produits:** For standard products. User enters `qty_entered`.
+    *   User enters `frais_approche`.
+    *   The bon is saved as a `draft`.
+
+2.  **Validation (Statut: `draft` → `pending`)**
+    *   User clicks the "Valider" action.
+    *   The `BonEntreeService::validate()` method is called.
+    *   **Logic:**
+        *   The `frais_approche` are distributed proportionally across all items (bobines and produits).
+        *   The `price_ttc` of each `bon_entree_item` is updated to include its share of the fees.
+        *   The bon status is updated to `pending`.
+    *   The bon is now locked for editing and ready for final reception.
+
+3.  **Réception (Statut: `pending` → `received`)**
+    *   User clicks the "Recevoir" action.
+    *   The `BonEntreeService::receive()` method is called.
+    *   **Logic for each `bon_entree_item`:**
+        *   **If `item_type` is 'bobine':**
+            1.  A new `Roll` record is created using the `ean_13` and `batch_number` from the item.
+            2.  The new `roll_id` is saved back to the `bon_entree_item`.
+            3.  `CumpCalculator` calculates the new CUMP for the product.
+            4.  A `StockMovement` is created for the entry of 1 unit.
+            5.  The `StockQuantity` for the product/warehouse is updated (quantity incremented by 1, CUMP updated).
+        *   **If `item_type` is 'product':**
+            1.  `CumpCalculator` calculates the new CUMP.
+            2.  A `StockMovement` is created for the entry of `qty_entered`.
+            3.  The `StockQuantity` is updated (quantity incremented, CUMP updated).
+    *   The bon status is updated to `received`.
+
+**Expected Result:**
+- `Rolls` are created for each bobine.
+- `StockQuantity` is updated for all products.
+- `StockMovement` provides an audit trail for the entry.
+- The `BonEntree` is finalized.
 - `stock_movements` (ledger)
 - `rolls` (physical inventory)
 - `stock_quantities` (aggregated)

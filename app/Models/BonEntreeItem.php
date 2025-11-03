@@ -12,7 +12,11 @@ class BonEntreeItem extends Model
 
     protected $fillable = [
         'bon_entree_id',
+        'item_type',
         'product_id',
+        'ean_13',
+        'batch_number',
+        'roll_id',
         'qty_entered',
         'price_ht',
         'price_ttc',
@@ -35,6 +39,33 @@ class BonEntreeItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function roll(): BelongsTo
+    {
+        return $this->belongsTo(Roll::class);
+    }
+
+    // Scopes
+    public function scopeBobines($query)
+    {
+        return $query->where('item_type', 'bobine');
+    }
+
+    public function scopeProducts($query)
+    {
+        return $query->where('item_type', 'product');
+    }
+
+    // Helpers
+    public function isBobine(): bool
+    {
+        return $this->item_type === 'bobine';
+    }
+
+    public function isProduct(): bool
+    {
+        return $this->item_type === 'product';
     }
 
     // Helper methods

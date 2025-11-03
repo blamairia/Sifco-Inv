@@ -1,98 +1,66 @@
-# 📚 Documentation Index – v3.0
+# 📚 Documentation Index – v4.0
 
-**Status:** Phase 3 – Bon d'Entrée Workflow Implementation 🔄 IN PROGRESS  
-**Updated:** 2025-11-02  
+**Status:** Phase 3 Complete, Phase 4 (Bon de Sortie) Starting �  
+**Updated:** 2025-11-03  
 **Database:** MySQL 8.0.44 | 27 tables | Laravel 11 | Filament v4.0.0  
-**Files:** 10 core docs
+**Files:** 4 core docs
 
 ---
 
-## 📋 Documentation Files (in reading order)
+## 📋 Core Documentation Files
 
-### Core References
 1. **README.md** – Project overview + tech stack
-2. **PLAN.md** ⭐ **START HERE** – Current roadmap & status (Phase 3)
+2. **PLAN.md** ⭐ **START HERE** – Current roadmap & status (Phase 4)
 3. **PROCEDURE_MAPPING.md** ⭐ **ESSENTIAL** – SIFCO procedures → code mapping
-
-### Design & Architecture
 4. **DATABASE_REDESIGN.md** – Complete schema (27 tables)
-5. **UML_DIAGRAMS.md** ⭐ **NEW** – Use case + class diagrams + ERD
-6. **SCHEMA_DICTIONARY.md** – Field-by-field reference
-7. **VISUAL_ARCHITECTURE.md** – ASCII diagrams of system flow
-
-### Implementation Guides
-8. **INDEX.md** – This file
-9. **ARCHITECTURE_REVIEW.md** – Legacy (for history)
-
-### Phase Completion Logs
-10. **PHASE3_2_COMPLETE.md** – Slice 2.5 completion notes
-
----
-
-## 🎯 Quick Start by Role
-
-### 👨‍💻 Backend Developer
-1. Read: **PLAN.md** (understand current phase)
-2. Read: **PROCEDURE_MAPPING.md** (understand SIFCO workflows)
-3. Read: **SCHEMA_DICTIONARY.md** (reference table fields)
-4. Read: **DATABASE_REDESIGN.md** (understand scalability design)
-5. Code: Create migrations, models, resources (see Slice 2.5 in PLAN.md)
-
-### 👨‍💼 Product Manager / Stakeholder
-1. Read: **PLAN.md** (roadmap & status)
-2. Read: **PROCEDURE_MAPPING.md** (how SIFCO procedures are implemented)
-3. Reference: **SCHEMA_DICTIONARY.md** (if you need field details)
-
-### 🏭 Business / SIFCO Staff
-1. Read: **PROCEDURE_MAPPING.md** (your workflows → system)
-2. Reference: **PLAN.md** (when features will be ready)
+5. **INDEX.md** – This file
 
 ---
 
 ## 📊 Phase Progress Tracker
 
-### ✅ Phase 2 Complete (Slice 2.5 – Architectural Redesign)
+### ✅ Phase 3 Complete (Slice 3 & 4 – Bon d'Entrée Workflow)
 
 - [x] **Analysis & Design** ✅ DONE
-  - [x] Identified overcomplications in v1 schema
-  - [x] Designed new scalable schema
-  - [x] Mapped SIFCO procedures to tables
-
-- [x] **Documentation** ✅ DONE
-  - [x] DATABASE_REDESIGN.md (complete new design)
-  - [x] PROCEDURE_MAPPING.md (SIFCO → code)
-  - [x] SCHEMA_DICTIONARY.md (field reference)
-  - [x] UML_DIAGRAMS.md (use case + class + ERD)
-  - [x] PLAN.md (updated roadmap)
+  - [x] Defined two-step validation workflow (draft → pending → received)
+  - [x] Designed separate repeaters for "bobines" and "produits"
+  - [x] Specified CUMP calculation logic
+  - [x] Added `item_type`, `ean_13`, `batch_number` to `bon_entree_items`
 
 - [x] **Implementation** ✅ DONE
-  - [x] Created 27 tables via migrations
-  - [x] Migrated to MySQL 8.0.44
-  - [x] Created models (Product, Category, Roll, StockQuantity, StockMovement, etc.)
-  - [x] Created Filament resources (Products, Rolls, Categories, Suppliers, Warehouses, Units, Users)
-  - [x] Added is_roll flag for product filtering
-  - [x] Fixed Filament v4 Section component imports
-  - [x] Seeded test data (8 products, 3 warehouses, 3 suppliers)
-  - [x] Git commits (multiple)
+  - [x] Created `BonEntreeService` to handle validation and reception logic
+  - [x] Implemented `validate()` method (distributes frais d'approche)
+  - [x] Implemented `receive()` method (creates `Rolls`, updates `StockQuantity`, creates `StockMovement`)
+  - [x] Created `CumpCalculator` service
+  - [x] Updated `BonEntree` Filament resource with two repeaters (`bobineItems`, `productItems`)
+  - [x] Added "Valider" and "Recevoir" actions to `BonEntreesTable` and `EditBonEntree` page
+  - [x] Added `bon_entree_item_id` to `rolls` table
+  - [x] Fixed all database schema and logic bugs preventing Roll creation
 
-### 🔄 Phase 3 In Progress (Slice 3 – Bon d'Entrée Workflow)
+- [x] **Testing & Validation** ✅ DONE
+  - [x] Created test seeders for Bon d'Entrée scenarios
+  - [x] Verified that receiving a bon correctly creates `Roll` records
+  - [x] Verified that stock quantities and CUMP are updated correctly
+  - [x] Verified that `StockMovement` records are created for all items
 
-- [ ] Create BonReception + BonEntree Filament resources
-- [ ] Implement EAN-13 generation for rolls
-- [ ] Implement CUMP calculation logic
-- [ ] Test end-to-end receipt workflow
-- [ ] Create stock_movements on entry
+### � Phase 4 Starting (Slice 5 – Bon de Sortie Workflow)
+
+- [ ] **Review & Plan:** Re-evaluate `BonSortie` logic based on new `Roll` and stock system
+- [ ] **Implement Bobine Selection:** Allow users to select specific `Rolls` (by EAN-13) for a `BonSortie`
+- [ ] **Update Stock:** On sortie confirmation, update `Roll` status to 'consumed' and decrement `StockQuantity`
+- [ ] **Create Movements:** Generate `StockMovement` records for each sortie
+- [ ] **Test:** End-to-end testing of the sortie workflow
 
 ---
 
 ## 📖 Old System Prompt (Deprecated)
 
-The old system prompt below (Slice 2 era) is superseded by the content in **PROCEDURE_MAPPING.md** and **DATABASE_REDESIGN.md**.
+The old system prompt below is superseded by the content in **PROCEDURE_MAPPING.md** and **DATABASE_REDESIGN.md**.
 
 **For new context:** Use information from:
 - **PLAN.md** (current phase & status)
 - **PROCEDURE_MAPPING.md** (workflows)
-- **SCHEMA_DICTIONARY.md** (data model)
+- **DATABASE_REDESIGN.md** (data model)
 
 ═══════════════════════════════════════════════════════════════════
 

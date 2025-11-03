@@ -48,11 +48,6 @@ class BonEntree extends Model
         return $this->hasMany(BonEntreeItem::class);
     }
 
-    public function rolls(): HasMany
-    {
-        return $this->hasMany(Roll::class, 'bon_entree_id');
-    }
-
     // Scopes
     public function scopeDraft($query)
     {
