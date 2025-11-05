@@ -85,6 +85,10 @@ class BonTransfertForm
                     ->schema([
                         Repeater::make('rollItems')
                             ->label('Bobines à transférer')
+                            ->relationship(
+                                name: 'bonTransfertItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'roll')
+                            )
                             ->schema([
                                 Hidden::make('item_type')->default('roll'),
                                 Select::make('roll_id')
@@ -177,6 +181,16 @@ class BonTransfertForm
                             ->itemLabel(fn (array $state): ?string => 
                                 $state['roll_id'] ? Roll::find($state['roll_id'])?->ean_13 : 'Nouvelle bobine'
                             )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'roll';
+                                $roll = Roll::with('bonEntreeItem')->find($data['roll_id']);
+                                if ($roll) {
+                                    $data['product_id'] = $roll->product_id;
+                                    $data['qty_transferred'] = 1; // ROLLS ARE ALWAYS 1 UNIT
+                                    $data['cump_at_transfer'] = $roll->cump;
+                                }
+                                return $data;
+                            })
                             ->disabled(fn ($record) => $record && $record->status !== 'draft'),
                     ])
                     ->collapsible()
@@ -186,6 +200,10 @@ class BonTransfertForm
                     ->schema([
                         Repeater::make('productItems')
                             ->label('Produits à transférer')
+                            ->relationship(
+                                name: 'bonTransfertItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'product')
+                            )
                             ->schema([
                                 Hidden::make('item_type')->default('product'),
                                 Select::make('product_id')
@@ -259,6 +277,10 @@ class BonTransfertForm
                             ->itemLabel(fn (array $state): ?string => 
                                 $state['product_id'] ? Product::find($state['product_id'])?->name : 'Nouveau produit'
                             )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'product';
+                                return $data;
+                            })
                             ->disabled(fn ($record) => $record && $record->status !== 'draft'),
                     ])
                     ->columnSpanFull()
