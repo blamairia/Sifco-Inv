@@ -210,7 +210,7 @@ class BonEntreeForm
                                     ->required()
                                     ->prefix('DH')
                                     ->default(0)
-                                    ->reactive()
+                                    ->live(onBlur: true)
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $set('price_ttc', $state);
@@ -292,7 +292,7 @@ class BonEntreeForm
                                     ->required()
                                     ->prefix('DH')
                                     ->default(0)
-                                    ->reactive()
+                                    ->live(onBlur: true)
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $set('price_ttc', $state);
