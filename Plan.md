@@ -344,39 +344,87 @@
 
 ---
 
-## 📋 Slice 5 – Bon de Transfert Workflow (Inter-Warehouse Transfers)
+## ⏳ IN PROGRESS: Slice 5 – Bon de Transfert Workflow (Inter-Warehouse Transfers)
 
 **Goal:** Move stock between warehouses while preserving CUMP
 
-### 5.1 Models & Logic
-- [ ] Create BonTransfert model (warehouse_from, warehouse_to, transfer_date, status)
-- [ ] Create BonTransfertItem model (bon_transfert_id, product_id, quantity, cump_value, roll_ids)
+### 5.1 Models & Logic ✅ DONE
+- [x] BonTransfert model (warehouse_from, warehouse_to, transfer_date, status)
+- [x] BonTransfertItem model (bon_transfert_id, product_id, roll_id, item_type, qty_transferred, cump_at_transfer)
+- [x] Database migrations applied
+- [x] Relationships configured (warehouseFrom, warehouseTo, bonTransfertItems)
 
-### 5.2 Business Logic
-- [ ] Check stock availability in source warehouse
-- [ ] Retrieve CUMP from source warehouse stock_quantities
-- [ ] IF product.is_roll:
-  - Update roll.warehouse_id to destination warehouse
-- [ ] Create 2 stock_movements:
-  - Movement 1: type=transfer_out, warehouse_from, qty=-qty
-  - Movement 2: type=transfer_in, warehouse_to, qty=+qty, same CUMP
-- [ ] Update stock_quantities:
-  - Source warehouse: qty -= transferred_qty
-  - Destination warehouse: qty += transferred_qty, preserve CUMP
+### 5.2 Business Logic ✅ DONE
+- [x] BonTransfertService class with complete transfer logic:
+  - `transfer($bonTransfert)` - main transfer method
+  - `processRollItem($item)` - handles roll transfers (qty=1, warehouse update)
+  - `processProductItem($item)` - handles standard product transfers
+  - Stock availability validation in source warehouse
+  - CUMP retrieval from source warehouse stock_quantities
+  - Roll warehouse updates (warehouse_id changed)
+  - Stock movement creation (type=TRANSFER for both OUT and IN)
+  - Stock quantity updates (decrement source, increment destination)
+  - Database transactions for atomicity
+- [x] Fixed critical bug: Rolls tracked as quantity=1, not by weight
 
-### 5.3 Filament Resources
-- [ ] BonTransfertResource with form (warehouse_from, warehouse_to, items)
-- [ ] Validation: check source has sufficient stock
-- [ ] Show transfer in-transit status (optional)
+### 5.3 Filament Resources ✅ DONE
+- [x] **BonTransfertResource** - Complete CRUD with Filament v4 patterns
+  - **Form structure:**
+    - Two separate repeaters with `->relationship()`:
+      1. **Rolls repeater** (item_type='roll'):
+         - Fields: roll_id (relationship), qty_transferred=1 (hardcoded), cump_at_transfer (auto), value_transferred (calculated)
+         - Filters rolls by: status='in_stock' AND warehouse_from_id
+         - Shows roll details: EAN-13, batch_number, weight (display only)
+         - **CRITICAL FIX:** Quantity always 1 for rolls (not weight)
+      2. **Products repeater** (item_type='product'):
+         - Fields: product_id (relationship), qty_transferred (manual), cump_at_transfer (auto), value_transferred (calculated)
+         - Filters products by: is_roll=false, is_active=true, AND has stock in warehouse_from_id
+    - Warehouse selects: reactive, warehouse_from and warehouse_to (must be different)
+    - Other fields: bon_number (auto-generated), status, transfer_date, notes
+  - **Table actions:**
+    - Edit/View for all statuses
+    - "Transférer" button (draft → in_transit) - executes BonTransfertService.transfer()
+    - "Recevoir" button (in_transit → received)
+    - "Confirmer" button (received → confirmed)
+    - "Annuler" button (draft/in_transit → cancelled)
+    - Delete for draft status only
+  - **Item saving fix:** Manual afterCreate() to save repeater items
+    - Root cause: Filament's ->relationship() doesn't auto-save when multiple repeaters point to same relationship during creation
+    - Solution: Manually iterate and save rollItems and productItems in afterCreate()
+- [x] Status workflow: draft → in_transit → received → confirmed (with cancel option)
+- [x] Navigation grouping: "Gestion des Bons" for all Bon resources
 
-### 5.4 Testing
-- [ ] Transfer normal products between warehouses
-- [ ] Transfer rolls (verify warehouse_id updated)
-- [ ] Verify CUMP preserved (not recalculated)
-- [ ] Transfer more than available (verify error)
+### 5.4 Key Features ✅ IMPLEMENTED
+- ✅ Separate handling for rolls vs products (item_type column)
+- ✅ Warehouse-based filtering (rolls/products in source warehouse only)
+- ✅ Roll quantity always 1 (critical business rule)
+- ✅ CUMP preservation during transfer (not recalculated)
+- ✅ Roll warehouse updates (warehouse_id field)
+- ✅ Stock movements audit trail (TRANSFER type)
+- ✅ Stock quantity updates in both warehouses
+- ✅ Filament v4 compliance with relationship patterns
+- ✅ Action buttons with confirmations
+- ✅ Multi-step workflow (draft → in_transit → received → confirmed)
+- ✅ Database transactions for data integrity
+- ✅ Manual item saving workaround for Filament relationship limitation
 
-**Estimated Time:** 2-3 days  
-**Dependencies:** Slice 3, 4 complete
+### 5.5 Testing ⏳ NEXT
+- [ ] Create bon de transfert with rolls and products
+- [ ] Transfer normal products between warehouses (verify qty updates in both warehouses)
+- [ ] Transfer rolls (verify warehouse_id updated in rolls table)
+- [ ] Verify CUMP preserved (not recalculated during transfer)
+- [ ] Transfer more than available stock (verify error handling)
+- [ ] Verify stock movements created for both OUT and IN
+- [ ] Test multi-step workflow (draft → transfer → receive → confirm)
+- [ ] Test cancellation at different stages
+
+**Estimated Time:** 2-3 days (ACTUAL: 2 days with item saving fix)  
+**Dependencies:** Slice 3, 4 complete ✅
+
+**Known Issues:**
+- ⚠️ Filament v4 limitation: Multiple repeaters with ->relationship() pointing to same parent relationship don't auto-save during creation
+- ✅ Workaround implemented: Manual afterCreate() saves items by iterating through form state
+- 📋 TODO: Remove debug logging once stable
 
 ---
 

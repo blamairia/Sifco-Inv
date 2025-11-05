@@ -64,7 +64,7 @@ class EditBonTransfert extends EditRecord
                     $this->record->update([
                         'status' => 'received',
                         'received_at' => now(),
-                        'received_by_id' => auth()->id() ?? 1,
+                        'received_by_id' => \Illuminate\Support\Facades\Auth::id() ?? 1,
                     ]);
                     
                     Notification::make()
