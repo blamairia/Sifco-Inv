@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BonEntrees\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -192,17 +193,22 @@ class BonEntreeForm
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->columnSpan(2),
                                 
-                                TextInput::make('qty_entered')
+                                TextInput::make('weight_kg')
                                     ->label('Poids (kg)')
-                                    ->helperText('Poids de la bobine en kilogrammes')
+                                    ->helperText('Poids réel de la bobine en kilogrammes')
                                     ->numeric()
                                     ->required()
                                     ->default(1)
                                     ->minValue(0.01)
-                                    ->step(0.01)
+                                    ->step(0.001)
                                     ->suffix('kg')
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->columnSpan(2),
+
+                                Hidden::make('qty_entered')
+                                    ->default(1)
+                                    ->dehydrated()
+                                    ->columnSpan(1),
                                 
                                 TextInput::make('price_ht')
                                     ->label('Prix HT')
@@ -229,7 +235,7 @@ class BonEntreeForm
                                 
                                 Placeholder::make('line_total')
                                     ->label('Total')
-                                    ->content(fn ($get) => number_format(($get('price_ttc') ?? 0) * ($get('qty_entered') ?? 1), 2) . ' DH')
+                                    ->content(fn ($get) => number_format($get('price_ttc') ?? 0, 2) . ' DH')
                                     ->columnSpan(1),
                             ])
                             ->columns(12)
@@ -243,11 +249,12 @@ class BonEntreeForm
                             )
                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                 $data['item_type'] = 'bobine';
-                                // qty_entered (weight) is now entered by the user
+                                $data['qty_entered'] = 1;
                                 return $data;
                             })
                             ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
                                 $data['item_type'] = 'bobine';
+                                $data['qty_entered'] = $data['qty_entered'] ?? 1;
                                 return $data;
                             }),
                     ])

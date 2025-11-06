@@ -70,17 +70,25 @@ class BonSortieService
     {
         $roll = Roll::findOrFail($item->roll_id);
 
-        if ($roll->status !== 'in_stock') {
+        if ($roll->status !== Roll::STATUS_IN_STOCK) {
             throw new Exception("Roll #{$roll->id} (EAN: {$roll->ean_13}) is not in stock. Current status: {$roll->status}");
         }
 
+        $previousWeight = $roll->weight;
+
         // Update roll status
-        $roll->update(['status' => 'consumed']);
+        $roll->update(['status' => Roll::STATUS_CONSUMED]);
 
         // Get current CUMP for movement record
         $cump = StockQuantity::where('product_id', $roll->product_id)
             ->where('warehouse_id', $bonSortie->warehouse_id)
             ->value('cump_snapshot') ?? 0;
+
+        $item->update([
+            'qty_issued' => 1,
+            'weight_kg' => $previousWeight,
+            'cump_at_issue' => $cump,
+        ]);
 
         // Create stock movement
         StockMovement::create([
@@ -95,10 +103,13 @@ class BonSortieService
             'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
             'notes' => "Sortie Bobine EAN: {$roll->ean_13} via Bon de Sortie #{$bonSortie->bon_number}",
+            'roll_weight_before_kg' => $previousWeight,
+            'roll_weight_after_kg' => 0,
+            'roll_weight_delta_kg' => -$previousWeight,
         ]);
 
         // Update stock quantity
-        $this->updateStockQuantity($roll->product_id, $bonSortie->warehouse_id, 1);
+        $this->updateStockQuantity($roll->product_id, $bonSortie->warehouse_id, 1, $previousWeight);
     }
 
     /**
@@ -136,13 +147,21 @@ class BonSortieService
     /**
      * Update stock quantity record by decrementing
      */
-    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToDecrement): void
+    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToDecrement, float $weightToDecrement = 0): void
     {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
             ->firstOrFail();
 
-        $stockQty->decrement('total_qty', $qtyToDecrement);
+        $currentQty = (float) $stockQty->total_qty;
+        $stockQty->total_qty = max(0, $currentQty - $qtyToDecrement);
+
+        if ($weightToDecrement !== 0) {
+            $currentWeight = (float) ($stockQty->total_weight_kg ?? 0);
+            $stockQty->total_weight_kg = max(0, $currentWeight - $weightToDecrement);
+        }
+
+        $stockQty->save();
     }
 
     /**

@@ -20,13 +20,14 @@ class CreateBonEntree extends CreateRecord
         // Validate business rules
         $this->validateBusinessRules($data);
         
-        // Calculate totals from line items
-        $items = $data['bonEntreeItems'] ?? [];
-        
-        $data['total_amount_ht'] = collect($items)->sum(function ($item) {
-            return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
-        });
-        
+        // Calculate totals from line items (bobines count as 1 unit)
+        $bobines = $data['bobineItems'] ?? [];
+        $products = $data['productItems'] ?? [];
+
+        $bobinesHt = collect($bobines)->sum(fn ($item) => $item['price_ht'] ?? 0);
+        $productsHt = collect($products)->sum(fn ($item) => ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0));
+
+        $data['total_amount_ht'] = $bobinesHt + $productsHt;
         $data['total_amount_ttc'] = $data['total_amount_ht'] + ($data['frais_approche'] ?? 0);
         
         return $data;
@@ -42,10 +43,12 @@ class CreateBonEntree extends CreateRecord
     protected function validateBusinessRules(array $data): void
     {
         $status = $data['status'] ?? 'draft';
-        $items = $data['bonEntreeItems'] ?? [];
-        
+        $bobines = $data['bobineItems'] ?? [];
+        $products = $data['productItems'] ?? [];
+        $hasItems = !empty($bobines) || !empty($products);
+
         // Can't validate or receive without items
-        if (in_array($status, ['validated', 'received']) && empty($items)) {
+        if (in_array($status, ['validated', 'received']) && ! $hasItems) {
             Notification::make()
                 ->title('Validation échouée')
                 ->danger()
@@ -55,6 +58,20 @@ class CreateBonEntree extends CreateRecord
             $this->halt();
         }
         
+        foreach ($bobines as $index => $bobine) {
+            $weight = (float) ($bobine['weight_kg'] ?? 0);
+
+            if ($weight <= 0) {
+                Notification::make()
+                    ->title('Poids manquant pour bobine')
+                    ->danger()
+                    ->body("La bobine #" . ($index + 1) . " doit avoir un poids strictement positif.")
+                    ->send();
+
+                $this->halt();
+            }
+        }
+
         // Warehouse required for validated/received
         if (in_array($status, ['validated', 'received']) && empty($data['warehouse_id'])) {
             Notification::make()

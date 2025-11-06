@@ -14,6 +14,7 @@ class StockQuantity extends Model
         'product_id',
         'warehouse_id',
         'total_qty',
+        'total_weight_kg',
         'reserved_qty',
         'cump_snapshot',
         'last_movement_id',
@@ -21,6 +22,7 @@ class StockQuantity extends Model
 
     protected $casts = [
         'total_qty' => 'decimal:2',
+        'total_weight_kg' => 'decimal:3',
         'reserved_qty' => 'decimal:2',
         'available_qty' => 'decimal:2',
         'cump_snapshot' => 'decimal:2',

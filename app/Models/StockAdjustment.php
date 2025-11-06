@@ -13,19 +13,21 @@ class StockAdjustment extends Model
         'adjustment_number',
         'product_id',
         'warehouse_id',
-        'qty_adjustment',
+        'qty_before',
+        'qty_after',
+        'qty_change',
+        'adjustment_type',
         'reason',
-        'adjustment_date',
-        'status',
-        'created_by_id',
-        'approved_by_id',
+        'adjusted_by',
+        'approved_by',
         'approved_at',
         'notes',
     ];
 
     protected $casts = [
-        'qty_adjustment' => 'decimal:2',
-        'adjustment_date' => 'date',
+        'qty_before' => 'decimal:2',
+        'qty_after' => 'decimal:2',
+        'qty_change' => 'decimal:2',
         'approved_at' => 'datetime',
     ];
 
@@ -39,14 +41,30 @@ class StockAdjustment extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
-    public function createdBy(): BelongsTo
+    public function adjustedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by_id');
+        return $this->belongsTo(User::class, 'adjusted_by');
     }
 
     public function approvedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by_id');
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    // Scopes
+    public function scopeByProduct($query, $productId)
+    {
+        return $query->where('product_id', $productId);
+    }
+
+    public function scopeByWarehouse($query, $warehouseId)
+    {
+        return $query->where('warehouse_id', $warehouseId);
+    }
+
+    public function scopeByType($query, $type)
+    {
+        return $query->where('adjustment_type', $type);
     }
 
     public static function generateAdjustmentNumber(): string

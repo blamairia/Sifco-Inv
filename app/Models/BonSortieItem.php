@@ -15,12 +15,14 @@ class BonSortieItem extends Model
         'roll_id',
         'item_type',
         'qty_issued',
+        'weight_kg',
         'cump_at_issue',
         // value_issued is a generated column: qty_issued * cump_at_issue
     ];
 
     protected $casts = [
         'qty_issued' => 'decimal:2',
+        'weight_kg' => 'decimal:3',
         'cump_at_issue' => 'decimal:2',
         'value_issued' => 'decimal:2', // Generated column, read-only
     ];

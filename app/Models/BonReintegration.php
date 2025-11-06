@@ -16,6 +16,7 @@ class BonReintegration extends Model
         'warehouse_id',
         'return_date',
         'status',
+        'cump_at_return',
         'verified_by_id',
         'verified_at',
         'physical_condition',
@@ -25,6 +26,7 @@ class BonReintegration extends Model
     protected $casts = [
         'return_date' => 'date',
         'verified_at' => 'datetime',
+        'cump_at_return' => 'decimal:2',
     ];
 
     public function bonSortie(): BelongsTo

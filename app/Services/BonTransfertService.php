@@ -6,6 +6,7 @@ use App\Models\BonTransfert;
 use App\Models\Roll;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -69,7 +70,7 @@ class BonTransfertService
                 if ($roll->warehouse_id != $bonTransfert->warehouse_from_id) {
                     throw new \Exception("Roll {$roll->ean_13} is not in source warehouse");
                 }
-                if ($roll->status !== 'in_stock') {
+                if ($roll->status !== Roll::STATUS_IN_STOCK) {
                     throw new \Exception("Roll {$roll->ean_13} is not available (status: {$roll->status})");
                 }
             } else {
@@ -93,6 +94,7 @@ class BonTransfertService
     protected function processRollItem(BonTransfert $bonTransfert, $item): void
     {
         $roll = Roll::findOrFail($item->roll_id);
+        $weight = $roll->weight;
 
         // Create transfer OUT movement (source warehouse)
         // ROLLS ARE ALWAYS QTY = 1 (one roll = one unit)
@@ -105,10 +107,13 @@ class BonTransfertService
             'qty_moved' => -1, // ALWAYS -1 for roll transfer OUT
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
             'status' => 'confirmed',
             'notes' => "Transfer Roll EAN: {$roll->ean_13} to " . $bonTransfert->warehouseTo->name,
+            'roll_weight_before_kg' => $weight,
+            'roll_weight_after_kg' => 0,
+            'roll_weight_delta_kg' => -$weight,
         ]);
 
         // Create transfer IN movement (destination warehouse)
@@ -122,10 +127,13 @@ class BonTransfertService
             'qty_moved' => 1, // ALWAYS 1 for roll transfer IN
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
             'status' => 'confirmed',
             'notes' => "Transfer Roll EAN: {$roll->ean_13} from " . $bonTransfert->warehouseFrom->name,
+            'roll_weight_before_kg' => 0,
+            'roll_weight_after_kg' => $weight,
+            'roll_weight_delta_kg' => $weight,
         ]);
 
         // Update roll's warehouse
@@ -138,14 +146,16 @@ class BonTransfertService
         $this->decrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_from_id,
-            1 // ALWAYS 1 for rolls
+            1, // ALWAYS 1 for rolls
+            $weight
         );
 
         // Update destination warehouse stock quantity (increase by 1 roll)
         $this->incrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_to_id,
-            1 // ALWAYS 1 for rolls
+            1, // ALWAYS 1 for rolls
+            $weight
         );
     }
 
@@ -164,7 +174,7 @@ class BonTransfertService
             'qty_moved' => -$item->qty_transferred,
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
             'status' => 'confirmed',
             'notes' => "Transfer to " . $bonTransfert->warehouseTo->name . " - " . $bonTransfert->warehouseTo->warehouse_type,
@@ -180,7 +190,7 @@ class BonTransfertService
             'qty_moved' => $item->qty_transferred,
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
             'status' => 'confirmed',
             'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name . " - " . $bonTransfert->warehouseFrom->warehouse_type,
@@ -207,13 +217,22 @@ class BonTransfertService
     protected function decrementStockQuantity(
         int $productId,
         int $warehouseId,
-        float $qtyToDecrement
+        float $qtyToDecrement,
+        float $weightToDecrement = 0
     ): void {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
             ->firstOrFail();
 
-        $stockQty->decrement('total_qty', $qtyToDecrement);
+        $currentQty = (float) $stockQty->total_qty;
+        $stockQty->total_qty = max(0, $currentQty - $qtyToDecrement);
+
+        if ($weightToDecrement !== 0) {
+            $currentWeight = (float) ($stockQty->total_weight_kg ?? 0);
+            $stockQty->total_weight_kg = max(0, $currentWeight - $weightToDecrement);
+        }
+
+        $stockQty->save();
     }
 
     /**
@@ -222,7 +241,8 @@ class BonTransfertService
     protected function incrementStockQuantity(
         int $productId,
         int $warehouseId,
-        float $qtyToIncrement
+        float $qtyToIncrement,
+        float $weightToIncrement = 0
     ): void {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
@@ -230,13 +250,20 @@ class BonTransfertService
 
         if ($stockQty) {
             // Increment existing stock
-            $stockQty->increment('total_qty', $qtyToIncrement);
+            $stockQty->total_qty = (float) $stockQty->total_qty + $qtyToIncrement;
+
+            if ($weightToIncrement !== 0) {
+                $stockQty->total_weight_kg = (float) ($stockQty->total_weight_kg ?? 0) + $weightToIncrement;
+            }
+
+            $stockQty->save();
         } else {
             // Create new stock quantity record for destination warehouse
             StockQuantity::create([
                 'product_id' => $productId,
                 'warehouse_id' => $warehouseId,
                 'total_qty' => $qtyToIncrement,
+                'total_weight_kg' => $weightToIncrement,
                 'cump_snapshot' => 0, // Will be set properly on first reception
             ]);
         }

@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Roll extends Model
 {
+    public const STATUS_IN_STOCK = 'in_stock';
+    public const STATUS_RESERVED = 'reserved';
+    public const STATUS_CONSUMED = 'consumed';
+    public const STATUS_DAMAGED = 'damaged';
+    public const STATUS_ARCHIVED = 'archived';
+
     protected $fillable = [
         'bon_entree_item_id',
         'product_id',
@@ -15,11 +21,17 @@ class Roll extends Model
         'received_date',
         'received_from_movement_id',
         'status',
+        'weight_kg',
+        'cump_value',
+        'is_manual_entry',
         'notes',
     ];
 
     protected $casts = [
         'received_date' => 'date',
+        'weight_kg' => 'decimal:3',
+        'cump_value' => 'decimal:4',
+        'is_manual_entry' => 'boolean',
     ];
 
     protected $appends = [
@@ -48,6 +60,11 @@ class Roll extends Model
         return $this->belongsTo(StockMovement::class, 'received_from_movement_id');
     }
 
+    public function adjustments()
+    {
+        return $this->hasMany(RollAdjustment::class);
+    }
+
     // Scopes
     public function scopeInStock($query)
     {
@@ -62,11 +79,19 @@ class Roll extends Model
     // Accessors - Get weight and CUMP from the related BonEntreeItem
     public function getWeightAttribute()
     {
+        if (! is_null($this->getAttribute('weight_kg'))) {
+            return (float) $this->getAttribute('weight_kg');
+        }
+
         return $this->bonEntreeItem?->qty_entered ?? 0;
     }
 
     public function getCumpAttribute()
     {
+        if (! is_null($this->getAttribute('cump_value'))) {
+            return (float) $this->getAttribute('cump_value');
+        }
+
         return $this->bonEntreeItem?->price_ttc ?? 0;
     }
 }

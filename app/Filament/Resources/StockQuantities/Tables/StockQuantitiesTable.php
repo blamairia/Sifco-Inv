@@ -58,6 +58,26 @@ class StockQuantitiesTable
                         $state < 10 => 'warning',
                         default => 'success',
                     }),
+
+                TextColumn::make('total_weight_kg')
+                    ->label('Poids Total (kg)')
+                    ->numeric(decimalPlaces: 3)
+                    ->alignEnd()
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('average_roll_weight')
+                    ->label('Poids Moyen (kg)')
+                    ->getStateUsing(function (StockQuantity $record) {
+                        if (empty($record->total_weight_kg) || $record->total_qty <= 0) {
+                            return null;
+                        }
+
+                        return $record->total_weight_kg / $record->total_qty;
+                    })
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state, 3) . ' kg' : '-')
+                    ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 
                 TextColumn::make('cump_snapshot')
                     ->label('CUMP')

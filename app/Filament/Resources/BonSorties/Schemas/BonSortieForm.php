@@ -162,19 +162,24 @@ class BonSortieForm
                                             if ($roll) {
                                                 $set('product_id', $roll->product_id);
                                                 $set('cump_at_issue', $roll->cump);
-                                                $set('qty_issued', $roll->weight);
+                                                $set('weight_kg', $roll->weight);
+                                                $set('qty_issued', 1);
                                             }
                                         }
                                     })
                                     ->helperText('Seulement les bobines en stock dans l\'entrepôt sélectionné')
                                     ->columnSpan(4),
 
-                                TextInput::make('qty_issued')
+                                TextInput::make('weight_kg')
                                     ->label('Poids (kg)')
                                     ->numeric()
                                     ->disabled()
                                     ->dehydrated()
                                     ->columnSpan(2),
+
+                                Hidden::make('qty_issued')
+                                    ->default(1)
+                                    ->dehydrated(),
 
                                 TextInput::make('cump_at_issue')
                                     ->label('CUMP')
@@ -207,7 +212,8 @@ class BonSortieForm
                                 $roll = Roll::with('bonEntreeItem')->find($data['roll_id']);
                                 if ($roll) {
                                     $data['product_id'] = $roll->product_id;
-                                    $data['qty_issued'] = $roll->weight;
+                                    $data['qty_issued'] = 1;
+                                    $data['weight_kg'] = $roll->weight;
                                     $data['cump_at_issue'] = $roll->cump;
                                 }
                                 return $data;

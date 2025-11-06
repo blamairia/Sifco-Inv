@@ -10,28 +10,23 @@ class LowStockAlert extends Model
     protected $table = 'low_stock_alerts';
 
     protected $fillable = [
-        'alert_number',
         'product_id',
         'warehouse_id',
         'current_qty',
         'min_stock',
         'safety_stock',
-        'alert_type',
-        'is_acknowledged',
-        'acknowledged_by_id',
-        'acknowledged_at',
-        'reorder_requested',
-        'reorder_qty',
+        'severity',
+        'status',
+        'notes',
+        'resolved_by',
+        'resolved_at',
     ];
 
     protected $casts = [
         'current_qty' => 'decimal:2',
         'min_stock' => 'decimal:2',
         'safety_stock' => 'decimal:2',
-        'reorder_qty' => 'decimal:2',
-        'is_acknowledged' => 'boolean',
-        'reorder_requested' => 'boolean',
-        'acknowledged_at' => 'datetime',
+        'resolved_at' => 'datetime',
     ];
 
     public function product(): BelongsTo
@@ -44,20 +39,30 @@ class LowStockAlert extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
-    public function acknowledgedBy(): BelongsTo
+    public function resolvedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'acknowledged_by_id');
+        return $this->belongsTo(User::class, 'resolved_by');
     }
 
     // Scopes
-    public function scopeUnacknowledged($query)
+    public function scopeActive($query)
     {
-        return $query->where('is_acknowledged', false);
+        return $query->where('status', 'ACTIVE');
     }
 
-    public function scopeMinStockAlerts($query)
+    public function scopeResolved($query)
     {
-        return $query->where('alert_type', 'min_stock_reached');
+        return $query->where('status', 'RESOLVED');
+    }
+
+    public function scopeByWarehouse($query, $warehouseId)
+    {
+        return $query->where('warehouse_id', $warehouseId);
+    }
+
+    public function scopeBySeverity($query, $severity)
+    {
+        return $query->where('severity', $severity);
     }
 
     public function scopeSafetyStockAlerts($query)

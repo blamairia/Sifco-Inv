@@ -111,6 +111,21 @@ class BonEntreeService
     protected function processBobineItem(BonEntreeItem $item, BonEntree $bonEntree): void
     {
         Log::info("Creating Roll for item #{$item->id} with EAN: {$item->ean_13}");
+
+        $weight = (float) ($item->weight_kg ?? 0);
+
+        if ($weight <= 0) {
+            $weight = (float) ($item->qty_entered ?? 0);
+        }
+
+        if ($weight <= 0) {
+            throw new Exception("Poids invalide pour la bobine {$item->ean_13}. Veuillez saisir un poids en kg.");
+        }
+
+        // Ensure persisted weight is up to date for reporting purposes
+        if ((float) ($item->getAttribute('weight_kg') ?? 0) !== $weight) {
+            $item->update(['weight_kg' => $weight]);
+        }
         
         // Create Roll record
         $roll = Roll::create([
@@ -120,7 +135,9 @@ class BonEntreeService
             'ean_13' => $item->ean_13,
             'batch_number' => $item->batch_number,
             'received_date' => $bonEntree->received_date ?? now(),
-            'status' => 'in_stock',
+            'status' => Roll::STATUS_IN_STOCK,
+            'weight_kg' => $weight,
+            'cump_value' => $item->price_ttc,
             'notes' => $bonEntree->notes,
         ]);
 
@@ -150,6 +167,9 @@ class BonEntreeService
             'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
             'notes' => "Bobine EAN: {$item->ean_13} depuis Bon d'Entrée #{$bonEntree->bon_number}",
+            'roll_weight_before_kg' => 0,
+            'roll_weight_after_kg' => $weight,
+            'roll_weight_delta_kg' => $weight,
         ]);
 
         // Link movement to roll
@@ -160,7 +180,8 @@ class BonEntreeService
             $item->product_id,
             $bonEntree->warehouse_id,
             1,
-            $newCump
+            $newCump,
+            $weight
         );
     }
 
@@ -206,25 +227,27 @@ class BonEntreeService
     /**
      * Update or create stock quantity record
      */
-    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToAdd, float $newCump): void
+    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToAdd, float $newCump, ?float $weightToAdd = null): void
     {
-        $stockQty = StockQuantity::where('product_id', $productId)
-            ->where('warehouse_id', $warehouseId)
-            ->first();
-
-        if ($stockQty) {
-            $stockQty->update([
-                'total_qty' => $stockQty->total_qty + $qtyToAdd,
-                'cump_snapshot' => $newCump,
-            ]);
-        } else {
-            StockQuantity::create([
+        $stockQty = StockQuantity::firstOrCreate(
+            [
                 'product_id' => $productId,
                 'warehouse_id' => $warehouseId,
-                'total_qty' => $qtyToAdd,
+            ],
+            [
+                'total_qty' => 0,
+                'total_weight_kg' => 0,
                 'cump_snapshot' => $newCump,
-            ]);
+            ],
+        );
+
+        $stockQty->increment('total_qty', $qtyToAdd);
+
+        if (! is_null($weightToAdd)) {
+            $stockQty->increment('total_weight_kg', $weightToAdd);
         }
+
+        $stockQty->update(['cump_snapshot' => $newCump]);
     }
 
     /**
