@@ -68,7 +68,8 @@ class BonTransfertForm
                             ])
                             ->required()
                             ->default('draft')
-                            ->disabled(),
+                            ->disabled()
+                            ->dehydrated(false),
                     ])
                     ->columns(2),
                 

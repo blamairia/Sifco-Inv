@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Rolls\Schemas;
 
+use App\Models\Roll;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -44,17 +46,17 @@ class RollForm
                     ->required()
                     ->default(now()),
                 
-                Select::make('status')
+                Placeholder::make('status_display')
                     ->label('Statut')
-                    ->options([
-                        'in_stock' => 'En stock',
-                        'reserved' => 'Réservé',
-                        'consumed' => 'Consommé',
-                        'damaged' => 'Endommagé',
-                        'archived' => 'Archivé',
-                    ])
-                    ->required()
-                    ->default('in_stock'),
+                    ->content(fn (?Roll $record) => match ($record?->status) {
+                        Roll::STATUS_IN_STOCK => 'En stock',
+                        Roll::STATUS_RESERVED => 'Réservé',
+                        Roll::STATUS_CONSUMED => 'Consommé',
+                        Roll::STATUS_DAMAGED => 'Endommagé',
+                        Roll::STATUS_ARCHIVED => 'Archivé',
+                        default => 'En stock',
+                    })
+                    ->helperText('Les statuts ne se changent que via les ajustements et bons.'),
                 
                 \Filament\Forms\Components\Textarea::make('notes')
                     ->label('Notes')

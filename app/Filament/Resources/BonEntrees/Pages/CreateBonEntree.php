@@ -17,6 +17,8 @@ class CreateBonEntree extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data['status'] = 'draft';
+
         // Validate business rules
         $this->validateBusinessRules($data);
         
@@ -42,7 +44,7 @@ class CreateBonEntree extends CreateRecord
 
     protected function validateBusinessRules(array $data): void
     {
-        $status = $data['status'] ?? 'draft';
+    $status = 'draft';
         $bobines = $data['bobineItems'] ?? [];
         $products = $data['productItems'] ?? [];
         $hasItems = !empty($bobines) || !empty($products);

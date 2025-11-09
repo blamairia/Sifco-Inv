@@ -126,6 +126,17 @@ class EditBonEntree extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Prevent manual status changes
+        if (array_key_exists('status', $data) && $data['status'] !== $this->record->status) {
+            Notification::make()
+                ->title('Transition interdite')
+                ->danger()
+                ->body('Utilisez les actions dédiées pour changer le statut du bon.')
+                ->send();
+
+            $this->halt();
+        }
+
         // Validate business rules
         $this->validateBusinessRules($data);
         
@@ -138,13 +149,15 @@ class EditBonEntree extends EditRecord
 
         $data['total_amount_ht'] = $bobinesHt + $productsHt;
         $data['total_amount_ttc'] = $data['total_amount_ht'] + ($data['frais_approche'] ?? 0);
+
+        unset($data['status']);
         
         return $data;
     }
 
     protected function validateBusinessRules(array $data): void
     {
-        $status = $data['status'] ?? 'draft';
+        $status = $this->record->status ?? 'draft';
         $bobines = $data['bobineItems'] ?? [];
         $products = $data['productItems'] ?? [];
         $hasItems = !empty($bobines) || !empty($products);
@@ -191,30 +204,6 @@ class EditBonEntree extends EditRecord
                 ->title('Modification interdite')
                 ->danger()
                 ->body('Impossible de modifier le statut d\'un bon déjà reçu.')
-                ->send();
-            
-            $this->halt();
-        }
-        
-        // Validate status transitions
-        $this->validateStatusTransition($this->record->status, $status);
-    }
-
-    protected function validateStatusTransition(string $oldStatus, string $newStatus): void
-    {
-        $allowedTransitions = [
-            'draft' => ['pending', 'cancelled'],
-            'pending' => ['validated', 'cancelled', 'draft'],
-            'validated' => ['received', 'cancelled', 'pending'],
-            'received' => ['received'], // No changes allowed
-            'cancelled' => ['draft'], // Can reopen
-        ];
-        
-        if (!in_array($newStatus, $allowedTransitions[$oldStatus] ?? [])) {
-            Notification::make()
-                ->title('Transition invalide')
-                ->danger()
-                ->body("Impossible de passer de '{$oldStatus}' à '{$newStatus}'.")
                 ->send();
             
             $this->halt();

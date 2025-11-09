@@ -86,18 +86,6 @@ class BonSortieForm
                             ->required()
                             ->maxLength(255)
                             ->helperText('Ex: Production, Client XYZ, Service Maintenance'),
-                        
-                        Select::make('status')
-                            ->label('Statut')
-                            ->options([
-                                'draft' => 'Brouillon',
-                                'issued' => 'Émis',
-                                'confirmed' => 'Confirmé',
-                                'archived' => 'Archivé',
-                            ])
-                            ->required()
-                            ->default('draft')
-                            ->disabled(fn ($record) => $record && in_array($record->status, ['confirmed', 'archived'])),
                     ])
                     ->columns(2),
                 

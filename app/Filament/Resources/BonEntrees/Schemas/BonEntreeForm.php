@@ -81,22 +81,8 @@ class BonEntreeForm
                             ->relationship('warehouse', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(fn ($get) => in_array($get('status'), ['validated', 'received']))
-                            ->helperText('Requis pour valider ou recevoir'),
-                        
-                        Select::make('status')
-                            ->label('Statut')
-                            ->options([
-                                'draft' => 'Brouillon',
-                                'pending' => 'En Attente',
-                                'validated' => 'Validé',
-                                'received' => 'Reçu',
-                                'cancelled' => 'Annulé',
-                            ])
                             ->required()
-                            ->default('draft')
-                            ->reactive()
-                            ->disabled(fn ($record) => $record && $record->status === 'received'),
+                            ->helperText('Requis pour valider ou recevoir'),
                     ])
                     ->columns(2),
                 

@@ -108,4 +108,21 @@ class EditBonSortie extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (array_key_exists('status', $data) && $data['status'] !== $this->record->status) {
+            Notification::make()
+                ->title('Transition interdite')
+                ->danger()
+                ->body('Utilisez les actions dédiées pour changer le statut du bon de sortie.')
+                ->send();
+
+            $this->halt();
+        }
+
+        unset($data['status']);
+
+        return $data;
+    }
 }
