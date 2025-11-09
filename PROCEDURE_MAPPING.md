@@ -1,3 +1,4 @@
+> **MySQL vs SQLite:** Raw `UPDATE ... JOIN ...` statements execute in production (MySQL). Test suite relies on SQLite, so equivalent correlated subqueries are required in migrations/service seeds to avoid syntax errors.
 # 📋 SIFCO PROCEDURE MAPPING – Code Implementation Guide
 
 **Status:** REFERENCE  
@@ -107,7 +108,7 @@ WHERE id = ?
 **Workflow (Two-Step Validation):**
 1.  **Création (Statut: `draft`)**
     *   User fills in supplier, warehouse, and adds items to two separate repeaters:
-        *   **Bobines:** For products where `is_roll` = true. User enters `ean_13` and `batch_number` for each bobine. Quantity is always 1.
+  *   **Bobines:** For products where `is_roll` = true. User enters `ean_13`, `batch_number`, `weight_kg`, and the new `length_m` for each bobine. Quantity is always 1.
         *   **Produits:** For standard products. User enters `qty_entered`.
     *   User enters `frais_approche`.
     *   The bon is saved as a `draft`.
@@ -126,11 +127,11 @@ WHERE id = ?
     *   The `BonEntreeService::receive()` method is called.
     *   **Logic for each `bon_entree_item`:**
         *   **If `item_type` is 'bobine':**
-            1.  A new `Roll` record is created using the `ean_13` and `batch_number` from the item.
+            1.  A new `Roll` record is created using the `ean_13`, `batch_number`, captured `weight_kg`, and `length_m` from the item.
             2.  The new `roll_id` is saved back to the `bon_entree_item`.
             3.  `CumpCalculator` calculates the new CUMP for the product.
-            4.  A `StockMovement` is created for the entry of 1 unit.
-            5.  The `StockQuantity` for the product/warehouse is updated (quantity incremented by 1, CUMP updated).
+            4.  A `StockMovement` is created for the entry of 1 unit with both weight (kg) and length (m) attributes captured in metadata.
+            5.  The `StockQuantity` for the product/warehouse is updated (quantity incremented by 1, CUMP updated, metre totals adjusted).
         *   **If `item_type` is 'product':**
             1.  `CumpCalculator` calculates the new CUMP.
             2.  A `StockMovement` is created for the entry of `qty_entered`.
@@ -147,6 +148,8 @@ WHERE id = ?
 - `stock_quantities` (aggregated)
 
 **Bon d'Entrée Form (Filament):**
+- `length_m` per bobine is required once metre tracking is deployed; display helper text clarifying measurement expectations.
+
 ```
 bon_number → Auto: "BENT-{YMMDD}-{seq}"
 bon_reception_id → Lookup (must be verified)
@@ -179,10 +182,10 @@ Total calculations:
 ```
 INSERT INTO stock_movements
   (movement_number, product_id, warehouse_from_id, warehouse_to_id, movement_type, 
-   qty_moved, cump_at_movement, value_moved, status, reference_number, user_id, performed_at)
+   qty_moved, cump_at_movement, value_moved, status, reference_number, user_id, performed_at, metadata_json)
 VALUES
   ('SMOV-{YMMDD}-{seq}', product_id, NULL, warehouse_id, 'RECEPTION',
-   qty_entered, new_cump, qty_entered * new_cump, 'confirmed', bon_entree_id, user_id, NOW())
+   qty_entered, new_cump, qty_entered * new_cump, 'confirmed', bon_entree_id, user_id, NOW(), JSON_OBJECT('weight_kg', weight_entered_kg, 'length_m', length_entered_m))
 ```
 
 2. **Calculate new CUMP (Coût Unitaire Moyen Pondéré):**
@@ -268,10 +271,10 @@ Line Items (Repeater):
 ```
 INSERT INTO stock_movements
   (movement_number, product_id, warehouse_from_id, warehouse_to_id, movement_type,
-   qty_moved, cump_at_movement, value_moved, status, reference_number, user_id, performed_at)
+   qty_moved, cump_at_movement, value_moved, status, reference_number, user_id, performed_at, metadata_json)
 VALUES
   ('SMOV-{YMMDD}-{seq}', product_id, warehouse_id, NULL, 'ISSUE',
-   qty_issued, cump_snapshot, qty_issued * cump_snapshot, 'confirmed', bon_sortie_id, user_id, NOW())
+   qty_issued, cump_snapshot, qty_issued * cump_snapshot, 'confirmed', bon_sortie_id, user_id, NOW(), JSON_OBJECT('weight_kg', weight_issued_kg, 'length_m', length_issued_m))
 ```
 
 2. **Update stock_quantities:**
@@ -286,9 +289,10 @@ WHERE product_id = ? AND warehouse_id = ?
 ```
 UPDATE rolls
 SET status = 'consumed'
-WHERE product_id = ? AND warehouse_id = ? 
+WHERE product_id = ? AND warehouse_id = ?
 LIMIT qty_issued  ← Take oldest rolls first (FIFO)
 ```
+→ Persist per-roll metre deltas via `RollAdjustmentService` or equivalent event hooks; avoid widening base roll table until design confirmed.
 
 **Expected Result:**
 - BON_SORTIE confirmed
@@ -365,16 +369,16 @@ Line Items (Repeater):
 -- OUT movement
 INSERT INTO stock_movements 
   (movement_number, product_id, warehouse_from_id, warehouse_to_id, movement_type,
-   qty_moved, cump_at_movement, status, reference_number, user_id, performed_at)
+   qty_moved, cump_at_movement, status, reference_number, user_id, performed_at, metadata_json)
 VALUES ('SMOV-{seq}', product_id, warehouse_from, NULL, 'TRANSFER_OUT',
-        qty_transferred, cump_snapshot, 'confirmed', bon_transfert_id, user_id, NOW());
+  qty_transferred, cump_snapshot, 'confirmed', bon_transfert_id, user_id, NOW(), JSON_OBJECT('weight_kg', weight_out_kg, 'length_m', length_out_m));
 
 -- IN movement (pending until received)
 INSERT INTO stock_movements 
   (movement_number, product_id, warehouse_from_id, warehouse_to_id, movement_type,
-   qty_moved, cump_at_movement, status, reference_number, user_id, performed_at)
+   qty_moved, cump_at_movement, status, reference_number, user_id, performed_at, metadata_json)
 VALUES ('SMOV-{seq}', product_id, warehouse_from, warehouse_to, 'TRANSFER_IN',
-        qty_transferred, cump_snapshot, 'pending', bon_transfert_id, user_id, NOW());
+  qty_transferred, cump_snapshot, 'pending', bon_transfert_id, user_id, NOW(), JSON_OBJECT('weight_kg', weight_out_kg, 'length_m', length_out_m));
 ```
 
 2. **Decrement source warehouse:**

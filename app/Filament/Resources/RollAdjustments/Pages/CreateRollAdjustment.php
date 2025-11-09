@@ -4,6 +4,7 @@ namespace App\Filament\Resources\RollAdjustments\Pages;
 
 use App\Filament\Resources\RollAdjustments\RollAdjustmentResource;
 use App\Models\Roll;
+use Illuminate\Support\Facades\Auth;
 use App\Models\RollAdjustment;
 use App\Services\RollAdjustmentService;
 use Filament\Resources\Pages\CreateRecord;
@@ -66,6 +67,15 @@ class CreateRollAdjustment extends CreateRecord
                 case 'restore':
                     $roll = $this->resolveRoll($entry, $index);
                     $this->assertRollStatus($roll, [Roll::STATUS_DAMAGED, Roll::STATUS_CONSUMED, Roll::STATUS_ARCHIVED], $index);
+
+                    $newLength = $entry['new_length_m'] ?? null;
+                    if (is_null($newLength) || (float) $newLength <= 0) {
+                        throw ValidationException::withMessages([
+                            "entries.{$index}.new_length_m" => 'Indiquez une longueur valide pour remettre la bobine en stock.',
+                        ]);
+                    }
+
+                    $context['new_length_m'] = (float) $newLength;
                     $adjustments->push($service->adjustRollStatus($roll, Roll::STATUS_IN_STOCK, RollAdjustment::TYPE_RESTORE, $context));
                     break;
 
@@ -104,15 +114,18 @@ class CreateRollAdjustment extends CreateRecord
         return [
             'reason' => $entry['reason'] ?? null,
             'notes' => $entry['notes'] ?? null,
-            'adjusted_by' => auth()->id(),
+            'adjusted_by' => Auth::id(),
             'approved_by' => $entry['approved_by'] ?? null,
             'approved_at' => $entry['approved_at'] ?? null,
+            'new_length_m' => array_key_exists('new_length_m', $entry)
+                ? ($entry['new_length_m'] === null ? null : (float) $entry['new_length_m'])
+                : null,
         ];
     }
 
     protected function buildAddPayload(array $entry, int $index): array
     {
-        $required = ['product_id', 'warehouse_id', 'ean_13', 'new_weight_kg'];
+        $required = ['product_id', 'warehouse_id', 'ean_13', 'new_weight_kg', 'new_length_m'];
 
         foreach ($required as $field) {
             if (blank($entry[$field] ?? null)) {
@@ -129,10 +142,11 @@ class CreateRollAdjustment extends CreateRecord
             'batch_number' => $entry['batch_number'] ?? null,
             'received_date' => $entry['received_date'] ?? null,
             'weight_kg' => (float) $entry['new_weight_kg'],
+            'length_m' => (float) $entry['new_length_m'],
             'cump_value' => $entry['cump_value'] ?? null,
             'reason' => $entry['reason'] ?? null,
             'notes' => $entry['notes'] ?? null,
-            'adjusted_by' => auth()->id(),
+            'adjusted_by' => Auth::id(),
         ];
     }
 

@@ -26,9 +26,12 @@ class RollAdjustment extends Model
         'adjustment_type',
         'previous_status',
         'new_status',
-    'previous_weight_kg',
-    'new_weight_kg',
-    'weight_delta_kg',
+        'previous_weight_kg',
+        'new_weight_kg',
+        'weight_delta_kg',
+        'previous_length_m',
+        'new_length_m',
+        'length_delta_m',
         'reason',
         'adjusted_by',
         'approved_by',
@@ -41,6 +44,9 @@ class RollAdjustment extends Model
         'previous_weight_kg' => 'decimal:3',
         'new_weight_kg' => 'decimal:3',
         'weight_delta_kg' => 'decimal:3',
+        'previous_length_m' => 'decimal:3',
+        'new_length_m' => 'decimal:3',
+        'length_delta_m' => 'decimal:3',
     ];
 
     public function roll()

@@ -4,14 +4,15 @@
 
 **Phase 1 COMPLETED:** Slices 1-2 created basic data structure.  
 **Phase 2 COMPLETED:** Architectural redesign for **SIFCO procedure alignment** + **scalability**.  
-**Phase 3 CURRENT:** Core workflows implementation (Entrée ✅, Sortie ✅, Transfert ← NEXT)
+**Phase 3 CURRENT:** Core workflows implementation (Entrée ✅, Sortie ✅, Transfert ✅, Ajustements/Réintégrations ⏳)
 
 **Progress Overview:**
 - ✅ Slice 1-2: Master data & initial structure
 - ✅ Slice 2.5: Architecture refactor (27 tables, migrations, models)
 - ✅ Slice 3: Bon d'Entrée workflow (CUMP calculation, roll creation)
 - ✅ Slice 4: Bon de Sortie workflow (stock issuance, Filament v4 fixes)
-- ⏳ Slice 5: Bon de Transfert workflow ← **NEXT**
+- ✅ Slice 5: Bon de Transfert workflow (staged receive, metre-tracking propagation)
+- ⏳ Slice 5b: Roll reception + lifecycle metrics cleanup ← **IN PROGRESS**
 - 📋 Slice 6-9: Réintégration, Adjustments, Dashboard, Reports
 
 **Key Changes:**
@@ -58,9 +59,9 @@
   - [x] Seed test data
 - [x] **Slice 3: Bon d'Entrée Workflow** ✅ **COMPLETE** (Receipts with CUMP calculation)
 - [x] **Slice 4: Bon de Sortie Workflow** ✅ **COMPLETE** (Issues to production)
-- [ ] **Slice 5: Bon de Transfert Workflow** ← **IN PROGRESS** (Inter-warehouse transfers with staged receive) (2-3 days)
+- [x] **Slice 5: Bon de Transfert Workflow** ✅ **COMPLETE** (Inter-warehouse transfers with staged receive + metre propagation)
 - [ ] **Slice 5a: Roll Dimension Grouping** (Group bobines by grammage, laize, quality; update listings, filters, analytics) (1 day)
-- [ ] **Slice 5b: Roll Reception Metrics** (Capture weight & metre length at Bon d'Entrée, persist to rolls + movements) (1.5 days)
+- [ ] **Slice 5b: Roll Reception & Lifecycle Metrics** ← **IN PROGRESS** (Capture weight & metre length at Bon d'Entrée, persist to rolls/movements, audit history) (1.5 days)
 - [ ] **Slice 5c: Roll Lifecycle Ledger** (Event log + waste tracking for transfers, sorties, réintégrations) (2 days)
 - [ ] **Slice 6: Bon de Réintégration Workflow** (Returns with CUMP preservation + waste metrics) (2 days)
 - [ ] **Slice 7: Stock Adjustments & Low-Stock Alerts** (Manual corrections + auto alerts) (2 days)
@@ -370,6 +371,7 @@
   - Stock movement creation (type=TRANSFER for both OUT and IN)
   - Stock quantity updates (decrement source, increment destination)
   - Database transactions for atomicity
+- [x] Length tracking propagated: metre values carried through transfer movements, stock quantity deltas, and roll records
 - [x] Fixed critical bug: Rolls tracked as quantity=1, not by weight
 
 ### 5.3 Filament Resources ✅ DONE
@@ -398,6 +400,14 @@
     - Solution: Manually iterate and save rollItems and productItems in afterCreate()
 - [x] Status workflow: draft → in_transit → received → confirmed (with cancel option)
 - [x] Navigation grouping: "Gestion des Bons" for all Bon resources
+- [x] Migration safety: MySQL keeps native JOIN updates; SQLite test harness now executes equivalent correlated subqueries so CI no longer breaks on syntax
+
+### 5.4 Outstanding Tasks (Slice 5b bridge)
+- [ ] Extend Bon d'Entrée repeater to capture `length_m` alongside weight and persist to rolls
+- [ ] Backfill metre metrics through BonSortieService, RollAdjustmentService, BonReintegrationService
+- [ ] Surface length preview + deltas across Filament (Bon Sortie, Bon Réintégration, Roll Adjustments)
+- [ ] Verify migrations on MySQL target instance once metro columns deployed
+- [ ] Update dashboards/reports specs once lifecycle ledger captures both weight and length
 
 ### 5.4 Key Features ✅ IMPLEMENTED
 - ✅ Separate handling for rolls vs products (item_type column)

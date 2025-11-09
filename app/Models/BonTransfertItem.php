@@ -21,6 +21,7 @@ class BonTransfertItem extends Model
         'movement_out_id',
         'movement_in_id',
         'weight_transferred_kg',
+        'length_transferred_m',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class BonTransfertItem extends Model
         'cump_at_transfer' => 'decimal:2',
         'value_transferred' => 'decimal:2',
         'weight_transferred_kg' => 'decimal:3',
+        'length_transferred_m' => 'decimal:3',
     ];
 
     public function bonTransfert(): BelongsTo

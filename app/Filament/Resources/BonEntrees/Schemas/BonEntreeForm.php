@@ -191,6 +191,18 @@ class BonEntreeForm
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
                                     ->columnSpan(2),
 
+                                TextInput::make('length_m')
+                                    ->label('Métrage (m)')
+                                    ->helperText('Longueur réelle de la bobine en mètres linéaires')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(0.01)
+                                    ->step(0.001)
+                                    ->suffix('m')
+                                    ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
+                                    ->columnSpan(2),
+
                                 Hidden::make('qty_entered')
                                     ->default(1)
                                     ->dehydrated()

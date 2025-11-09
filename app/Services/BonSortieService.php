@@ -75,9 +75,17 @@ class BonSortieService
         }
 
         $previousWeight = $roll->weight;
+        $previousLength = (float) $roll->length;
+
+        if ($previousLength <= 0) {
+            throw new Exception("Longueur invalide pour la bobine {$roll->ean_13}. Veuillez corriger la donnée avant la sortie.");
+        }
 
         // Update roll status
-        $roll->update(['status' => Roll::STATUS_CONSUMED]);
+        $roll->update([
+            'status' => Roll::STATUS_CONSUMED,
+            'length_m' => 0,
+        ]);
 
         // Get current CUMP for movement record
         $cump = StockQuantity::where('product_id', $roll->product_id)
@@ -87,6 +95,7 @@ class BonSortieService
         $item->update([
             'qty_issued' => 1,
             'weight_kg' => $previousWeight,
+            'length_m' => $previousLength,
             'cump_at_issue' => $cump,
         ]);
 
@@ -106,10 +115,13 @@ class BonSortieService
             'roll_weight_before_kg' => $previousWeight,
             'roll_weight_after_kg' => 0,
             'roll_weight_delta_kg' => -$previousWeight,
+            'roll_length_before_m' => $previousLength,
+            'roll_length_after_m' => 0,
+            'roll_length_delta_m' => -$previousLength,
         ]);
 
         // Update stock quantity
-        $this->updateStockQuantity($roll->product_id, $bonSortie->warehouse_id, 1, $previousWeight);
+        $this->updateStockQuantity($roll->product_id, $bonSortie->warehouse_id, 1, $previousWeight, $previousLength);
     }
 
     /**
@@ -141,13 +153,19 @@ class BonSortieService
         ]);
 
         // Update stock quantity
-        $this->updateStockQuantity($item->product_id, $bonSortie->warehouse_id, $item->qty_issued);
+    $this->updateStockQuantity($item->product_id, $bonSortie->warehouse_id, $item->qty_issued, 0, 0);
     }
 
     /**
      * Update stock quantity record by decrementing
      */
-    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToDecrement, float $weightToDecrement = 0): void
+    protected function updateStockQuantity(
+        int $productId,
+        int $warehouseId,
+        float $qtyToDecrement,
+        float $weightToDecrement = 0,
+        float $lengthToDecrement = 0
+    ): void
     {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
@@ -159,6 +177,11 @@ class BonSortieService
         if ($weightToDecrement !== 0) {
             $currentWeight = (float) ($stockQty->total_weight_kg ?? 0);
             $stockQty->total_weight_kg = max(0, $currentWeight - $weightToDecrement);
+        }
+
+        if ($lengthToDecrement !== 0) {
+            $currentLength = (float) ($stockQty->total_length_m ?? 0);
+            $stockQty->total_length_m = max(0, $currentLength - $lengthToDecrement);
         }
 
         $stockQty->save();

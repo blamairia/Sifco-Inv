@@ -48,6 +48,7 @@ class BonTransfertServiceTest extends TestCase
             ->where('warehouse_id', $bonTransfert->warehouse_from_id)
             ->first();
         $this->assertSame(0.0, (float) $sourceStock->total_qty);
+        $this->assertSame(0.0, (float) $sourceStock->total_length_m);
 
         $destStock = StockQuantity::where('product_id', $roll->product_id)
             ->where('warehouse_id', $bonTransfert->warehouse_to_id)
@@ -58,6 +59,7 @@ class BonTransfertServiceTest extends TestCase
         $this->assertNotNull($item->movement_out_id);
         $this->assertNotNull($item->movement_in_id);
         $this->assertSame(250.0, (float) $item->weight_transferred_kg);
+        $this->assertSame(500.0, (float) $item->length_transferred_m);
 
         $outMovement = StockMovement::find($item->movement_out_id);
         $inMovement = StockMovement::find($item->movement_in_id);
@@ -97,6 +99,7 @@ class BonTransfertServiceTest extends TestCase
 
         $this->assertSame(1.0, (float) $destStock->total_qty);
         $this->assertSame(250.0, (float) $destStock->total_weight_kg);
+        $this->assertSame(500.0, (float) $destStock->total_length_m);
         $this->assertSame($inMovement->id, $destStock->last_movement_id);
         $this->assertSame(125.0, (float) $destStock->cump_snapshot);
     }
@@ -126,7 +129,8 @@ class BonTransfertServiceTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame(15.0, (float) $destStock->total_qty);
-    $this->assertSame(116.67, round((float) $destStock->cump_snapshot, 2));
+        $this->assertSame(0.0, (float) ($destStock->total_length_m ?? 0));
+        $this->assertSame(116.67, round((float) $destStock->cump_snapshot, 2));
     }
 
     private function createRollTransferFixture(): array
@@ -153,6 +157,7 @@ class BonTransfertServiceTest extends TestCase
             'warehouse_id' => $warehouseFrom->id,
             'total_qty' => 1,
             'total_weight_kg' => 250,
+            'total_length_m' => 500,
             'reserved_qty' => 0,
             'cump_snapshot' => 125,
         ]);
@@ -165,6 +170,7 @@ class BonTransfertServiceTest extends TestCase
             'status' => Roll::STATUS_IN_STOCK,
             'weight_kg' => 250,
             'cump_value' => 125,
+            'length_m' => 500,
         ]);
 
         $bonTransfert = BonTransfert::create([
@@ -211,6 +217,7 @@ class BonTransfertServiceTest extends TestCase
             'warehouse_id' => $warehouseFrom->id,
             'total_qty' => 20,
             'total_weight_kg' => 0,
+            'total_length_m' => 0,
             'reserved_qty' => 0,
             'cump_snapshot' => 120,
         ]);

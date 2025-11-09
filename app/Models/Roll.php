@@ -22,6 +22,7 @@ class Roll extends Model
         'received_from_movement_id',
         'status',
         'weight_kg',
+        'length_m',
         'cump_value',
         'is_manual_entry',
         'notes',
@@ -30,6 +31,7 @@ class Roll extends Model
     protected $casts = [
         'received_date' => 'date',
         'weight_kg' => 'decimal:3',
+        'length_m' => 'decimal:3',
         'cump_value' => 'decimal:4',
         'is_manual_entry' => 'boolean',
     ];
@@ -37,6 +39,7 @@ class Roll extends Model
     protected $appends = [
         'weight',
         'cump',
+        'length',
     ];
 
     // Relationships
@@ -93,5 +96,14 @@ class Roll extends Model
         }
 
         return $this->bonEntreeItem?->price_ttc ?? 0;
+    }
+
+    public function getLengthAttribute()
+    {
+        if (! is_null($this->getAttribute('length_m'))) {
+            return (float) $this->getAttribute('length_m');
+        }
+
+        return $this->bonEntreeItem?->length_m ?? 0;
     }
 }

@@ -53,17 +53,25 @@ class BonReintegrationService
         $roll = Roll::findOrFail($item->roll_id);
         $previousWeight = (float) ($item->previous_weight_kg ?? 0);
         $returnedWeight = (float) ($item->returned_weight_kg ?? 0);
+        $previousLength = (float) ($item->previous_length_m ?? $roll->length);
+        $returnedLength = (float) ($item->returned_length_m ?? 0);
 
         if ($returnedWeight <= 0) {
             throw new Exception("Le poids réintégré pour la bobine {$roll->ean_13} doit être supérieur à zéro.");
         }
 
+        if ($returnedLength <= 0) {
+            throw new Exception("La longueur réintégrée pour la bobine {$roll->ean_13} doit être supérieure à zéro.");
+        }
+
         $weightDelta = $returnedWeight - $previousWeight;
+        $lengthDelta = $returnedLength - $previousLength;
 
         $roll->update([
             'status' => Roll::STATUS_IN_STOCK,
             'warehouse_id' => $bonReintegration->warehouse_id,
             'weight_kg' => $returnedWeight,
+            'length_m' => $returnedLength,
             'notes' => $this->mergeNotes($roll->notes, "Réintégré via {$bonReintegration->bon_number}"),
         ]);
 
@@ -82,6 +90,9 @@ class BonReintegrationService
             'roll_weight_before_kg' => $previousWeight,
             'roll_weight_after_kg' => $returnedWeight,
             'roll_weight_delta_kg' => $weightDelta,
+            'roll_length_before_m' => $previousLength,
+            'roll_length_after_m' => $returnedLength,
+            'roll_length_delta_m' => $lengthDelta,
         ]);
 
         $this->updateStockQuantity(
@@ -90,11 +101,15 @@ class BonReintegrationService
             1,
             $item->cump_at_return ?? $roll->cump,
             $returnedWeight,
+            $returnedLength,
             $movement->id,
         );
 
         $item->update([
             'weight_delta_kg' => $weightDelta,
+            'length_delta_m' => $lengthDelta,
+            'returned_length_m' => $returnedLength,
+            'previous_length_m' => $previousLength,
             'value_returned' => $returnedWeight * ($item->cump_at_return ?? $roll->cump),
         ]);
     }
@@ -129,6 +144,7 @@ class BonReintegrationService
             $qty,
             $cump,
             0,
+            0,
             $movement->id,
         );
 
@@ -143,6 +159,7 @@ class BonReintegrationService
         float $qtyChange,
         float $cump,
         float $weightChange = 0,
+        float $lengthChange = 0,
         ?int $movementId = null
     ): void {
         $stockQuantity = StockQuantity::firstOrCreate(
@@ -153,6 +170,7 @@ class BonReintegrationService
             [
                 'total_qty' => 0,
                 'total_weight_kg' => 0,
+                'total_length_m' => 0,
                 'cump_snapshot' => $cump,
             ],
         );
@@ -161,6 +179,10 @@ class BonReintegrationService
 
         if ($weightChange !== 0.0) {
             $stockQuantity->total_weight_kg = (float) ($stockQuantity->total_weight_kg ?? 0) + $weightChange;
+        }
+
+        if ($lengthChange !== 0.0) {
+            $stockQuantity->total_length_m = (float) ($stockQuantity->total_length_m ?? 0) + $lengthChange;
         }
 
         $stockQuantity->cump_snapshot = $cump;

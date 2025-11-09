@@ -18,6 +18,9 @@ class BonReintegrationItem extends Model
         'previous_weight_kg',
         'returned_weight_kg',
         'weight_delta_kg',
+        'previous_length_m',
+        'returned_length_m',
+        'length_delta_m',
         'cump_at_return',
         'value_returned',
     ];
@@ -29,6 +32,9 @@ class BonReintegrationItem extends Model
         'previous_weight_kg' => 'decimal:3',
         'returned_weight_kg' => 'decimal:3',
         'weight_delta_kg' => 'decimal:3',
+        'previous_length_m' => 'decimal:3',
+        'returned_length_m' => 'decimal:3',
+        'length_delta_m' => 'decimal:3',
     ];
 
     public function bonReintegration(): BelongsTo

@@ -131,6 +131,11 @@ class BonTransfertService
     {
         $roll = Roll::lockForUpdate()->findOrFail($item->roll_id);
         $weight = $roll->weight;
+        $length = (float) $roll->length;
+
+        if ($length <= 0) {
+            throw new \Exception("Longueur invalide pour la bobine transférée (EAN {$roll->ean_13}).");
+        }
 
         $movementOut = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-OUT'),
@@ -148,6 +153,9 @@ class BonTransfertService
             'roll_weight_before_kg' => $weight,
             'roll_weight_after_kg' => 0,
             'roll_weight_delta_kg' => -$weight,
+            'roll_length_before_m' => $length,
+            'roll_length_after_m' => 0,
+            'roll_length_delta_m' => -$length,
         ]);
 
         $movementIn = StockMovement::create([
@@ -166,11 +174,15 @@ class BonTransfertService
             'roll_weight_before_kg' => 0,
             'roll_weight_after_kg' => $weight,
             'roll_weight_delta_kg' => $weight,
+            'roll_length_before_m' => 0,
+            'roll_length_after_m' => $length,
+            'roll_length_delta_m' => $length,
         ]);
 
         $roll->update([
             'warehouse_id' => $bonTransfert->warehouse_to_id,
             'status' => Roll::STATUS_RESERVED,
+            'length_m' => $length,
         ]);
 
         $this->decrementStockQuantity(
@@ -178,6 +190,7 @@ class BonTransfertService
             $bonTransfert->warehouse_from_id,
             1,
             $weight,
+            $length,
             $movementOut->id
         );
 
@@ -185,6 +198,7 @@ class BonTransfertService
             'movement_out_id' => $movementOut->id,
             'movement_in_id' => $movementIn->id,
             'weight_transferred_kg' => $weight,
+            'length_transferred_m' => $length,
         ]);
     }
 
@@ -227,6 +241,7 @@ class BonTransfertService
             $bonTransfert->warehouse_from_id,
             $qty,
             0,
+            0,
             $movementOut->id
         );
 
@@ -241,8 +256,9 @@ class BonTransfertService
         int $warehouseId,
         float $qtyToDecrement,
         float $weightToDecrement = 0,
+        float $lengthToDecrement = 0,
         ?int $movementId = null
-    ): void {
+    ): StockQuantity {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
             ->lockForUpdate()
@@ -256,11 +272,42 @@ class BonTransfertService
             $stockQty->total_weight_kg = max(0, $currentWeight - $weightToDecrement);
         }
 
+        if ($lengthToDecrement !== 0) {
+            $currentLength = (float) ($stockQty->total_length_m ?? 0);
+            $stockQty->total_length_m = max(0, $currentLength - $lengthToDecrement);
+        }
+
         if ($movementId) {
             $stockQty->last_movement_id = $movementId;
         }
 
         $stockQty->save();
+
+        return $stockQty;
+    }
+
+    protected function decrementSourceStockQuantity(
+        int $productId,
+        int $warehouseId,
+        float $qtyToDecrement,
+        float $weightToDecrement = 0,
+        float $newCump = 0,
+        ?int $movementId = null,
+        float $lengthToDecrement = 0
+    ): StockQuantity {
+        $stockQty = $this->decrementStockQuantity(
+            $productId,
+            $warehouseId,
+            $qtyToDecrement,
+            $weightToDecrement,
+            $lengthToDecrement,
+            $movementId,
+        );
+
+        $stockQty->cump_snapshot = $newCump;
+        $stockQty->save();
+
+        return $stockQty;
     }
 
     protected function incrementDestinationStockQuantity(
@@ -268,6 +315,7 @@ class BonTransfertService
         int $warehouseId,
         float $qtyToIncrement,
         float $weightToIncrement,
+        float $lengthToIncrement,
         float $newCump,
         int $movementId
     ): StockQuantity {
@@ -282,6 +330,7 @@ class BonTransfertService
                 'warehouse_id' => $warehouseId,
                 'total_qty' => 0,
                 'total_weight_kg' => 0,
+                'total_length_m' => 0,
                 'reserved_qty' => 0,
                 'cump_snapshot' => 0,
             ]);
@@ -296,6 +345,10 @@ class BonTransfertService
 
         if ($weightToIncrement !== 0) {
             $stockQty->total_weight_kg = (float) ($stockQty->total_weight_kg ?? 0) + $weightToIncrement;
+        }
+
+        if ($lengthToIncrement !== 0) {
+            $stockQty->total_length_m = (float) ($stockQty->total_length_m ?? 0) + $lengthToIncrement;
         }
 
         $stockQty->cump_snapshot = $newCump;
@@ -319,10 +372,12 @@ class BonTransfertService
         ]);
 
         $roll = Roll::lockForUpdate()->findOrFail($item->roll_id);
+        $length = (float) ($item->length_transferred_m ?? $roll->length_m);
         $roll->update([
             'status' => Roll::STATUS_IN_STOCK,
             'warehouse_id' => $bonTransfert->warehouse_to_id,
             'received_from_movement_id' => $movementIn->id,
+            'length_m' => $length,
         ]);
 
         $weight = (float) ($item->weight_transferred_kg ?? $roll->weight);
@@ -338,6 +393,7 @@ class BonTransfertService
             $bonTransfert->warehouse_to_id,
             1,
             $weight,
+            $length,
             $newCump,
             $movementIn->id,
         );
@@ -368,6 +424,7 @@ class BonTransfertService
             $item->product_id,
             $bonTransfert->warehouse_to_id,
             $qty,
+            0,
             0,
             $newCump,
             $movementIn->id,

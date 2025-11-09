@@ -151,6 +151,7 @@ class BonSortieForm
                                                 $set('product_id', $roll->product_id);
                                                 $set('cump_at_issue', $roll->cump);
                                                 $set('weight_kg', $roll->weight);
+                                                $set('length_m', $roll->length);
                                                 $set('qty_issued', 1);
                                             }
                                         }
@@ -160,6 +161,13 @@ class BonSortieForm
 
                                 TextInput::make('weight_kg')
                                     ->label('Poids (kg)')
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(2),
+
+                                TextInput::make('length_m')
+                                    ->label('Longueur (m)')
                                     ->numeric()
                                     ->disabled()
                                     ->dehydrated()
@@ -188,7 +196,7 @@ class BonSortieForm
 
                                 Hidden::make('product_id')->dehydrated(),
                             ])
-                            ->columns(10)
+                            ->columns(12)
                             ->addActionLabel('Ajouter Bobine')
                             ->reorderable(false)
                             ->collapsible()
@@ -202,6 +210,7 @@ class BonSortieForm
                                     $data['product_id'] = $roll->product_id;
                                     $data['qty_issued'] = 1;
                                     $data['weight_kg'] = $roll->weight;
+                                    $data['length_m'] = $roll->length;
                                     $data['cump_at_issue'] = $roll->cump;
                                 }
                                 return $data;

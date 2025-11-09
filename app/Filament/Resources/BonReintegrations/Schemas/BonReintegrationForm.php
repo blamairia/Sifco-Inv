@@ -114,6 +114,8 @@ class BonReintegrationForm
                                     $set('product_id', $roll?->product_id);
                                     $set('previous_weight_kg', $roll?->weight ?? null);
                                     $set('returned_weight_kg', $roll?->weight ?? null);
+                                    $set('previous_length_m', $roll?->length ?? null);
+                                    $set('returned_length_m', $roll?->length ?? null);
                                     $set('cump_at_return', $roll?->cump ?? null);
                                 })
                                 ->columnSpan(3),
@@ -145,6 +147,23 @@ class BonReintegrationForm
                                 ->columnSpan(2)
                                 ->disabled(fn ($record) => $record && $record->bonReintegration && $record->bonReintegration->status !== 'draft'),
 
+                            TextInput::make('previous_length_m')
+                                ->label('Longueur avant (m)')
+                                ->numeric()
+                                ->disabled()
+                                ->dehydrated()
+                                ->columnSpan(2),
+
+                            TextInput::make('returned_length_m')
+                                ->label('Longueur retournée (m)')
+                                ->numeric()
+                                ->required()
+                                ->minValue(0.01)
+                                ->step(0.01)
+                                ->suffix('m')
+                                ->columnSpan(2)
+                                ->disabled(fn ($record) => $record && $record->bonReintegration && $record->bonReintegration->status !== 'draft'),
+
                             TextInput::make('cump_at_return')
                                 ->label('CUMP appliqué')
                                 ->numeric()
@@ -158,7 +177,7 @@ class BonReintegrationForm
                                 ->hidden()
                                 ->dehydrated(),
                         ])
-                        ->columns(12)
+                        ->columns(16)
                         ->defaultItems(0)
                         ->addActionLabel('➕ Ajouter une bobine')
                         ->reorderable(false)

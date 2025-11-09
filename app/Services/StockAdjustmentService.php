@@ -45,6 +45,7 @@ class StockAdjustmentService
                     [
                         'total_qty' => 0,
                         'total_weight_kg' => 0,
+                        'total_length_m' => 0,
                         'reserved_qty' => 0,
                         'cump_snapshot' => 0,
                     ],

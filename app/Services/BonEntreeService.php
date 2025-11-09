@@ -113,6 +113,7 @@ class BonEntreeService
         Log::info("Creating Roll for item #{$item->id} with EAN: {$item->ean_13}");
 
         $weight = (float) ($item->weight_kg ?? 0);
+        $length = (float) ($item->length_m ?? 0);
 
         if ($weight <= 0) {
             $weight = (float) ($item->qty_entered ?? 0);
@@ -122,9 +123,17 @@ class BonEntreeService
             throw new Exception("Poids invalide pour la bobine {$item->ean_13}. Veuillez saisir un poids en kg.");
         }
 
+        if ($length <= 0) {
+            throw new Exception("Métrage invalide pour la bobine {$item->ean_13}. Veuillez saisir une longueur en mètres.");
+        }
+
         // Ensure persisted weight is up to date for reporting purposes
         if ((float) ($item->getAttribute('weight_kg') ?? 0) !== $weight) {
             $item->update(['weight_kg' => $weight]);
+        }
+
+        if ((float) ($item->getAttribute('length_m') ?? 0) !== $length) {
+            $item->update(['length_m' => $length]);
         }
         
         // Create Roll record
@@ -137,6 +146,7 @@ class BonEntreeService
             'received_date' => $bonEntree->received_date ?? now(),
             'status' => Roll::STATUS_IN_STOCK,
             'weight_kg' => $weight,
+            'length_m' => $length,
             'cump_value' => $item->price_ttc,
             'notes' => $bonEntree->notes,
         ]);
@@ -170,6 +180,9 @@ class BonEntreeService
             'roll_weight_before_kg' => 0,
             'roll_weight_after_kg' => $weight,
             'roll_weight_delta_kg' => $weight,
+            'roll_length_before_m' => 0,
+            'roll_length_after_m' => $length,
+            'roll_length_delta_m' => $length,
         ]);
 
         // Link movement to roll
@@ -181,7 +194,8 @@ class BonEntreeService
             $bonEntree->warehouse_id,
             1,
             $newCump,
-            $weight
+            $weight,
+            $length
         );
     }
 
@@ -227,7 +241,7 @@ class BonEntreeService
     /**
      * Update or create stock quantity record
      */
-    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToAdd, float $newCump, ?float $weightToAdd = null): void
+    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToAdd, float $newCump, ?float $weightToAdd = null, ?float $lengthToAdd = null): void
     {
         $stockQty = StockQuantity::firstOrCreate(
             [
@@ -237,6 +251,7 @@ class BonEntreeService
             [
                 'total_qty' => 0,
                 'total_weight_kg' => 0,
+                'total_length_m' => 0,
                 'cump_snapshot' => $newCump,
             ],
         );
@@ -245,6 +260,10 @@ class BonEntreeService
 
         if (! is_null($weightToAdd)) {
             $stockQty->increment('total_weight_kg', $weightToAdd);
+        }
+
+        if (! is_null($lengthToAdd)) {
+            $stockQty->increment('total_length_m', $lengthToAdd);
         }
 
         $stockQty->update(['cump_snapshot' => $newCump]);

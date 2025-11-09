@@ -16,9 +16,14 @@ class RollAdjustmentService
     {
         return DB::transaction(function () use ($data) {
             $weight = isset($data['weight_kg']) ? (float) $data['weight_kg'] : 0.0;
+            $length = isset($data['length_m']) ? (float) $data['length_m'] : 0.0;
 
             if ($weight <= 0) {
                 throw new InvalidArgumentException('Le poids de la bobine doit être supérieur à zéro.');
+            }
+
+            if ($length <= 0) {
+                throw new InvalidArgumentException('La longueur de la bobine doit être supérieure à zéro.');
             }
 
             $roll = Roll::create([
@@ -29,6 +34,7 @@ class RollAdjustmentService
                 'received_date' => $data['received_date'] ?? now(),
                 'status' => Roll::STATUS_IN_STOCK,
                 'weight_kg' => $weight,
+                'length_m' => $length,
                 'cump_value' => $data['cump_value'] ?? null,
                 'is_manual_entry' => true,
                 'notes' => $data['notes'] ?? null,
@@ -46,6 +52,9 @@ class RollAdjustmentService
                 null,
                 $roll->weight,
                 $roll->weight,
+                0.0,
+                $length,
+                $length,
             );
 
             $movement = $this->createMovement(
@@ -55,6 +64,9 @@ class RollAdjustmentService
                 $roll->weight,
                 null,
                 $roll->weight,
+                $length,
+                0.0,
+                $length,
             );
 
             $this->updateStockQuantity(
@@ -63,6 +75,7 @@ class RollAdjustmentService
                 1,
                 $roll->cump,
                 $roll->weight,
+                $length,
                 $movement->id,
             );
 
@@ -75,9 +88,25 @@ class RollAdjustmentService
         return DB::transaction(function () use ($roll, $newStatus, $adjustmentType, $data) {
             $previousStatus = $roll->status;
             $previousWeight = $roll->weight;
+            $previousLength = (float) $roll->length;
+
+            $newLength = $previousLength;
+
+            if (array_key_exists('new_length_m', $data) && $data['new_length_m'] !== null) {
+                $newLength = (float) $data['new_length_m'];
+            }
+
+            if (in_array($newStatus, [Roll::STATUS_CONSUMED, Roll::STATUS_ARCHIVED], true)) {
+                $newLength = 0.0;
+            } elseif ($newStatus === Roll::STATUS_IN_STOCK && in_array($previousStatus, [Roll::STATUS_CONSUMED, Roll::STATUS_ARCHIVED, Roll::STATUS_DAMAGED], true)) {
+                if ($newLength <= 0) {
+                    throw new InvalidArgumentException('La longueur doit être fournie pour remettre la bobine en stock.');
+                }
+            }
 
             $roll->update([
                 'status' => $newStatus,
+                'length_m' => $newLength,
                 'notes' => $this->mergeNotes($roll->notes, $data['notes'] ?? null),
             ]);
 
@@ -90,6 +119,8 @@ class RollAdjustmentService
                 $weightDelta = $roll->weight;
             }
 
+            $lengthDelta = round($newLength - $previousLength, 3);
+
             $adjustment = $this->logAdjustment(
                 $roll,
                 $adjustmentType,
@@ -100,6 +131,9 @@ class RollAdjustmentService
                 $previousWeight,
                 $roll->weight,
                 $weightDelta,
+                $previousLength,
+                $newLength,
+                $lengthDelta,
             );
 
             $qtyDelta = match ($newStatus) {
@@ -108,9 +142,9 @@ class RollAdjustmentService
                 default => 0,
             };
 
-            if ($qtyDelta !== 0 || $weightDelta !== 0.0) {
-                $movement = $this->createMovement($roll, $qtyDelta, $reason, $weightDelta, $previousWeight, $roll->weight);
-                $this->updateStockQuantity($roll->product_id, $roll->warehouse_id, $qtyDelta, $roll->cump, $weightDelta, $movement->id);
+            if ($qtyDelta !== 0 || $weightDelta !== 0.0 || $lengthDelta !== 0.0) {
+                $movement = $this->createMovement($roll, $qtyDelta, $reason, $weightDelta, $previousWeight, $roll->weight, $lengthDelta, $previousLength, $newLength);
+                $this->updateStockQuantity($roll->product_id, $roll->warehouse_id, $qtyDelta, $roll->cump, $weightDelta, $lengthDelta, $movement->id);
             }
 
             return $adjustment;
@@ -121,6 +155,7 @@ class RollAdjustmentService
     {
         return DB::transaction(function () use ($roll, $newWeight, $data) {
             $previousWeight = $roll->weight;
+            $previousLength = (float) $roll->length;
 
             if ($newWeight <= 0) {
                 throw new InvalidArgumentException('Le nouveau poids doit être supérieur à zéro.');
@@ -149,17 +184,33 @@ class RollAdjustmentService
                 $previousWeight,
                 $roll->weight,
                 $weightDelta,
+                $previousLength,
+                (float) $roll->length,
+                0.0,
             );
 
-            $movement = $this->createMovement($roll, 0, $reason, $weightDelta, $previousWeight, $roll->weight);
+            $movement = $this->createMovement($roll, 0, $reason, $weightDelta, $previousWeight, $roll->weight, 0.0, $previousLength, (float) $roll->length);
 
-            $this->updateStockQuantity($roll->product_id, $roll->warehouse_id, 0, $roll->cump, $weightDelta, $movement->id);
+            $this->updateStockQuantity($roll->product_id, $roll->warehouse_id, 0, $roll->cump, $weightDelta, 0.0, $movement->id);
 
             return $adjustment;
         });
     }
 
-    protected function logAdjustment(Roll $roll, string $type, ?string $previousStatus, string $newStatus, string $reason, array $context, ?float $previousWeight, ?float $newWeight, ?float $weightDelta = null): RollAdjustment
+    protected function logAdjustment(
+        Roll $roll,
+        string $type,
+        ?string $previousStatus,
+        string $newStatus,
+        string $reason,
+        array $context,
+        ?float $previousWeight,
+        ?float $newWeight,
+        ?float $weightDelta = null,
+        ?float $previousLength = null,
+        ?float $newLength = null,
+        ?float $lengthDelta = null,
+    ): RollAdjustment
     {
         return RollAdjustment::create([
             'adjustment_number' => $this->generateAdjustmentNumber(),
@@ -172,6 +223,9 @@ class RollAdjustmentService
             'previous_weight_kg' => $previousWeight,
             'new_weight_kg' => $newWeight,
             'weight_delta_kg' => $weightDelta ?? (($newWeight ?? 0) - ($previousWeight ?? 0)),
+            'previous_length_m' => $previousLength,
+            'new_length_m' => $newLength,
+            'length_delta_m' => $lengthDelta ?? (($newLength ?? 0) - ($previousLength ?? 0)),
             'reason' => $reason,
             'adjusted_by' => $context['adjusted_by'] ?? Auth::id(),
             'approved_by' => $context['approved_by'] ?? null,
@@ -180,7 +234,17 @@ class RollAdjustmentService
         ]);
     }
 
-    protected function createMovement(Roll $roll, float $qtyDelta, ?string $reason = null, ?float $weightDelta = null, ?float $previousWeight = null, ?float $newWeight = null): StockMovement
+    protected function createMovement(
+        Roll $roll,
+        float $qtyDelta,
+        ?string $reason = null,
+        ?float $weightDelta = null,
+        ?float $previousWeight = null,
+        ?float $newWeight = null,
+        ?float $lengthDelta = null,
+        ?float $previousLength = null,
+        ?float $newLength = null,
+    ): StockMovement
     {
         $warehouseTo = null;
         $warehouseFrom = null;
@@ -207,10 +271,21 @@ class RollAdjustmentService
             'roll_weight_before_kg' => $previousWeight,
             'roll_weight_after_kg' => $newWeight,
             'roll_weight_delta_kg' => $weightDelta ?? (($newWeight ?? 0) - ($previousWeight ?? 0)),
+            'roll_length_before_m' => $previousLength,
+            'roll_length_after_m' => $newLength,
+            'roll_length_delta_m' => $lengthDelta ?? (($newLength ?? 0) - ($previousLength ?? 0)),
         ]);
     }
 
-    protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyChange, float $cump, ?float $weightChange = null, ?int $movementId = null): void
+    protected function updateStockQuantity(
+        int $productId,
+        int $warehouseId,
+        float $qtyChange,
+        float $cump,
+        ?float $weightChange = null,
+        ?float $lengthChange = null,
+        ?int $movementId = null
+    ): void
     {
         $stockQuantity = StockQuantity::firstOrCreate(
             [
@@ -220,6 +295,7 @@ class RollAdjustmentService
             [
                 'total_qty' => 0,
                 'total_weight_kg' => 0,
+                'total_length_m' => 0,
                 'cump_snapshot' => $cump,
             ],
         );
@@ -230,6 +306,10 @@ class RollAdjustmentService
 
         if (! is_null($weightChange) && $weightChange !== 0.0) {
             $stockQuantity->increment('total_weight_kg', $weightChange);
+        }
+
+        if (! is_null($lengthChange) && $lengthChange !== 0.0) {
+            $stockQuantity->increment('total_length_m', $lengthChange);
         }
 
         $stockQuantity->update([
