@@ -16,6 +16,9 @@ class StockAdjustment extends Model
         'qty_before',
         'qty_after',
         'qty_change',
+        'weight_before_kg',
+        'weight_after_kg',
+        'weight_change_kg',
         'adjustment_type',
         'reason',
         'adjusted_by',
@@ -28,6 +31,9 @@ class StockAdjustment extends Model
         'qty_before' => 'decimal:2',
         'qty_after' => 'decimal:2',
         'qty_change' => 'decimal:2',
+        'weight_before_kg' => 'decimal:3',
+        'weight_after_kg' => 'decimal:3',
+        'weight_change_kg' => 'decimal:3',
         'approved_at' => 'datetime',
     ];
 

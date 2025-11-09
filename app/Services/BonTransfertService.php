@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\BonTransfert;
+use App\Models\BonTransfertItem;
 use App\Models\Roll;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
+use App\Services\CumpCalculator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -27,19 +29,18 @@ class BonTransfertService
 
         DB::beginTransaction();
         try {
-            // Validate stock availability in source warehouse
+            $bonTransfert->loadMissing(['bonTransfertItems', 'warehouseFrom', 'warehouseTo']);
+
             $this->validateStockAvailability($bonTransfert);
 
-            // Process each item
             foreach ($bonTransfert->bonTransfertItems as $item) {
                 if ($item->item_type === 'roll') {
-                    $this->processRollItem($bonTransfert, $item);
+                    $this->processRollTransfer($bonTransfert, $item);
                 } else {
-                    $this->processProductItem($bonTransfert, $item);
+                    $this->processProductTransfer($bonTransfert, $item);
                 }
             }
 
-            // Update bon status
             $bonTransfert->update([
                 'status' => 'in_transit',
                 'transferred_at' => now(),
@@ -51,6 +52,41 @@ class BonTransfertService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("BonTransfert transfer failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Receive the transfer at the destination warehouse.
+     */
+    public function receive(BonTransfert $bonTransfert): void
+    {
+        if ($bonTransfert->status !== 'in_transit') {
+            throw new \Exception("Only in-transit transfers can be received. Current status: {$bonTransfert->status}");
+        }
+
+        DB::beginTransaction();
+        try {
+            $bonTransfert->loadMissing(['bonTransfertItems', 'warehouseTo']);
+
+            foreach ($bonTransfert->bonTransfertItems as $item) {
+                if ($item->item_type === 'roll') {
+                    $this->receiveRollItem($bonTransfert, $item);
+                } else {
+                    $this->receiveProductItem($bonTransfert, $item);
+                }
+            }
+
+            $bonTransfert->update([
+                'status' => 'received',
+                'received_at' => now(),
+                'received_by_id' => Auth::id() ?? 1,
+            ]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("BonTransfert receive failed: " . $e->getMessage());
             throw $e;
         }
     }
@@ -91,20 +127,18 @@ class BonTransfertService
      * Process roll transfer: update roll's warehouse_id
      * IMPORTANT: Rolls are ALWAYS tracked as 1 unit (not by weight)
      */
-    protected function processRollItem(BonTransfert $bonTransfert, $item): void
+    protected function processRollTransfer(BonTransfert $bonTransfert, BonTransfertItem $item): void
     {
-        $roll = Roll::findOrFail($item->roll_id);
+        $roll = Roll::lockForUpdate()->findOrFail($item->roll_id);
         $weight = $roll->weight;
 
-        // Create transfer OUT movement (source warehouse)
-        // ROLLS ARE ALWAYS QTY = 1 (one roll = one unit)
         $movementOut = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-OUT'),
             'product_id' => $item->product_id,
             'warehouse_from_id' => $bonTransfert->warehouse_from_id,
             'warehouse_to_id' => $bonTransfert->warehouse_to_id,
             'movement_type' => 'TRANSFER',
-            'qty_moved' => -1, // ALWAYS -1 for roll transfer OUT
+            'qty_moved' => -1,
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
             'user_id' => Auth::id() ?? 1,
@@ -116,62 +150,55 @@ class BonTransfertService
             'roll_weight_delta_kg' => -$weight,
         ]);
 
-        // Create transfer IN movement (destination warehouse)
-        // ROLLS ARE ALWAYS QTY = 1 (one roll = one unit)
         $movementIn = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-IN'),
             'product_id' => $item->product_id,
             'warehouse_from_id' => $bonTransfert->warehouse_from_id,
             'warehouse_to_id' => $bonTransfert->warehouse_to_id,
             'movement_type' => 'TRANSFER',
-            'qty_moved' => 1, // ALWAYS 1 for roll transfer IN
+            'qty_moved' => 1,
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
             'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
-            'status' => 'confirmed',
+            'status' => 'pending',
             'notes' => "Transfer Roll EAN: {$roll->ean_13} from " . $bonTransfert->warehouseFrom->name,
             'roll_weight_before_kg' => 0,
             'roll_weight_after_kg' => $weight,
             'roll_weight_delta_kg' => $weight,
         ]);
 
-        // Update roll's warehouse
         $roll->update([
             'warehouse_id' => $bonTransfert->warehouse_to_id,
-            'received_from_movement_id' => $movementIn->id,
+            'status' => Roll::STATUS_RESERVED,
         ]);
 
-        // Update source warehouse stock quantity (decrease by 1 roll)
         $this->decrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_from_id,
-            1, // ALWAYS 1 for rolls
-            $weight
+            1,
+            $weight,
+            $movementOut->id
         );
 
-        // Update destination warehouse stock quantity (increase by 1 roll)
-        $this->incrementStockQuantity(
-            $item->product_id,
-            $bonTransfert->warehouse_to_id,
-            1, // ALWAYS 1 for rolls
-            $weight
-        );
+        $item->update([
+            'movement_out_id' => $movementOut->id,
+            'movement_in_id' => $movementIn->id,
+            'weight_transferred_kg' => $weight,
+        ]);
     }
 
-    /**
-     * Process product transfer: update stock quantities in both warehouses
-     */
-    protected function processProductItem(BonTransfert $bonTransfert, $item): void
+    protected function processProductTransfer(BonTransfert $bonTransfert, BonTransfertItem $item): void
     {
-        // Create transfer OUT movement (source warehouse)
+        $qty = (float) $item->qty_transferred;
+
         $movementOut = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-OUT'),
             'product_id' => $item->product_id,
             'warehouse_from_id' => $bonTransfert->warehouse_from_id,
             'warehouse_to_id' => $bonTransfert->warehouse_to_id,
             'movement_type' => 'TRANSFER',
-            'qty_moved' => -$item->qty_transferred,
+            'qty_moved' => -$qty,
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
             'user_id' => Auth::id() ?? 1,
@@ -180,48 +207,45 @@ class BonTransfertService
             'notes' => "Transfer to " . $bonTransfert->warehouseTo->name . " - " . $bonTransfert->warehouseTo->warehouse_type,
         ]);
 
-        // Create transfer IN movement (destination warehouse)
         $movementIn = StockMovement::create([
             'movement_number' => $this->generateMovementNumber('TRF-IN'),
             'product_id' => $item->product_id,
             'warehouse_from_id' => $bonTransfert->warehouse_from_id,
             'warehouse_to_id' => $bonTransfert->warehouse_to_id,
             'movement_type' => 'TRANSFER',
-            'qty_moved' => $item->qty_transferred,
+            'qty_moved' => $qty,
             'cump_at_movement' => $item->cump_at_transfer,
             'reference_number' => $bonTransfert->bon_number,
             'user_id' => Auth::id() ?? 1,
             'performed_at' => now(),
-            'status' => 'confirmed',
+            'status' => 'pending',
             'notes' => "Transfer from " . $bonTransfert->warehouseFrom->name . " - " . $bonTransfert->warehouseFrom->warehouse_type,
         ]);
 
-        // Update source warehouse stock quantity (decrease)
         $this->decrementStockQuantity(
             $item->product_id,
             $bonTransfert->warehouse_from_id,
-            $item->qty_transferred
+            $qty,
+            0,
+            $movementOut->id
         );
 
-        // Update destination warehouse stock quantity (increase)
-        $this->incrementStockQuantity(
-            $item->product_id,
-            $bonTransfert->warehouse_to_id,
-            $item->qty_transferred
-        );
+        $item->update([
+            'movement_out_id' => $movementOut->id,
+            'movement_in_id' => $movementIn->id,
+        ]);
     }
 
-    /**
-     * Decrement stock quantity (for source warehouse during transfer)
-     */
     protected function decrementStockQuantity(
         int $productId,
         int $warehouseId,
         float $qtyToDecrement,
-        float $weightToDecrement = 0
+        float $weightToDecrement = 0,
+        ?int $movementId = null
     ): void {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
+            ->lockForUpdate()
             ->firstOrFail();
 
         $currentQty = (float) $stockQty->total_qty;
@@ -232,41 +256,122 @@ class BonTransfertService
             $stockQty->total_weight_kg = max(0, $currentWeight - $weightToDecrement);
         }
 
+        if ($movementId) {
+            $stockQty->last_movement_id = $movementId;
+        }
+
         $stockQty->save();
     }
 
-    /**
-     * Increment stock quantity (for destination warehouse during transfer)
-     */
-    protected function incrementStockQuantity(
+    protected function incrementDestinationStockQuantity(
         int $productId,
         int $warehouseId,
         float $qtyToIncrement,
-        float $weightToIncrement = 0
-    ): void {
+        float $weightToIncrement,
+        float $newCump,
+        int $movementId
+    ): StockQuantity {
         $stockQty = StockQuantity::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
+            ->lockForUpdate()
             ->first();
 
-        if ($stockQty) {
-            // Increment existing stock
-            $stockQty->total_qty = (float) $stockQty->total_qty + $qtyToIncrement;
-
-            if ($weightToIncrement !== 0) {
-                $stockQty->total_weight_kg = (float) ($stockQty->total_weight_kg ?? 0) + $weightToIncrement;
-            }
-
-            $stockQty->save();
-        } else {
-            // Create new stock quantity record for destination warehouse
-            StockQuantity::create([
+        if (! $stockQty) {
+            $stockQty = StockQuantity::create([
                 'product_id' => $productId,
                 'warehouse_id' => $warehouseId,
-                'total_qty' => $qtyToIncrement,
-                'total_weight_kg' => $weightToIncrement,
-                'cump_snapshot' => 0, // Will be set properly on first reception
+                'total_qty' => 0,
+                'total_weight_kg' => 0,
+                'reserved_qty' => 0,
+                'cump_snapshot' => 0,
             ]);
+
+            $stockQty = StockQuantity::where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->lockForUpdate()
+                ->first();
         }
+
+        $stockQty->total_qty = (float) $stockQty->total_qty + $qtyToIncrement;
+
+        if ($weightToIncrement !== 0) {
+            $stockQty->total_weight_kg = (float) ($stockQty->total_weight_kg ?? 0) + $weightToIncrement;
+        }
+
+        $stockQty->cump_snapshot = $newCump;
+        $stockQty->last_movement_id = $movementId;
+        $stockQty->save();
+
+        return $stockQty;
+    }
+
+    protected function receiveRollItem(BonTransfert $bonTransfert, BonTransfertItem $item): void
+    {
+        $movementIn = $item->movementIn;
+
+        if (! $movementIn) {
+            throw new \Exception('Missing inbound movement for roll transfer item.');
+        }
+
+        $movementIn->update([
+            'status' => 'confirmed',
+            'performed_at' => now(),
+        ]);
+
+        $roll = Roll::lockForUpdate()->findOrFail($item->roll_id);
+        $roll->update([
+            'status' => Roll::STATUS_IN_STOCK,
+            'warehouse_id' => $bonTransfert->warehouse_to_id,
+            'received_from_movement_id' => $movementIn->id,
+        ]);
+
+        $weight = (float) ($item->weight_transferred_kg ?? $roll->weight);
+        $newCump = CumpCalculator::calculate(
+            $item->product_id,
+            $bonTransfert->warehouse_to_id,
+            1,
+            (float) $item->cump_at_transfer,
+        );
+
+        $this->incrementDestinationStockQuantity(
+            $item->product_id,
+            $bonTransfert->warehouse_to_id,
+            1,
+            $weight,
+            $newCump,
+            $movementIn->id,
+        );
+    }
+
+    protected function receiveProductItem(BonTransfert $bonTransfert, BonTransfertItem $item): void
+    {
+        $movementIn = $item->movementIn;
+
+        if (! $movementIn) {
+            throw new \Exception('Missing inbound movement for product transfer item.');
+        }
+
+        $movementIn->update([
+            'status' => 'confirmed',
+            'performed_at' => now(),
+        ]);
+
+        $qty = (float) $item->qty_transferred;
+        $newCump = CumpCalculator::calculate(
+            $item->product_id,
+            $bonTransfert->warehouse_to_id,
+            $qty,
+            (float) $item->cump_at_transfer,
+        );
+
+        $this->incrementDestinationStockQuantity(
+            $item->product_id,
+            $bonTransfert->warehouse_to_id,
+            $qty,
+            0,
+            $newCump,
+            $movementIn->id,
+        );
     }
 
     /**

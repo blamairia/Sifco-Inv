@@ -44,16 +44,20 @@ class BonTransfertsTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'draft' => 'gray',
-                        'transferred' => 'success',
+                        'in_transit' => 'warning',
+                        'received' => 'success',
                         'confirmed' => 'success',
                         'cancelled' => 'danger',
+                        'archived' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'draft' => 'Brouillon',
-                        'transferred' => 'Transféré',
+                        'in_transit' => 'En transit',
+                        'received' => 'Réceptionné',
                         'confirmed' => 'Confirmé',
                         'cancelled' => 'Annulé',
+                        'archived' => 'Archivé',
                         default => $state,
                     }),
                 
@@ -79,9 +83,11 @@ class BonTransfertsTable
                     ->label('Statut')
                     ->options([
                         'draft' => 'Brouillon',
-                        'transferred' => 'Transféré',
+                        'in_transit' => 'En transit',
+                        'received' => 'Réceptionné',
                         'confirmed' => 'Confirmé',
                         'cancelled' => 'Annulé',
+                        'archived' => 'Archivé',
                     ]),
                 
                 SelectFilter::make('warehouse_from_id')
@@ -96,7 +102,7 @@ class BonTransfertsTable
                 ViewAction::make(),
                 
                 EditAction::make()
-                    ->visible(fn ($record) => $record->status === 'draft'),
+                    ->visible(fn ($record) => in_array($record->status, ['draft', 'in_transit'])),
                 
                 Action::make('transfer')
                     ->label('Transférer')

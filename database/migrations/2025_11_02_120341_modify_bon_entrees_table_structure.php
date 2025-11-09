@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,6 +19,11 @@ return new class extends Migration
         });
         
         Schema::table('bon_entrees', function (Blueprint $table) {
+            if (Schema::getConnection()->getDriverName() === 'sqlite') {
+                DB::statement('DROP INDEX IF EXISTS "bon_entrees_warehouse_id_receipt_date_index"');
+                DB::statement('DROP INDEX IF EXISTS "bon_entrees_status_index"');
+            }
+
             // Drop old columns
             $table->dropColumn(['bon_reception_id', 'entered_by_id', 'entered_at', 'receipt_date', 'status']);
             

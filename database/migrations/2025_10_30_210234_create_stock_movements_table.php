@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('qty_moved', 15, 2);
             $table->decimal('cump_at_movement', 12, 2)->comment('CUMP snapshot');
             $table->decimal('value_moved', 15, 2)->storedAs('qty_moved * cump_at_movement');
-            $table->enum('status', ['draft', 'confirmed', 'cancelled'])->default('draft');
+            $table->enum('status', ['draft', 'pending', 'confirmed', 'cancelled'])->default('draft');
             $table->string('reference_number')->nullable()->comment('Links to bon tables');
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->timestamp('performed_at');

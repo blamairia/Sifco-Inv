@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("ALTER TABLE bon_transferts MODIFY COLUMN status ENUM('draft', 'in_transit', 'received', 'confirmed', 'cancelled', 'archived') DEFAULT 'draft'");
     }
 
@@ -20,6 +24,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("ALTER TABLE bon_transferts MODIFY COLUMN status ENUM('draft', 'in_transit', 'received', 'confirmed', 'archived') DEFAULT 'draft'");
     }
 };

@@ -1,7 +1,8 @@
-<?php
+﻿<?php
 
 namespace App\Services;
 
+use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
@@ -9,99 +10,142 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use InvalidArgumentException;
 
 class StockAdjustmentService
 {
     /**
-     * Create a stock adjustment
-     * - Calculate the difference between current and new quantity
-     * - Create StockAdjustment record
-     * - Create StockMovement for audit trail
-     * - Update StockQuantity
+     * Enregistre un ajustement de stock pour les produits hors bobines.
      *
-     * @param array $data - ['product_id', 'warehouse_id', 'new_quantity', 'reason', 'notes']
+     * @param  array  $data
      * @return StockAdjustment
+     *
      * @throws Exception
      */
     public function adjust(array $data): StockAdjustment
     {
-        DB::beginTransaction();
-
         try {
-            // Get current stock quantity
-            $stockQty = StockQuantity::where('product_id', $data['product_id'])
-                ->where('warehouse_id', $data['warehouse_id'])
-                ->first();
+            return DB::transaction(function () use ($data) {
+                $product = Product::query()->findOrFail($data['product_id'] ?? null);
 
-            if (!$stockQty) {
-                throw new Exception("No stock record found for this product/warehouse combination");
-            }
+                if ($product->is_roll) {
+                    throw new InvalidArgumentException('Utilisez l’interface des ajustements de bobines pour ce produit.');
+                }
 
-            $qtyBefore = $stockQty->total_qty;
-            $qtyAfter = $data['new_quantity'];
-            $qtyChange = $qtyAfter - $qtyBefore;
+                $warehouseId = $data['warehouse_id'] ?? null;
+                if (! $warehouseId) {
+                    throw new InvalidArgumentException('Sélectionnez un entrepôt valide.');
+                }
 
-            // Determine adjustment type
-            $adjustmentType = $qtyChange > 0 ? 'INCREASE' : ($qtyChange < 0 ? 'DECREASE' : 'CORRECTION');
+                $stockQty = StockQuantity::firstOrCreate(
+                    [
+                        'product_id' => $product->id,
+                        'warehouse_id' => $warehouseId,
+                    ],
+                    [
+                        'total_qty' => 0,
+                        'total_weight_kg' => 0,
+                        'reserved_qty' => 0,
+                        'cump_snapshot' => 0,
+                    ],
+                );
 
-            // Create stock adjustment record
-            $adjustment = StockAdjustment::create([
-                'adjustment_number' => StockAdjustment::generateAdjustmentNumber(),
-                'product_id' => $data['product_id'],
-                'warehouse_id' => $data['warehouse_id'],
-                'qty_before' => $qtyBefore,
-                'qty_after' => $qtyAfter,
-                'qty_change' => $qtyChange,
-                'adjustment_type' => $adjustmentType,
-                'reason' => $data['reason'],
-                'adjusted_by' => Auth::id() ?? 1,
-                'notes' => $data['notes'] ?? null,
-            ]);
+                $qtyBefore = (float) $stockQty->total_qty;
+                $weightBefore = (float) ($stockQty->total_weight_kg ?? 0.0);
 
-            // Create stock movement for audit trail
-            StockMovement::create([
-                'movement_number' => $this->generateMovementNumber(),
-                'product_id' => $data['product_id'],
-                'warehouse_to_id' => $qtyChange > 0 ? $data['warehouse_id'] : null,
-                'warehouse_from_id' => $qtyChange < 0 ? $data['warehouse_id'] : null,
-                'movement_type' => 'ADJUSTMENT',
-                'qty_moved' => abs($qtyChange),
-                'cump_at_movement' => $stockQty->cump_snapshot,
-                'status' => 'confirmed',
-                'reference_number' => $adjustment->adjustment_number,
-                'user_id' => Auth::id() ?? 1,
-                'performed_at' => now(),
-                'notes' => "Adjustment: {$data['reason']} (from {$qtyBefore} to {$qtyAfter})",
-            ]);
+                $qtyAfter = array_key_exists('new_quantity', $data)
+                    ? (float) $data['new_quantity']
+                    : (float) ($data['qty_after'] ?? $qtyBefore);
 
-            // Update stock quantity
-            $stockQty->update([
-                'total_qty' => $qtyAfter,
-            ]);
+                $weightAfter = array_key_exists('new_weight_kg', $data)
+                    ? ($data['new_weight_kg'] === null ? $weightBefore : (float) $data['new_weight_kg'])
+                    : (float) ($data['weight_after_kg'] ?? $weightBefore);
 
-            DB::commit();
+                if ($qtyAfter < 0) {
+                    throw new InvalidArgumentException('La quantité ne peut pas être négative.');
+                }
 
-            Log::info("Stock adjustment {$adjustment->adjustment_number} created successfully", [
-                'product_id' => $data['product_id'],
-                'warehouse_id' => $data['warehouse_id'],
-                'qty_before' => $qtyBefore,
-                'qty_after' => $qtyAfter,
-                'qty_change' => $qtyChange,
-            ]);
+                if ($weightAfter < 0) {
+                    throw new InvalidArgumentException('Le poids total ne peut pas être négatif.');
+                }
 
-            return $adjustment;
+                $qtyChange = round($qtyAfter - $qtyBefore, 3);
+                $weightChange = round($weightAfter - $weightBefore, 3);
+
+                if ($this->isNoop($qtyChange, $weightChange)) {
+                    throw new InvalidArgumentException('Aucun changement détecté entre le stock actuel et la saisie.');
+                }
+
+                $adjustmentType = $qtyChange > 0 ? 'INCREASE' : ($qtyChange < 0 ? 'DECREASE' : 'CORRECTION');
+
+                $reason = trim((string) ($data['reason'] ?? 'Ajustement manuel'));
+                if ($reason === '') {
+                    throw new InvalidArgumentException('La raison de l’ajustement est obligatoire.');
+                }
+
+                $adjustmentNumber = $data['adjustment_number'] ?? StockAdjustment::generateAdjustmentNumber();
+
+                $adjustment = StockAdjustment::create([
+                    'adjustment_number' => $adjustmentNumber,
+                    'product_id' => $product->id,
+                    'warehouse_id' => $warehouseId,
+                    'qty_before' => $qtyBefore,
+                    'qty_after' => $qtyAfter,
+                    'qty_change' => $qtyChange,
+                    'weight_before_kg' => $weightBefore,
+                    'weight_after_kg' => $weightAfter,
+                    'weight_change_kg' => $weightChange,
+                    'adjustment_type' => $adjustmentType,
+                    'reason' => $reason,
+                    'adjusted_by' => Auth::id() ?? 1,
+                    'notes' => $data['notes'] ?? null,
+                ]);
+
+                $movement = $this->createStockMovement(
+                    productId: $product->id,
+                    warehouseId: $warehouseId,
+                    adjustmentNumber: $adjustment->adjustment_number,
+                    stockQty: $stockQty,
+                    qtyChange: $qtyChange,
+                    weightBefore: $weightBefore,
+                    weightAfter: $weightAfter,
+                    weightChange: $weightChange,
+                    reason: $reason,
+                );
+
+                $stockQty->update([
+                    'total_qty' => $qtyAfter,
+                    'total_weight_kg' => $weightAfter,
+                    'last_movement_id' => $movement->id,
+                ]);
+
+                Log::info('Stock adjustment enregistré', [
+                    'adjustment' => $adjustment->adjustment_number,
+                    'product_id' => $product->id,
+                    'warehouse_id' => $warehouseId,
+                    'qty_before' => $qtyBefore,
+                    'qty_after' => $qtyAfter,
+                    'qty_change' => $qtyChange,
+                    'weight_before' => $weightBefore,
+                    'weight_after' => $weightAfter,
+                    'weight_change' => $weightChange,
+                ]);
+
+                return $adjustment->refresh();
+            });
         } catch (Exception $e) {
-            DB::rollBack();
-            Log::error("Stock adjustment failed: " . $e->getMessage());
+            Log::error('Stock adjustment failed', [
+                'error' => $e->getMessage(),
+                'product_id' => $data['product_id'] ?? null,
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+            ]);
+
             throw $e;
         }
     }
 
     /**
-     * Approve a stock adjustment
-     *
-     * @param StockAdjustment $adjustment
-     * @return void
+     * Marque un ajustement comme approuvé.
      */
     public function approve(StockAdjustment $adjustment): void
     {
@@ -110,16 +154,49 @@ class StockAdjustmentService
             'approved_at' => now(),
         ]);
 
-        Log::info("Stock adjustment {$adjustment->adjustment_number} approved by user " . Auth::id());
+        Log::info('Stock adjustment approuvé', [
+            'adjustment' => $adjustment->adjustment_number,
+            'user_id' => Auth::id(),
+        ]);
     }
 
-    /**
-     * Generate unique movement number
-     */
-    protected function generateMovementNumber(): string
+    protected function createStockMovement(
+        int $productId,
+        int $warehouseId,
+        string $adjustmentNumber,
+        StockQuantity $stockQty,
+        float $qtyChange,
+        float $weightBefore,
+        float $weightAfter,
+        float $weightChange,
+        string $reason,
+    ): StockMovement {
+        $isIncrease = $qtyChange > 0 || ($qtyChange == 0.0 && $weightChange > 0);
+        $isDecrease = $qtyChange < 0 || ($qtyChange == 0.0 && $weightChange < 0);
+
+        return StockMovement::create([
+            'movement_number' => StockMovement::generateMovementNumber(),
+            'product_id' => $productId,
+            'warehouse_to_id' => $isIncrease ? $warehouseId : null,
+            'warehouse_from_id' => $isDecrease ? $warehouseId : null,
+            'movement_type' => 'ADJUSTMENT',
+            'qty_moved' => abs($qtyChange),
+            'cump_at_movement' => $stockQty->cump_snapshot,
+            'value_moved' => abs($qtyChange) * (float) ($stockQty->cump_snapshot ?? 0),
+            'status' => 'confirmed',
+            'reference_number' => $adjustmentNumber,
+            'user_id' => Auth::id() ?? 1,
+            'performed_at' => now(),
+            'notes' => sprintf('Ajustement manuel : %s', $reason),
+            'roll_weight_before_kg' => $weightBefore,
+            'roll_weight_after_kg' => $weightAfter,
+            'roll_weight_delta_kg' => $weightChange,
+        ]);
+    }
+
+    protected function isNoop(float $qtyChange, float $weightChange): bool
     {
-        $date = now()->format('Ymd');
-        $count = StockMovement::whereDate('created_at', now()->toDateString())->count() + 1;
-        return 'MOV-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        return abs($qtyChange) < 0.0001 && abs($weightChange) < 0.0001;
     }
 }
+

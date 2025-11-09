@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("ALTER TABLE stock_movements MODIFY COLUMN movement_type ENUM('RECEPTION', 'ISSUE', 'TRANSFER', 'RETURN', 'ADJUSTMENT') NOT NULL");
     }
 
@@ -20,6 +24,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("ALTER TABLE stock_movements MODIFY COLUMN movement_type ENUM('RECEPTION', 'ISSUE', 'TRANSFER', 'RETURN') NOT NULL");
     }
 };

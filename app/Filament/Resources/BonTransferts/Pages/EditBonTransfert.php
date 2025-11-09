@@ -8,6 +8,8 @@ use App\Services\BonTransfertService;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Notifications\Notification;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class EditBonTransfert extends EditRecord
 {
@@ -61,16 +63,25 @@ class EditBonTransfert extends EditRecord
                 ->modalHeading('Recevoir le transfert')
                 ->modalDescription('Confirmer la réception du transfert')
                 ->action(function () {
-                    $this->record->update([
-                        'status' => 'received',
-                        'received_at' => now(),
-                        'received_by_id' => \Illuminate\Support\Facades\Auth::id() ?? 1,
-                    ]);
-                    
-                    Notification::make()
-                        ->title('Transfert reçu')
-                        ->success()
-                        ->send();
+                    try {
+                        $service = app(BonTransfertService::class);
+                        $service->receive($this->record);
+
+                        Notification::make()
+                            ->title('Transfert réceptionné')
+                            ->success()
+                            ->send();
+                    } catch (ValidationException $e) {
+                        throw $e;
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        Notification::make()
+                            ->title('Erreur lors de la réception')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
                 }),
 
             Actions\Action::make('confirm')

@@ -62,9 +62,11 @@ class BonTransfertForm
                             ->label('Statut')
                             ->options([
                                 'draft' => 'Brouillon',
-                                'transferred' => 'Transféré',
+                                'in_transit' => 'En transit',
+                                'received' => 'Réceptionné',
                                 'confirmed' => 'Confirmé',
                                 'cancelled' => 'Annulé',
+                                'archived' => 'Archivé',
                             ])
                             ->required()
                             ->default('draft')

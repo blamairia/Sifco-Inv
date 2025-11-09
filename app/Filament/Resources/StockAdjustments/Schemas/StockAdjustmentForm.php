@@ -13,6 +13,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class StockAdjustmentForm
 {
@@ -50,9 +51,15 @@ class StockAdjustmentForm
                                             
                                             if ($stockQty) {
                                                 $set('qty_before', $stockQty->total_qty);
+                                                $set('weight_before_kg', $stockQty->total_weight_kg ?? 0);
+                                                $set('weight_after_kg', $stockQty->total_weight_kg ?? 0);
                                             } else {
                                                 $set('qty_before', 0);
+                                                $set('weight_before_kg', 0);
+                                                $set('weight_after_kg', 0);
                                             }
+
+                                            $set('weight_change_kg', 0);
                                         }
                                     }),
                             ]),
@@ -121,6 +128,63 @@ class StockAdjustmentForm
                         
                         Hidden::make('adjustment_type')
                             ->default('CORRECTION'),
+
+                        Grid::make(3)
+                            ->schema([
+                                TextInput::make('weight_before_kg')
+                                    ->label('Poids actuel')
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->suffix('kg'),
+
+                                TextInput::make('weight_after_kg')
+                                    ->label('Nouveau poids')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.001)
+                                    ->suffix('kg')
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Get $get, callable $set) {
+                                        if ($state === null || $state === '') {
+                                            return;
+                                        }
+
+                                        $weightBefore = (float) ($get('weight_before_kg') ?? 0);
+                                        $weightChange = (float) $state - $weightBefore;
+                                        $set('weight_change_kg', $weightChange);
+                                    }),
+
+                                Placeholder::make('weight_change_display')
+                                    ->label('Variation de poids')
+                                    ->content(function (Get $get) {
+                                        $weightBefore = floatval($get('weight_before_kg') ?? 0);
+                                        $weightAfter = floatval($get('weight_after_kg') ?? 0);
+                                        $weightChange = $weightAfter - $weightBefore;
+
+                                        $sign = $weightChange > 0 ? '+' : ($weightChange < 0 ? '-' : '');
+                                        return $sign . number_format(abs($weightChange), 3) . ' kg';
+                                    })
+                                    ->extraAttributes(function (Get $get) {
+                                        $weightBefore = floatval($get('weight_before_kg') ?? 0);
+                                        $weightAfter = floatval($get('weight_after_kg') ?? 0);
+                                        $weightChange = $weightAfter - $weightBefore;
+
+                                        $class = 'font-semibold ';
+                                        if ($weightChange > 0) {
+                                            $class .= 'text-success-600';
+                                        } elseif ($weightChange < 0) {
+                                            $class .= 'text-danger-600';
+                                        } else {
+                                            $class .= 'text-gray-600';
+                                        }
+
+                                        return ['class' => $class];
+                                    }),
+                            ]),
+
+                        Hidden::make('weight_change_kg')
+                            ->default(0),
                         
                         Textarea::make('reason')
                             ->label('Raison d\'ajustement')
@@ -153,7 +217,7 @@ class StockAdjustmentForm
                     ->hidden(fn($record) => !$record || !$record->approved_by),
                 
                 Hidden::make('adjusted_by')
-                    ->default(fn() => auth()->id()),
+                    ->default(fn() => Auth::id()),
             ]);
     }
 }

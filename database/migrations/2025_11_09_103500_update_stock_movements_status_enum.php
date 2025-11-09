@@ -6,27 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         if (Schema::getConnection()->getDriverName() === 'sqlite') {
             return;
         }
 
-        DB::statement("ALTER TABLE roll_adjustments MODIFY COLUMN adjustment_type ENUM('ADD', 'REMOVE', 'DAMAGE', 'RESTORE', 'WEIGHT_ADJUST') NOT NULL");
+        DB::statement("ALTER TABLE stock_movements MODIFY COLUMN status ENUM('draft', 'pending', 'confirmed', 'cancelled') DEFAULT 'draft'");
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         if (Schema::getConnection()->getDriverName() === 'sqlite') {
             return;
         }
 
-        DB::statement("ALTER TABLE roll_adjustments MODIFY COLUMN adjustment_type ENUM('ADD', 'REMOVE', 'DAMAGE', 'RESTORE') NOT NULL");
+        DB::statement("ALTER TABLE stock_movements MODIFY COLUMN status ENUM('draft', 'confirmed', 'cancelled') DEFAULT 'draft'");
     }
 };
