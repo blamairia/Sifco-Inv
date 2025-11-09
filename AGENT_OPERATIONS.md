@@ -11,9 +11,9 @@
 
 ## Workflow Cheatsheet
 - immediate_focus:
-	1. close `status_field_bypass` (lock status inputs, route transitions through services)
-	2. refactor `BonTransfertService` for staged receive + accurate CUMP + `last_movement_id`
-	3. design roll dimension grouping + metre tracking schema updates (Plan Slice 5a/5b)
+	1. deliver `roll_reception_metrics` — extend Bon d'Entrée to capture metre length + weight, update rolls & stock movements
+	2. model `roll_lifecycle_events` — schema + service hooks to log transfers, sorties, réintégrations with weight/length deltas & waste flags
+	3. prep roll dimension grouping (Slice 5a) once reception metrics land; keep ISSUES_LEDGER and Plan current after each milestone
 - read Plan.md for slice targets, cross-check PROCEDURE_MAPPING.md for process detail
 - new task → confirm relevant issue entry exists in ISSUES_LEDGER.md (create if missing)
 - implement in app/Services first, expose via Filament resource, update migrations if schema drift

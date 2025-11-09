@@ -35,6 +35,9 @@
 - **Réintégration:** Return goods at original CUMP
 - **Avis de Rupture:** Low-stock alerts based on min_stock + safety_stock
 - **Valorisation:** Valuation report with CUMP snapshot at each warehouse/product
+- **Bobines Dimensions:** Group rolls by grammage, laize, quality for reporting & selection
+- **Bobines Metrics:** Persist metre length alongside weight for every movement & dashboard view
+- **Lifecycle Ledger:** Central log of roll reception → transfer → sortie → réintégration with weight/length deltas & waste flags
 
 **Procedure Documents:** Bon de réception → Bon d'entrée → stock_movements → Rolls + stock_quantities
 
@@ -55,9 +58,11 @@
   - [x] Seed test data
 - [x] **Slice 3: Bon d'Entrée Workflow** ✅ **COMPLETE** (Receipts with CUMP calculation)
 - [x] **Slice 4: Bon de Sortie Workflow** ✅ **COMPLETE** (Issues to production)
-- [ ] **Slice 5: Bon de Transfert Workflow** ← **NEXT: Inter-warehouse transfers** (2-3 days)
-- [ ] **Slice 5: Bon de Transfert Workflow** (Inter-warehouse transfers) (2-3 days)
-- [ ] **Slice 6: Bon de Réintégration Workflow** (Returns with CUMP preservation) (2 days)
+- [ ] **Slice 5: Bon de Transfert Workflow** ← **IN PROGRESS** (Inter-warehouse transfers with staged receive) (2-3 days)
+- [ ] **Slice 5a: Roll Dimension Grouping** (Group bobines by grammage, laize, quality; update listings, filters, analytics) (1 day)
+- [ ] **Slice 5b: Roll Reception Metrics** (Capture weight & metre length at Bon d'Entrée, persist to rolls + movements) (1.5 days)
+- [ ] **Slice 5c: Roll Lifecycle Ledger** (Event log + waste tracking for transfers, sorties, réintégrations) (2 days)
+- [ ] **Slice 6: Bon de Réintégration Workflow** (Returns with CUMP preservation + waste metrics) (2 days)
 - [ ] **Slice 7: Stock Adjustments & Low-Stock Alerts** (Manual corrections + auto alerts) (2 days)
 - [ ] **Slice 8: Dashboard & Reports** (KPIs, charts, inventory status) (3 days)
 - [ ] **Slice 9: Valorisation & Export** (Stock valuation, CSV/Excel export) (2 days)
@@ -425,6 +430,14 @@
 - ⚠️ Filament v4 limitation: Multiple repeaters with ->relationship() pointing to same parent relationship don't auto-save during creation
 - ✅ Workaround implemented: Manual afterCreate() saves items by iterating through form state
 - 📋 TODO: Remove debug logging once stable
+
+### 5.6 Next Steps (Metre Tracking Initiative)
+- Extend Bon d'Entrée workflow to require metre length alongside weight for every bobine, persisting to `rolls`, `bon_entree_items`, and initial `stock_movements` records.
+- Backfill service + model casts to keep weight/length in sync and expose both metrics in Filament views.
+- Introduce `roll_lifecycle_events` table capturing reception, transfer overrides, sorties, reintegrations with weight/length deltas and waste flags.
+- Update Bon de Transfert and Bon de Sortie forms to allow controlled metre overrides, logging deltas as waste and tagging rolls moving to production.
+- Design Bon de Réintégration flow to compare sortie vs reintegration metrics, auto-log residual waste, and restore roll status with new weight/length.
+- Derive reporting tables (e.g., `roll_waste_metrics`) from lifecycle events to support future dashboards without bloating operational tables.
 
 ---
 
