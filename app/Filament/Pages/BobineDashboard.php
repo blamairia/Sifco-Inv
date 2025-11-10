@@ -65,19 +65,31 @@ class BobineDashboard extends Page implements HasTable
                     ->options([
                         Roll::STATUS_IN_STOCK => 'En stock',
                         Roll::STATUS_RESERVED => 'Réservé',
-                        Roll::STATUS_CONSUMED => 'Consommé',
                         Roll::STATUS_DAMAGED => 'Endommagé',
-                        Roll::STATUS_ARCHIVED => 'Archivé',
-                    ]),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder =>
+                        $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $innerQuery, $value) => $innerQuery->where('rolls.status', $value),
+                            fn (Builder $innerQuery) => $innerQuery->whereNotIn('rolls.status', [
+                                Roll::STATUS_CONSUMED,
+                                Roll::STATUS_ARCHIVED,
+                            ])
+                        )
+                    ),
             ])
             ->defaultSort('roll_count', 'desc')
+            ->defaultKeySort(false)
             ->poll('30s');
     }
 
     protected function getTableQuery(): Builder
     {
-        // Build the aggregated subquery
-        $subQuery = DB::table('rolls')
+        return Roll::query()
+            ->whereNotIn('rolls.status', [
+                Roll::STATUS_CONSUMED,
+                Roll::STATUS_ARCHIVED,
+            ])
             ->select([
                 DB::raw('MIN(rolls.id) as id'),
                 'rolls.warehouse_id',
@@ -96,7 +108,7 @@ class BobineDashboard extends Page implements HasTable
             ->leftJoin('products', 'rolls.product_id', '=', 'products.id')
             ->leftJoin('product_category as primary_categories', function ($join) {
                 $join->on('primary_categories.product_id', '=', 'products.id')
-                    ->where('primary_categories.is_primary', '=', DB::raw('1'));
+                    ->where('primary_categories.is_primary', true);
             })
             ->leftJoin('categories', 'categories.id', '=', 'primary_categories.category_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'rolls.warehouse_id')
@@ -111,9 +123,6 @@ class BobineDashboard extends Page implements HasTable
                 'products.flute',
                 'categories.name',
             ]);
-
-        // Wrap in Eloquent builder to satisfy Filament's type requirements
-        return Roll::query()->fromSub($subQuery, 'aggregated_rolls');
     }
 
     protected function getTableColumns(): array

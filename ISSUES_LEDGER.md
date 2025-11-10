@@ -1,5 +1,5 @@
 # Issues Ledger (Holy File)
-- last_update: 2025-11-10T14:30
+- last_update: 2025-11-10T16:45
 - rule: keep entries concise, status-first, update immediately after change
 
 ## High-Priority
@@ -17,7 +17,7 @@
 1. transfer_pending_state (resolved) — inbound movements remain pending and stock is only incremented on receive via `BonTransfertService::receive`.
 2. stock_quantity_last_move (resolved) — ✅ `last_movement_id` now propagated in all entry/sortie/transfer/reintegration services.
 3. transfer_status_vocab (resolved) — service, form schema, and table badges/filters now surface full status list.
-4. roll_waste_reporting (in_progress) — lifecycle_events table ready with waste tracking fields; need dashboard widgets + reporting views.
+4. roll_waste_reporting (resolved) — ✅ Consumption dashboard + widgets surface waste metrics, rates, and aggregated consumption views.
 5. lifecycle_test_completion (open) — 4/5 tests need `received_date` field added to Roll factory/creation; quick 5-minute fix.
 6. filament_length_display (resolved) — ✅ Dashboard displays length/weight totals; full roll detail views include metre metrics alongside weight in all relevant contexts.
 
@@ -25,3 +25,4 @@
 1. movement_number_helpers (open) — reuse `StockMovement::generateMovementNumber()` everywhere; drop duplicate generators.
 2. remove_debug_logs (open) — delete `Log::channel('stderr')` traces in BonEntree actions before release.
 3. product_lookup_cache (open) — cache `Product::find` calls inside repeater labels to cut duplicate queries.
+4. consumption_dashboard_enhancements (open) — add trend charts and export/on-demand reporting once base metrics validated by users.

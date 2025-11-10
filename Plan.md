@@ -763,6 +763,20 @@ stock_movements { cump_at_movement }  ← Historical version
   - MySQL strict mode (`only_full_group_by`) temporarily disabled in config/database.php
   - Need to fix ORDER BY clause to be strict-mode compliant
 
+#### 5. **Consumption Dashboard & Metrics** ✅ (2025-11-10)
+- **File:** `app/Filament/Pages/ConsumptionDashboard.php`
+- **Features:**
+  - Aggregates roll consumption events (Type SORTIE) by entrepôt, produit, et catégorie
+  - Surface key KPIs: bobines consommées, poids/métrage total, poids moyen par bobine, poids consommé/jour, taux de gaspillage
+  - Filters for période (7/30/90/180/365 jours), entrepôt, catégorie
+  - Consumption stats widget (`ConsumptionStatsWidget`) summarises 30-day totals + waste rate
+- **Data Sources:**
+  - `roll_lifecycle_events` table for sortie events, waste metrics, and deltas
+  - Joins on rolls/products/categories/warehouses to preserve context
+- **Next Enhancements:**
+  - Trend charts (poids/jour) + export CSV once baseline validated
+  - Align period selector across widgets + table for shared state
+
 ### What's Immediately Next:
 
 #### Quick Wins (< 1 hour):
@@ -798,7 +812,7 @@ stock_movements { cump_at_movement }  ← Historical version
 5. ⏳ Update database seeders with metre/lifecycle support
 
 ### This Week:
-- **Dashboard:** Fix ORDER BY clause for strict SQL mode
+- **Dashboard:** Fix ORDER BY clause for strict SQL mode & validate consumption metrics with stakeholders
 - **Slice 6:** Bon de Réintégration workflow completion
 - **Slice 7:** Stock Adjustments & Low-Stock Alerts
-- **Slice 8:** Advanced Dashboard widgets (waste tracking visualization)
+- **Slice 8:** Advanced Dashboard widgets (trend charts, waste tracking visualization)
