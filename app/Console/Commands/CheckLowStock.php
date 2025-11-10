@@ -6,6 +6,7 @@ use App\Models\LowStockAlert;
 use App\Models\Product;
 use App\Models\StockQuantity;
 use App\Models\User;
+use Filament\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -153,8 +154,8 @@ class CheckLowStock extends Command
                 ->title('Alerte Stock Faible')
                 ->body("Le produit {$alert->product->name} dans l'entrepôt {$alert->warehouse->name} a un niveau de stock faible: {$alert->current_qty} unités (Min: {$alert->min_stock})")
                 ->actions([
-                    \Filament\Notifications\Actions\Action::make('view')
-                        ->label('Voir l\'alerte')
+                    FilamentAction::make('view')
+                        ->label("Voir l'alerte")
                         ->url(route('filament.admin.resources.low-stock-alerts.index')),
                 ])
                 ->sendToDatabase($admin);
