@@ -109,7 +109,8 @@ class BobineDashboard extends Page implements HasTable
                 'products.type_papier',
                 'products.flute',
                 'categories.name',
-            ]);
+            ])
+            ->orderBy(DB::raw('1'), 'asc'); // Prevent Eloquent from adding default ordering
     }
 
     protected function getTableColumns(): array
