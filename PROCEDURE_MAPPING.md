@@ -176,16 +176,18 @@ Total calculations:
 - ✓ Qty must be positive
 - ✓ Prices must include VAT (TTC)
 
-**On BON_ENTREE Confirmation (status='confirmed'):**
+**On BON_ENTREE Confirmation (status='received'):**
 
 1. **Create stock_movement(s):**
 ```
 INSERT INTO stock_movements
   (movement_number, product_id, warehouse_from_id, warehouse_to_id, movement_type, 
-   qty_moved, cump_at_movement, value_moved, status, reference_number, user_id, performed_at, metadata_json)
+   qty_moved, cump_at_movement, value_moved, status, reference_number, user_id, performed_at, 
+   roll_weight_delta_kg, roll_length_delta_m)
 VALUES
   ('SMOV-{YMMDD}-{seq}', product_id, NULL, warehouse_id, 'RECEPTION',
-   qty_entered, new_cump, qty_entered * new_cump, 'confirmed', bon_entree_id, user_id, NOW(), JSON_OBJECT('weight_kg', weight_entered_kg, 'length_m', length_entered_m))
+   qty_entered, new_cump, qty_entered * new_cump, 'confirmed', bon_entree_id, user_id, NOW(),
+   weight_entered_kg, length_entered_m)
 ```
 
 2. **Calculate new CUMP (Coût Unitaire Moyen Pondéré):**
@@ -203,17 +205,32 @@ ON DUPLICATE KEY UPDATE
   last_movement_id = movement_id
 ```
 
-4. **Create Roll records (1 per unit or per batch):**
+4. **Create Roll records (1 per unit or per batch) with weight and length:**
 ```
 For each roll in bon_entree_item:
   INSERT INTO rolls 
     (product_id, warehouse_id, ean_13, batch_number, received_date, 
-     received_from_movement_id, status)
+     received_from_movement_id, status, weight_kg, length_m)
   VALUES 
-    (product_id, warehouse_id, auto_ean_13(), batch_ref, receipt_date, movement_id, 'in_stock')
+    (product_id, warehouse_id, manual_ean_13, batch_ref, receipt_date, movement_id, 'in_stock',
+     weight_kg_from_item, length_m_from_item)
 ```
 
-5. **Link BON_RECEPTION to BON_ENTREE:**
+5. **Log Roll Lifecycle Event:**
+```
+INSERT INTO roll_lifecycle_events
+  (roll_id, event_type, warehouse_from_id, warehouse_to_id, 
+   weight_before_kg, weight_after_kg, weight_delta_kg,
+   length_before_m, length_after_m, length_delta_m,
+   stock_movement_id, bon_entree_item_id, performed_at)
+VALUES
+  (roll_id, 'reception', NULL, warehouse_id,
+   0, weight_kg, weight_kg,
+   0, length_m, length_m,
+   movement_id, bon_entree_item_id, NOW())
+```
+
+6. **Link BON_RECEPTION to BON_ENTREE:**
 ```
 UPDATE bon_receptions 
 SET bon_entree_id = bon_entree.id
@@ -221,10 +238,11 @@ WHERE id = bon_entree.bon_reception_id
 ```
 
 **Expected Result:**
-- BON_ENTREE status = 'confirmed'
+- BON_ENTREE status = 'received'
 - stock_movements created with RECEPTION type
-- stock_quantities updated with new CUMP
-- Rolls generated with unique EAN-13 codes
+- stock_quantities updated with new CUMP and total weight/length metrics
+- Rolls generated with manual EAN-13 codes, capturing weight_kg and length_m
+- Roll lifecycle events logged for audit trail
 - Physical goods available in warehouse
 
 ---

@@ -2,10 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Product;
+use App\Models\Category;
 use App\Models\Roll;
 use App\Models\Warehouse;
-use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -14,14 +13,16 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use BackedEnum;
+use UnitEnum;
 
 class BobineDashboard extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static string $view = 'filament.pages.bobine-dashboard';
+    protected string $view = 'filament.pages.bobine-dashboard';
 
     protected static ?string $navigationLabel = 'Tableau de Bord Bobines';
 
@@ -29,7 +30,7 @@ class BobineDashboard extends Page implements HasTable
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $navigationGroup = 'Rapports';
+    protected static UnitEnum|string|null $navigationGroup = 'Rapports';
 
     public $warehouseFilter = null;
     public $categoryFilter = null;
@@ -43,50 +44,77 @@ class BobineDashboard extends Page implements HasTable
             ->filters([
                 Tables\Filters\SelectFilter::make('warehouse_id')
                     ->label('Entrepôt')
-                    ->options(Warehouse::pluck('name', 'id'))
-                    ->query(function (Builder $query, $state) {
-                        if ($state['value']) {
-                            $query->where('warehouse_id', $state['value']);
-                        }
-                    }),
-                Tables\Filters\SelectFilter::make('product.category_id')
+                    ->options(fn () => Warehouse::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->query(fn (Builder $query, array $data): Builder =>
+                        $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $innerQuery, $value) => $innerQuery->where('warehouse_id', $value)
+                        )
+                    ),
+                Tables\Filters\SelectFilter::make('category_id')
                     ->label('Catégorie')
-                    ->relationship('product.category', 'name')
-                    ->searchable()
-                    ->preload(),
+                    ->options(fn () => Category::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->query(fn (Builder $query, array $data): Builder =>
+                        $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $innerQuery, $value) => $innerQuery->where('categories.id', $value)
+                        )
+                    ),
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Statut')
                     ->options([
-                        'in_stock' => 'En stock',
-                        'reserved' => 'Réservé',
-                        'in_transit' => 'En transit',
-                        'consumed' => 'Consommé',
+                        Roll::STATUS_IN_STOCK => 'En stock',
+                        Roll::STATUS_RESERVED => 'Réservé',
+                        Roll::STATUS_CONSUMED => 'Consommé',
+                        Roll::STATUS_DAMAGED => 'Endommagé',
+                        Roll::STATUS_ARCHIVED => 'Archivé',
                     ]),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('roll_count', 'desc')
             ->poll('30s');
     }
 
     protected function getTableQuery(): Builder
     {
         return Roll::query()
-            ->with(['product.category', 'warehouse'])
-            ->select(
-                'rolls.*',
+            ->select([
+                DB::raw('MIN(rolls.id) as id'),
+                'rolls.warehouse_id',
+                'rolls.product_id',
+                DB::raw('warehouses.name as warehouse_name'),
                 DB::raw('products.name as product_name'),
-                DB::raw('categories.name as category_name')
-            )
+                DB::raw('products.laize as product_laize'),
+                DB::raw('products.grammage as product_grammage'),
+                DB::raw('products.type_papier as product_paper_type'),
+                DB::raw('products.flute as product_flute'),
+                DB::raw('categories.name as category_name'),
+                DB::raw('COUNT(DISTINCT rolls.id) as roll_count'),
+                DB::raw('SUM(COALESCE(rolls.weight_kg, 0)) as total_weight_kg'),
+                DB::raw('SUM(COALESCE(rolls.length_m, 0)) as total_length_m'),
+            ])
             ->leftJoin('products', 'rolls.product_id', '=', 'products.id')
-            ->leftJoin('categories', 'products.category_id', '=', 'categories.id');
+            ->leftJoin('product_category as primary_categories', function ($join) {
+                $join->on('primary_categories.product_id', '=', 'products.id')
+                    ->where('primary_categories.is_primary', true);
+            })
+            ->leftJoin('categories', 'categories.id', '=', 'primary_categories.category_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'rolls.warehouse_id')
+            ->groupBy([
+                'rolls.warehouse_id',
+                'rolls.product_id',
+                'warehouses.name',
+                'products.name',
+                'products.laize',
+                'products.grammage',
+                'products.type_papier',
+                'products.flute',
+                'categories.name',
+            ]);
     }
 
     protected function getTableColumns(): array
     {
         return [
-            TextColumn::make('ean_13')
-                ->label('EAN-13')
-                ->searchable()
-                ->sortable(),
             TextColumn::make('product_name')
                 ->label('Produit')
                 ->searchable()
@@ -95,69 +123,62 @@ class BobineDashboard extends Page implements HasTable
                 ->label('Catégorie')
                 ->searchable()
                 ->sortable(),
-            TextColumn::make('warehouse.name')
+            TextColumn::make('warehouse_name')
                 ->label('Entrepôt')
                 ->sortable(),
-            TextColumn::make('laize')
-                ->label('Laize (cm)')
-                ->sortable()
-                ->summarize([
-                    Tables\Columns\Summarizers\Count::make(),
-                ]),
-            TextColumn::make('grammage')
-                ->label('Grammage (g/m²)')
+            TextColumn::make('product_laize')
+                ->label('Laize (mm)')
+                ->numeric(0)
                 ->sortable()
                 ->summarize([
                     Tables\Columns\Summarizers\Average::make()
                         ->label('Moyenne')
-                        ->numeric(decimals: 0),
+                        ->numeric(0),
                 ]),
-            TextColumn::make('paper_type')
-                ->label('Type')
+            TextColumn::make('product_grammage')
+                ->label('Grammage (g/m²)')
+                ->numeric(0)
                 ->sortable()
-                ->formatStateUsing(fn($state) => $state ?? 'N/A'),
-            TextColumn::make('weight_kg')
-                ->label('Poids (kg)')
-                ->numeric(decimals: 2)
+                ->summarize([
+                    Tables\Columns\Summarizers\Average::make()
+                        ->label('Moyenne')
+                        ->numeric(0),
+                ]),
+            TextColumn::make('product_paper_type')
+                ->label('Type de papier')
+                ->sortable()
+                ->formatStateUsing(fn ($state) => $state ?? 'N/A'),
+            TextColumn::make('product_flute')
+                ->label('Cannelure')
+                ->sortable()
+                ->formatStateUsing(fn ($state) => $state ?? 'N/A'),
+            TextColumn::make('roll_count')
+                ->label('Nombre de bobines')
+                ->numeric(0)
                 ->sortable()
                 ->summarize([
                     Tables\Columns\Summarizers\Sum::make()
                         ->label('Total')
-                        ->numeric(decimals: 2),
+                        ->numeric(0),
                 ]),
-            TextColumn::make('length_m')
-                ->label('Métrage (m)')
-                ->numeric(decimals: 2)
+            TextColumn::make('total_weight_kg')
+                ->label('Poids total (kg)')
+                ->numeric(2)
                 ->sortable()
                 ->summarize([
                     Tables\Columns\Summarizers\Sum::make()
-                        ->label('Total')
-                        ->numeric(decimals: 2),
+                        ->label('Total global')
+                        ->numeric(2),
                 ]),
-            TextColumn::make('status')
-                ->label('Statut')
-                ->badge()
-                ->color(fn(string $state): string => match ($state) {
-                    'in_stock' => 'success',
-                    'reserved' => 'warning',
-                    'in_transit' => 'info',
-                    'consumed' => 'gray',
-                    default => 'gray',
-                })
-                ->formatStateUsing(fn(string $state): string => match ($state) {
-                    'in_stock' => 'En stock',
-                    'reserved' => 'Réservé',
-                    'in_transit' => 'En transit',
-                    'consumed' => 'Consommé',
-                    default => $state,
-                }),
-            TextColumn::make('quality')
-                ->label('Qualité')
-                ->sortable(),
-            TextColumn::make('received_date')
-                ->label('Date réception')
-                ->date('d/m/Y')
-                ->sortable(),
+            TextColumn::make('total_length_m')
+                ->label('Métrage total (m)')
+                ->numeric(2)
+                ->sortable()
+                ->summarize([
+                    Tables\Columns\Summarizers\Sum::make()
+                        ->label('Total global')
+                        ->numeric(2),
+                ]),
         ];
     }
 
