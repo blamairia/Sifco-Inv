@@ -13,6 +13,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use BackedEnum;
@@ -104,6 +105,7 @@ class ConsumptionDashboard extends Page implements HasTable
             ->leftJoin('warehouses as source_warehouses', 'source_warehouses.id', '=', 'roll_lifecycle_events.warehouse_from_id')
             ->leftJoin('warehouses as current_warehouses', 'current_warehouses.id', '=', 'rolls.warehouse_id')
             ->select([
+                DB::raw('MIN(roll_lifecycle_events.id) as id'),
                 DB::raw('COALESCE(roll_lifecycle_events.warehouse_from_id, rolls.warehouse_id) as warehouse_id'),
                 DB::raw('COALESCE(source_warehouses.name, current_warehouses.name) as warehouse_name'),
                 'products.id as product_id',
@@ -211,7 +213,7 @@ class ConsumptionDashboard extends Page implements HasTable
 
     protected function getActivePeriodDays(): int
     {
-        $value = $this->tableFilters['period']['value'] ?? $this->tableFilters['period'] ?? null;
+        $value = Arr::get($this->tableFilters ?? [], 'period.value', Arr::get($this->tableFilters ?? [], 'period'));
         $days = (int) ($value ?: $this->defaultPeriodDays);
 
         return in_array($days, [7, 30, 90, 180, 365], true) ? $days : $this->defaultPeriodDays;
