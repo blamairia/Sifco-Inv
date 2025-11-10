@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BonEntree;
 use App\Models\BonEntreeItem;
 use App\Models\Roll;
+use App\Models\RollLifecycleEvent;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
 use Illuminate\Support\Facades\Auth;
@@ -187,6 +188,9 @@ class BonEntreeService
 
         // Link movement to roll
         $roll->update(['received_from_movement_id' => $movement->id]);
+
+        // Log reception event
+        RollLifecycleEvent::logReception($roll, $movement);
 
         // Update or create stock quantity
         $this->updateStockQuantity(

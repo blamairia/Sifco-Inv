@@ -59,7 +59,7 @@ class BonEntreeTestSeeder extends Seeder
             'notes' => 'TEST SCENARIO 1: Draft bon ready for validation',
         ]);
 
-        // Add 2 bobines (each with unique EAN-13)
+        // Add 2 bobines (each with unique EAN-13, weight, and length)
         BonEntreeItem::create([
             'bon_entree_id' => $bon1->id,
             'item_type' => 'bobine',
@@ -69,6 +69,8 @@ class BonEntreeTestSeeder extends Seeder
             'qty_entered' => 1,
             'price_ht' => 1500.00,
             'price_ttc' => 1500.00,
+            'weight_kg' => 250.00,
+            'length_m' => 1500.00,
         ]);
 
         BonEntreeItem::create([
@@ -80,6 +82,8 @@ class BonEntreeTestSeeder extends Seeder
             'qty_entered' => 1,
             'price_ht' => 1800.00,
             'price_ttc' => 1800.00,
+            'weight_kg' => 300.00,
+            'length_m' => 1800.00,
         ]);
 
         // Add 2 normal products
@@ -131,6 +135,8 @@ class BonEntreeTestSeeder extends Seeder
             'qty_entered' => 1,
             'price_ht' => 1600.00,
             'price_ttc' => 1600.00,
+            'weight_kg' => 280.00,
+            'length_m' => 1600.00,
         ]);
 
         BonEntreeItem::create([
@@ -142,6 +148,8 @@ class BonEntreeTestSeeder extends Seeder
             'qty_entered' => 1,
             'price_ht' => 1600.00,
             'price_ttc' => 1600.00,
+            'weight_kg' => 275.00,
+            'length_m' => 1550.00,
         ]);
 
         BonEntreeItem::create([
@@ -153,6 +161,8 @@ class BonEntreeTestSeeder extends Seeder
             'qty_entered' => 1,
             'price_ht' => 1600.00,
             'price_ttc' => 1600.00,
+            'weight_kg' => 290.00,
+            'length_m' => 1650.00,
         ]);
 
         $this->command->info("   ✅ Created {$bon2->bon_number} (DRAFT) with 3 bobines");

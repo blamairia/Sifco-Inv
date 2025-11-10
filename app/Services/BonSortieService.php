@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BonSortie;
 use App\Models\BonSortieItem;
 use App\Models\Roll;
+use App\Models\RollLifecycleEvent;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
 use Illuminate\Support\Facades\Auth;
@@ -100,7 +101,7 @@ class BonSortieService
         ]);
 
         // Create stock movement
-        StockMovement::create([
+        $movement = StockMovement::create([
             'movement_number' => $this->generateMovementNumber(),
             'product_id' => $roll->product_id,
             'warehouse_from_id' => $bonSortie->warehouse_id,
@@ -119,6 +120,9 @@ class BonSortieService
             'roll_length_after_m' => 0,
             'roll_length_delta_m' => -$previousLength,
         ]);
+
+        // Log sortie event
+        RollLifecycleEvent::logSortie($roll, $movement);
 
         // Update stock quantity
         $this->updateStockQuantity($roll->product_id, $bonSortie->warehouse_id, 1, $previousWeight, $previousLength);

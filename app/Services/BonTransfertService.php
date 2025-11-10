@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BonTransfert;
 use App\Models\BonTransfertItem;
 use App\Models\Roll;
+use App\Models\RollLifecycleEvent;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
 use App\Services\CumpCalculator;
@@ -184,6 +185,14 @@ class BonTransfertService
             'status' => Roll::STATUS_RESERVED,
             'length_m' => $length,
         ]);
+
+        // Log roll lifecycle event for transfer start
+        RollLifecycleEvent::logTransfer(
+            roll: $roll,
+            movement: $movementOut,
+            sourceWarehouseId: $bonTransfert->warehouse_from_id,
+            destWarehouseId: $bonTransfert->warehouse_to_id
+        );
 
         $this->decrementStockQuantity(
             $item->product_id,
@@ -396,6 +405,13 @@ class BonTransfertService
             $length,
             $newCump,
             $movementIn->id,
+        );
+
+        // Log roll lifecycle event for transfer completion
+        RollLifecycleEvent::logTransferCompleted(
+            roll: $roll,
+            movement: $movementIn,
+            destWarehouseId: $bonTransfert->warehouse_to_id
         );
     }
 

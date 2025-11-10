@@ -81,7 +81,8 @@ class WorkflowDemoSeeder extends Seeder
                 'ean_13' => '299' . random_int(1000000000, 1999999999),
                 'batch_number' => 'LOT-' . now()->format('ymd') . '-A',
                 'qty_entered' => 1,
-                'weight_kg' => 1285 / 1000,
+                'weight_kg' => 285.00,
+                'length_m' => 1700.00,
                 'price_ht' => 1580.50,
                 'price_ttc' => 1580.50,
             ],
@@ -91,7 +92,8 @@ class WorkflowDemoSeeder extends Seeder
                 'ean_13' => '299' . random_int(2000000000, 2999999999),
                 'batch_number' => 'LOT-' . now()->format('ymd') . '-B',
                 'qty_entered' => 1,
-                'weight_kg' => 1342 / 1000,
+                'weight_kg' => 342.00,
+                'length_m' => 2050.00,
                 'price_ht' => 1620.25,
                 'price_ttc' => 1620.25,
             ],
@@ -119,12 +121,15 @@ class WorkflowDemoSeeder extends Seeder
             'notes' => 'Sortie de démonstration préparée via seeder.',
         ]);
 
+        $rollLength = (float) ($roll->length_m ?? 0);
+        
         $bonSortie->bonSortieItems()->create([
             'item_type' => 'roll',
             'product_id' => $roll->product_id,
             'roll_id' => $roll->id,
             'qty_issued' => 1,
             'weight_kg' => $rollWeight,
+            'length_m' => $rollLength,
             'cump_at_issue' => StockQuantity::where('product_id', $roll->product_id)
                 ->where('warehouse_id', $warehouse->id)
                 ->value('cump_snapshot') ?? $roll->cump,
@@ -133,7 +138,8 @@ class WorkflowDemoSeeder extends Seeder
         $bonSortieService->issue($bonSortie->fresh());
 
         $roll->refresh();
-        $returnedWeight = round(max($rollWeight - 0.18, 0.8), 3);
+        $returnedWeight = round(max($rollWeight - 50, 80), 2);
+        $returnedLength = round(max($rollLength - 300, 500), 2);
 
         $currentCump = StockQuantity::where('product_id', $roll->product_id)
             ->where('warehouse_id', $warehouse->id)
@@ -156,6 +162,8 @@ class WorkflowDemoSeeder extends Seeder
             'qty_returned' => 1,
             'previous_weight_kg' => 0,
             'returned_weight_kg' => $returnedWeight,
+            'previous_length_m' => 0,
+            'returned_length_m' => $returnedLength,
             'cump_at_return' => $currentCump,
             'value_returned' => 0,
         ]);

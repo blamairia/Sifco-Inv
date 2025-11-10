@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BonReintegration;
 use App\Models\BonReintegrationItem;
 use App\Models\Roll;
+use App\Models\RollLifecycleEvent;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
 use Exception;
@@ -94,6 +95,17 @@ class BonReintegrationService
             'roll_length_after_m' => $returnedLength,
             'roll_length_delta_m' => $lengthDelta,
         ]);
+
+        // Log reintegration event
+        RollLifecycleEvent::logReintegration(
+            roll: $roll,
+            movement: $movement,
+            previousWeight: $previousWeight,
+            returnedWeight: $returnedWeight,
+            previousLength: $previousLength,
+            returnedLength: $returnedLength,
+            warehouseId: $bonReintegration->warehouse_id
+        );
 
         $this->updateStockQuantity(
             $roll->product_id,
