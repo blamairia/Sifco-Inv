@@ -2,13 +2,15 @@
 
 namespace App\Filament\Resources\LowStockAlerts\Tables;
 
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteBulkAction;
+use App\Models\LowStockAlert;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
+use Illuminate\Support\Facades\Auth;
 
 class LowStockAlertsTable
 {
@@ -133,11 +135,11 @@ class LowStockAlertsTable
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => $record->status === 'ACTIVE')
-                    ->action(function ($record) {
+                    ->visible(fn (LowStockAlert $record): bool => $record->status === 'ACTIVE')
+                    ->action(function (LowStockAlert $record): void {
                         $record->update([
                             'status' => 'RESOLVED',
-                            'resolved_by' => auth()->id(),
+                            'resolved_by' => Auth::id(),
                             'resolved_at' => now(),
                         ]);
                     }),
@@ -147,11 +149,11 @@ class LowStockAlertsTable
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => $record->status === 'ACTIVE')
-                    ->action(function ($record) {
+                    ->visible(fn (LowStockAlert $record): bool => $record->status === 'ACTIVE')
+                    ->action(function (LowStockAlert $record): void {
                         $record->update([
                             'status' => 'IGNORED',
-                            'resolved_by' => auth()->id(),
+                            'resolved_by' => Auth::id(),
                             'resolved_at' => now(),
                         ]);
                     }),
@@ -161,8 +163,8 @@ class LowStockAlertsTable
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => in_array($record->status, ['RESOLVED', 'IGNORED']))
-                    ->action(function ($record) {
+                    ->visible(fn (LowStockAlert $record): bool => in_array($record->status, ['RESOLVED', 'IGNORED']))
+                    ->action(function (LowStockAlert $record): void {
                         $record->update([
                             'status' => 'ACTIVE',
                             'resolved_by' => null,
