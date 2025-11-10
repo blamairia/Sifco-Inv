@@ -76,7 +76,8 @@ class BobineDashboard extends Page implements HasTable
 
     protected function getTableQuery(): Builder
     {
-        return Roll::query()
+        // Build the aggregated subquery
+        $subQuery = DB::table('rolls')
             ->select([
                 DB::raw('MIN(rolls.id) as id'),
                 'rolls.warehouse_id',
@@ -95,7 +96,7 @@ class BobineDashboard extends Page implements HasTable
             ->leftJoin('products', 'rolls.product_id', '=', 'products.id')
             ->leftJoin('product_category as primary_categories', function ($join) {
                 $join->on('primary_categories.product_id', '=', 'products.id')
-                    ->where('primary_categories.is_primary', true);
+                    ->where('primary_categories.is_primary', '=', DB::raw('1'));
             })
             ->leftJoin('categories', 'categories.id', '=', 'primary_categories.category_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'rolls.warehouse_id')
@@ -109,8 +110,10 @@ class BobineDashboard extends Page implements HasTable
                 'products.type_papier',
                 'products.flute',
                 'categories.name',
-            ])
-            ->orderBy(DB::raw('1'), 'asc'); // Prevent Eloquent from adding default ordering
+            ]);
+
+        // Wrap in Eloquent builder to satisfy Filament's type requirements
+        return Roll::query()->fromSub($subQuery, 'aggregated_rolls');
     }
 
     protected function getTableColumns(): array
