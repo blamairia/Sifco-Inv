@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\BonEntrees\Schemas;
 
+use App\Models\Product;
 use App\Models\ProductionLine;
 use App\Models\Supplier;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -127,13 +129,17 @@ class BonEntreeForm
                             ->content(function ($get) {
                                 $bobines = $get('bobineItems') ?? [];
                                 $products = $get('productItems') ?? [];
-                                
+                                $sheets = $get('sheetItems') ?? [];
+
                                 $bobinesTotal = collect($bobines)->sum(fn($item) => $item['price_ht'] ?? 0);
                                 $productsTotal = collect($products)->sum(function ($item) {
                                     return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
                                 });
-                                
-                                return number_format($bobinesTotal + $productsTotal, 2) . ' DH';
+                                $sheetsTotal = collect($sheets)->sum(function ($item) {
+                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                });
+
+                                return number_format($bobinesTotal + $productsTotal + $sheetsTotal, 2) . ' DH';
                             }),
                         
                         TextInput::make('frais_approche')
@@ -151,14 +157,18 @@ class BonEntreeForm
                             ->content(function ($get) {
                                 $bobines = $get('bobineItems') ?? [];
                                 $products = $get('productItems') ?? [];
-                                
+                                $sheets = $get('sheetItems') ?? [];
+
                                 $bobinesTotal = collect($bobines)->sum(fn($item) => $item['price_ht'] ?? 0);
                                 $productsTotal = collect($products)->sum(function ($item) {
                                     return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
                                 });
-                                
+                                $sheetsTotal = collect($sheets)->sum(function ($item) {
+                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                });
+
                                 $frais = $get('frais_approche') ?? 0;
-                                return number_format($bobinesTotal + $productsTotal + $frais, 2) . ' DH';
+                                return number_format($bobinesTotal + $productsTotal + $sheetsTotal + $frais, 2) . ' DH';
                             }),
                     ])
                     ->columns(3),
@@ -281,6 +291,121 @@ class BonEntreeForm
                     ->columnSpanFull()
                     ->collapsible()
                     ->collapsed(fn ($record) => $record && $record->bonEntreeItems()->bobines()->count() === 0),
+
+                Section::make('Palettes / Feuilles')
+                    ->description('Enregistrez les feuilles/palettes avec leurs dimensions')
+                    ->schema([
+                        Repeater::make('sheetItems')
+                            ->relationship(
+                                name: 'bonEntreeItems',
+                                modifyQueryUsing: fn ($query) => $query->where('item_type', 'pallet')
+                            )
+                            ->schema([
+                                Select::make('product_id')
+                                    ->label('Produit (Feuille/Palette)')
+                                    ->relationship(
+                                        'product',
+                                        'name',
+                                        function ($query) {
+                                            $query->where('is_roll', false)
+                                                ->where('is_active', true);
+
+                                            if (SchemaFacade::hasColumn('products', 'sheet_width_mm') || SchemaFacade::hasColumn('products', 'sheet_length_mm')) {
+                                                $query->where(function ($q) {
+                                                    $q->whereNotNull('sheet_width_mm')
+                                                        ->orWhereNotNull('sheet_length_mm');
+                                                });
+                                            }
+                                        }
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        if (! $state) {
+                                            return;
+                                        }
+
+                                        $product = Product::find($state);
+
+                                        if ($product) {
+                                            $set('sheet_width_mm', $product->sheet_width_mm);
+                                            $set('sheet_length_mm', $product->sheet_length_mm);
+                                            $set('qty_entered', 1);
+                                        }
+                                    })
+                                    ->columnSpan(4),
+
+                                TextInput::make('qty_entered')
+                                    ->label('Quantité')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->columnSpan(2),
+
+                                TextInput::make('sheet_width_mm')
+                                    ->label('Largeur (mm)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->columnSpan(2),
+
+                                TextInput::make('sheet_length_mm')
+                                    ->label('Longueur (mm)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->columnSpan(2),
+
+                                TextInput::make('price_ht')
+                                    ->label('Prix HT')
+                                    ->numeric()
+                                    ->required()
+                                    ->prefix('DH')
+                                    ->default(0)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        $set('price_ttc', $state);
+                                    })
+                                    ->columnSpan(2),
+
+                                TextInput::make('price_ttc')
+                                    ->label('Prix TTC')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->default(0)
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(2),
+
+                                Placeholder::make('line_total_sheet')
+                                    ->label('Total Ligne')
+                                    ->content(fn ($get) => number_format(($get('qty_entered') ?? 0) * ($get('price_ttc') ?? 0), 2) . ' DH')
+                                    ->columnSpan(2),
+                            ])
+                            ->columns(12)
+                            ->defaultItems(0)
+                            ->addActionLabel('➕ Ajouter Feuille / Palette')
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->disabled(fn ($record) => $record && $record->status === 'received')
+                            ->itemLabel(fn (array $state): ?string =>
+                                $state['product_id'] ? Product::find($state['product_id'])?->name : 'Nouvelle palette'
+                            )
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['item_type'] = 'pallet';
+                                return $data;
+                            })
+                            ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
+                                $data['item_type'] = 'pallet';
+                                return $data;
+                            }),
+                    ])
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->collapsed(fn ($record) => $record && $record->bonEntreeItems()->pallets()->count() === 0),
                 
                 Section::make('Produits (Non-Bobines)')
                     ->description('Ajoutez les produits standards avec quantité')

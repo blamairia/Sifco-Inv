@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -19,6 +20,8 @@ class BonEntreeItem extends Model
         'qty_entered',
         'weight_kg',
         'length_m',
+        'sheet_width_mm',
+        'sheet_length_mm',
         'price_ht',
         'price_ttc',
         // line_total_ttc is a generated column: qty_entered * price_ttc
@@ -28,6 +31,8 @@ class BonEntreeItem extends Model
         'qty_entered' => 'decimal:2',
         'weight_kg' => 'decimal:3',
         'length_m' => 'decimal:3',
+        'sheet_width_mm' => 'decimal:2',
+        'sheet_length_mm' => 'decimal:2',
         'price_ht' => 'decimal:2',
         'price_ttc' => 'decimal:2',
         'line_total_ttc' => 'decimal:2', // Generated column, read-only
@@ -50,14 +55,19 @@ class BonEntreeItem extends Model
     }
 
     // Scopes
-    public function scopeBobines($query)
+    public function scopeBobines(Builder $query): Builder
     {
         return $query->where('item_type', 'bobine');
     }
 
-    public function scopeProducts($query)
+    public function scopeProducts(Builder $query): Builder
     {
         return $query->where('item_type', 'product');
+    }
+
+    public function scopePallets(Builder $query): Builder
+    {
+        return $query->where('item_type', 'pallet');
     }
 
     // Helpers
@@ -69,6 +79,11 @@ class BonEntreeItem extends Model
     public function isProduct(): bool
     {
         return $this->item_type === 'product';
+    }
+
+    public function isPallet(): bool
+    {
+        return $this->item_type === 'pallet';
     }
 
     // Helper methods

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BonSortie;
 use App\Models\BonSortieItem;
+use App\Models\Client;
 use App\Models\ProductionLine;
 use App\Models\Roll;
 use App\Models\RollLifecycleEvent;
@@ -39,6 +40,10 @@ class BonSortieService
 
         try {
             if ($bonSortie->destinationable instanceof ProductionLine && blank($bonSortie->destination)) {
+                $bonSortie->update([
+                    'destination' => $bonSortie->destinationable->name,
+                ]);
+            } elseif ($bonSortie->destinationable instanceof Client && blank($bonSortie->destination)) {
                 $bonSortie->update([
                     'destination' => $bonSortie->destinationable->name,
                 ]);

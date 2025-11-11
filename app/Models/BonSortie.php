@@ -54,6 +54,11 @@ class BonSortie extends Model
         return $this->destinationable instanceof ProductionLine ? $this->destinationable : null;
     }
 
+    public function client(): ?Client
+    {
+        return $this->destinationable instanceof Client ? $this->destinationable : null;
+    }
+
     public static function generateBonNumber(): string
     {
         $date = now()->format('Ymd');

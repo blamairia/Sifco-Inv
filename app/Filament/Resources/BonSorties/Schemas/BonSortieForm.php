@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BonSorties\Schemas;
 
+use App\Models\Client;
 use App\Models\Product;
 use App\Models\ProductionLine;
 use App\Models\Roll;
@@ -86,8 +87,9 @@ class BonSortieForm
                             ->label('Type de destination')
                             ->options([
                                 ProductionLine::class => 'Ligne de production',
+                                Client::class => 'Client B2B',
                             ])
-                            ->placeholder('Client / Destination libre')
+                            ->placeholder('Destination libre / externe')
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 if (!$state) {
@@ -96,31 +98,52 @@ class BonSortieForm
                                 } elseif ($state === ProductionLine::class && $get('destinationable_id')) {
                                     $line = ProductionLine::find($get('destinationable_id'));
                                     $set('destination', $line?->name);
+                                } elseif ($state === Client::class && $get('destinationable_id')) {
+                                    $client = Client::find($get('destinationable_id'));
+                                    $set('destination', $client?->name);
                                 }
                             })
-                            ->helperText('Choisissez une ligne de production ou laissez vide pour une destination libre.'),
+                            ->helperText('Choisissez une ligne de production, un client ou laissez vide pour une destination libre.'),
 
                         Select::make('destinationable_id')
-                            ->label('Ligne de production')
-                            ->options(fn () => ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                            ->label(fn (callable $get) => match ($get('destinationable_type')) {
+                                ProductionLine::class => 'Ligne de production',
+                                Client::class => 'Client',
+                                default => 'Entité liée',
+                            })
+                            ->options(function (callable $get) {
+                                return match ($get('destinationable_type')) {
+                                    ProductionLine::class => ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray(),
+                                    Client::class => Client::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->toArray(),
+                                    default => [],
+                                };
+                            })
                             ->searchable()
                             ->preload()
-                            ->required(fn (callable $get) => $get('destinationable_type') === ProductionLine::class)
-                            ->hidden(fn (callable $get) => $get('destinationable_type') !== ProductionLine::class)
+                            ->required(fn (callable $get) => filled($get('destinationable_type')))
+                            ->hidden(fn (callable $get) => blank($get('destinationable_type')))
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if ($state) {
                                     $line = ProductionLine::find($state);
-                                    $set('destination', $line?->name);
+                                    if ($line) {
+                                        $set('destination', $line->name);
+                                        return;
+                                    }
+
+                                    $client = Client::find($state);
+                                    if ($client) {
+                                        $set('destination', $client->name);
+                                    }
                                 }
                             })
-                            ->helperText('La destination sera remplie automatiquement avec le nom de la ligne sélectionnée.'),
+                            ->helperText('La destination est remplie automatiquement si une ligne ou un client est sélectionné.'),
 
                         TextInput::make('destination')
                             ->label('Destination')
-                            ->required(fn (callable $get) => $get('destinationable_type') !== ProductionLine::class)
+                            ->required(fn (callable $get) => blank($get('destinationable_type')))
                             ->maxLength(255)
-                            ->disabled(fn (callable $get) => $get('destinationable_type') === ProductionLine::class)
+                            ->disabled(fn (callable $get) => filled($get('destinationable_type')))
                             ->helperText('Ex: Client XYZ, Service Maintenance, etc.'),
                     ])
                     ->columns(2),

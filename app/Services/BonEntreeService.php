@@ -82,6 +82,9 @@ class BonEntreeService
                 if ($item->isBobine()) {
                     Log::info("Processing as BOBINE");
                     $this->processBobineItem($item, $bonEntree);
+                } elseif ($item->isPallet()) {
+                    Log::info("Processing as PALLET");
+                    $this->processPalletItem($item, $bonEntree);
                 } else {
                     Log::info("Processing as PRODUCT");
                     $this->processProductItem($item, $bonEntree);
@@ -244,6 +247,14 @@ class BonEntreeService
     }
 
     /**
+     * Process a pallet (sheet) item
+     */
+    protected function processPalletItem(BonEntreeItem $item, BonEntree $bonEntree): void
+    {
+        $this->processProductItem($item, $bonEntree);
+    }
+
+    /**
      * Update or create stock quantity record
      */
     protected function updateStockQuantity(int $productId, int $warehouseId, float $qtyToAdd, float $newCump, ?float $weightToAdd = null, ?float $lengthToAdd = null): void
@@ -292,7 +303,11 @@ class BonEntreeService
 
         // Calculate total quantity (bobines count as 1 each, products use qty_entered)
         $totalQty = $bonEntree->bonEntreeItems->sum(function ($item) {
-            return $item->isBobine() ? 1 : $item->qty_entered;
+            if ($item->isBobine()) {
+                return 1;
+            }
+
+            return $item->qty_entered;
         });
 
         if ($totalQty == 0) {

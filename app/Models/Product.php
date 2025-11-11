@@ -25,7 +25,9 @@ class Product extends Model
         'is_active',
         'is_roll',
         'min_stock',
-        'safety_stock',
+    'safety_stock',
+    'sheet_width_mm',
+    'sheet_length_mm',
     ];
 
     protected $casts = [
@@ -36,6 +38,8 @@ class Product extends Model
         'is_roll' => 'boolean',
         'min_stock' => 'decimal:2',
         'safety_stock' => 'decimal:2',
+        'sheet_width_mm' => 'decimal:2',
+        'sheet_length_mm' => 'decimal:2',
     ];
 
     // Many-to-Many with categories

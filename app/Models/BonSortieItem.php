@@ -17,6 +17,8 @@ class BonSortieItem extends Model
         'qty_issued',
         'weight_kg',
         'length_m',
+    'sheet_width_mm',
+    'sheet_length_mm',
         'cump_at_issue',
         // value_issued is a generated column: qty_issued * cump_at_issue
     ];
@@ -25,6 +27,8 @@ class BonSortieItem extends Model
         'qty_issued' => 'decimal:2',
         'weight_kg' => 'decimal:3',
         'length_m' => 'decimal:3',
+    'sheet_width_mm' => 'decimal:2',
+    'sheet_length_mm' => 'decimal:2',
         'cump_at_issue' => 'decimal:2',
         'value_issued' => 'decimal:2', // Generated column, read-only
     ];
