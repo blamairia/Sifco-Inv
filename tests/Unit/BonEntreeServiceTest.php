@@ -26,6 +26,7 @@ class BonEntreeServiceTest extends TestCase
         $product = Product::create([
             'code' => 'TEST-ROLL-001',
             'name' => 'Test Roll',
+            'type' => 'papier_roll',
             'is_roll' => true,
             'unit_id' => null,
             'product_type' => Product::TYPE_SEMI_FINISHED,
@@ -54,7 +55,11 @@ class BonEntreeServiceTest extends TestCase
             'price_ttc' => 1000.0,
         ]);
 
-        // Act
+    // Arrange - create a user and act as it so StockMovement FK to user exists
+    $user = \App\Models\User::factory()->create();
+    $this->actingAs($user);
+
+    // Act
         /** @var BonEntreeService $service */
         $service = app(BonEntreeService::class);
         $service->receive($bon->fresh());

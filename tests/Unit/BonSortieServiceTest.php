@@ -25,6 +25,7 @@ class BonSortieServiceTest extends TestCase
         $product = Product::create([
             'code' => 'PROD-PS-001',
             'name' => 'Product Stock',
+            'type' => 'consommable',
             'is_roll' => false,
             'unit_id' => null,
             'product_type' => Product::TYPE_RAW_MATERIAL,
@@ -41,6 +42,7 @@ class BonSortieServiceTest extends TestCase
         $bon = BonSortie::create([
             'bon_number' => 'BSRT-UT-001',
             'warehouse_id' => $warehouse->id,
+            'issued_date' => now()->toDateString(),
             'destination' => 'MACARBOX',
             'destinationable_type' => ProductionLine::class,
             'destinationable_id' => $line->id,
@@ -55,7 +57,11 @@ class BonSortieServiceTest extends TestCase
             'cump_at_issue' => 12.50,
         ]);
 
-        // Act
+    // Arrange - create a user and act as it so StockMovement FK to user exists
+    $user = \App\Models\User::factory()->create();
+    $this->actingAs($user);
+
+    // Act
         /** @var BonSortieService $service */
         $service = app(BonSortieService::class);
         $service->issue($bon->fresh());

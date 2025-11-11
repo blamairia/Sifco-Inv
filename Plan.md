@@ -39,7 +39,7 @@ Issues & Agent Ops (top-of-plan quick summary):
 
 - ✅ Slice 5: Bon de Transfert workflow (staged receive, metre-tracking propagation)
 
-2.  **Create `ProductionLine` Model & Migration:**- ⏳ Slice 5b: Roll reception + lifecycle metrics cleanup ← **IN PROGRESS**
+2.  **Create `ProductionLine` Model & Migration:**- ✅ Slice 5b: Roll reception + lifecycle metrics cleanup ← **COMPLETE**
 
     -   Run `php artisan make:model ProductionLine -m`.- 📋 Slice 6-9: Réintégration, Adjustments, Dashboard, Reports
 
