@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BonEntreeItem extends Model
 {
@@ -19,7 +18,7 @@ class BonEntreeItem extends Model
         'roll_id',
         'qty_entered',
         'weight_kg',
-    'length_m',
+        'length_m',
         'price_ht',
         'price_ttc',
         // line_total_ttc is a generated column: qty_entered * price_ttc
@@ -28,7 +27,7 @@ class BonEntreeItem extends Model
     protected $casts = [
         'qty_entered' => 'decimal:2',
         'weight_kg' => 'decimal:3',
-    'length_m' => 'decimal:3',
+        'length_m' => 'decimal:3',
         'price_ht' => 'decimal:2',
         'price_ttc' => 'decimal:2',
         'line_total_ttc' => 'decimal:2', // Generated column, read-only

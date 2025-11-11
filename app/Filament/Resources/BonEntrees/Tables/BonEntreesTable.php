@@ -23,10 +23,24 @@ class BonEntreesTable
                     ->searchable()
                     ->sortable(),
                 
-                TextColumn::make('supplier.name')
-                    ->label('Fournisseur')
-                    ->searchable()
-                    ->sortable(),
+                TextColumn::make('origin_name')
+                    ->label('Origine')
+                    ->state(fn ($record) => $record->sourceable?->name ?? '—')
+                    ->searchable(false),
+
+                TextColumn::make('origin_type')
+                    ->label('Type')
+                    ->badge()
+                    ->color(fn ($record) => match ($record->sourceable_type) {
+                        \App\Models\ProductionLine::class => 'info',
+                        \App\Models\Supplier::class => 'success',
+                        default => 'gray',
+                    })
+                    ->state(fn ($record) => match ($record->sourceable_type) {
+                        \App\Models\ProductionLine::class => 'Production',
+                        \App\Models\Supplier::class => 'Fournisseur',
+                        default => 'N/A',
+                    }),
                 
                 TextColumn::make('document_number')
                     ->label('N° Document')
@@ -99,11 +113,33 @@ class BonEntreesTable
                         'cancelled' => 'Annulé',
                     ]),
                 
+                SelectFilter::make('sourceable_type')
+                    ->label('Type de source')
+                    ->options([
+                        \App\Models\Supplier::class => 'Fournisseur',
+                        \App\Models\ProductionLine::class => 'Ligne de production',
+                    ])
+                    ->query(function ($query, $value) {
+                        return $query->where('sourceable_type', $value);
+                    }),
+
                 SelectFilter::make('supplier')
                     ->label('Fournisseur')
-                    ->relationship('supplier', 'name')
-                    ->searchable()
-                    ->preload(),
+                    ->options(fn () => \App\Models\Supplier::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->query(function ($query, $value) {
+                        return $query
+                            ->where('sourceable_type', \App\Models\Supplier::class)
+                            ->where('sourceable_id', $value);
+                    }),
+
+                SelectFilter::make('production_line')
+                    ->label('Ligne de production')
+                    ->options(fn () => \App\Models\ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->query(function ($query, $value) {
+                        return $query
+                            ->where('sourceable_type', \App\Models\ProductionLine::class)
+                            ->where('sourceable_id', $value);
+                    }),
                 
                 SelectFilter::make('warehouse')
                     ->label('Entrepôt')

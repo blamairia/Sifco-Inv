@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class BonSortie extends Model
 {
@@ -15,6 +16,8 @@ class BonSortie extends Model
         'warehouse_id',
         'issued_date',
         'destination',
+        'destinationable_type',
+        'destinationable_id',
         'status',
         'issued_by_id',
         'issued_at',
@@ -39,6 +42,16 @@ class BonSortie extends Model
     public function bonSortieItems(): HasMany
     {
         return $this->hasMany(BonSortieItem::class);
+    }
+
+    public function destinationable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function productionLine(): ?ProductionLine
+    {
+        return $this->destinationable instanceof ProductionLine ? $this->destinationable : null;
     }
 
     public static function generateBonNumber(): string

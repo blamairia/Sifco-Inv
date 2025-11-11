@@ -48,7 +48,8 @@ class BonEntreeTestSeeder extends Seeder
         
         $bon1 = BonEntree::create([
             'bon_number' => 'BENT-TEST-001',
-            'supplier_id' => $supplier->id,
+            'sourceable_type' => Supplier::class,
+            'sourceable_id' => $supplier->id,
             'warehouse_id' => $warehouse->id,
             'document_number' => 'FACT-2025-001',
             'expected_date' => now()->addDays(2),
@@ -114,7 +115,8 @@ class BonEntreeTestSeeder extends Seeder
         
         $bon2 = BonEntree::create([
             'bon_number' => 'BENT-TEST-002',
-            'supplier_id' => $supplier->id,
+            'sourceable_type' => Supplier::class,
+            'sourceable_id' => $supplier->id,
             'warehouse_id' => $warehouse->id,
             'document_number' => 'FACT-2025-002',
             'expected_date' => now()->addDays(1),
@@ -174,7 +176,8 @@ class BonEntreeTestSeeder extends Seeder
         
         $bon3 = BonEntree::create([
             'bon_number' => 'BENT-TEST-003',
-            'supplier_id' => $supplier->id,
+            'sourceable_type' => Supplier::class,
+            'sourceable_id' => $supplier->id,
             'warehouse_id' => $warehouse->id,
             'document_number' => 'FACT-2025-003',
             'expected_date' => now()->addDays(3),
@@ -213,7 +216,8 @@ class BonEntreeTestSeeder extends Seeder
         
         $bon4 = BonEntree::create([
             'bon_number' => 'BENT-TEST-004',
-            'supplier_id' => $supplier->id,
+            'sourceable_type' => Supplier::class,
+            'sourceable_id' => $supplier->id,
             'warehouse_id' => $warehouse->id,
             'document_number' => 'FACT-2025-004',
             'expected_date' => now(),

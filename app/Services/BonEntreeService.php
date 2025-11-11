@@ -8,6 +8,7 @@ use App\Models\Roll;
 use App\Models\RollLifecycleEvent;
 use App\Models\StockMovement;
 use App\Models\StockQuantity;
+use App\Services\CumpCalculator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

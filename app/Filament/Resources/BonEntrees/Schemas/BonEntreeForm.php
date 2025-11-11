@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\BonEntrees\Schemas;
 
+use App\Models\ProductionLine;
+use App\Models\Supplier;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -68,13 +70,33 @@ class BonEntreeForm
                             ->helperText('N° de facture ou bon de livraison')
                             ->maxLength(100),
                         
-                        Select::make('supplier_id')
-                            ->label('Fournisseur')
-                            ->relationship('supplier', 'name')
+                        Select::make('sourceable_type')
+                            ->label('Type de source')
+                            ->options([
+                                Supplier::class => 'Fournisseur',
+                                ProductionLine::class => 'Ligne de production',
+                            ])
+                            ->default(fn ($record) => $record ? $record->sourceable_type : Supplier::class)
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn ($state, callable $set) => $set('sourceable_id', null))
+                            ->columnSpanFull(),
+
+                        Select::make('sourceable_id')
+                            ->label(fn (callable $get) => $get('sourceable_type') === ProductionLine::class
+                                ? 'Ligne de production'
+                                : 'Fournisseur')
+                            ->options(function (callable $get) {
+                                return match ($get('sourceable_type')) {
+                                    ProductionLine::class => ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray(),
+                                    default => Supplier::query()->orderBy('name')->pluck('name', 'id')->toArray(),
+                                };
+                            })
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->helperText('Sélectionnez l\'entité d\'origine du bon.'),
                         
                         Select::make('warehouse_id')
                             ->label('Entrepôt de Destination')

@@ -8,6 +8,7 @@ use App\Models\BonReintegrationItem;
 use App\Models\BonSortie;
 use App\Models\BonSortieItem;
 use App\Models\Product;
+use App\Models\ProductionLine;
 use App\Models\Roll;
 use App\Models\RollAdjustment;
 use App\Models\StockAdjustment;
@@ -42,7 +43,8 @@ class WorkflowDemoSeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         $warehouse = Warehouse::query()->firstOrFail();
-        $supplier = Supplier::query()->firstOrFail();
+    $supplier = Supplier::query()->firstOrFail();
+    $productionLine = ProductionLine::query()->first();
 
         $rollProducts = Product::query()->where('is_roll', true)->take(2)->get();
         $standardProduct = Product::query()->where('is_roll', false)->first();
@@ -63,7 +65,8 @@ class WorkflowDemoSeeder extends Seeder
 
         $bonEntree = BonEntree::create([
             'bon_number' => $bonNumber,
-            'supplier_id' => $supplier->id,
+            'sourceable_type' => Supplier::class,
+            'sourceable_id' => $supplier->id,
             'warehouse_id' => $warehouse->id,
             'document_number' => 'FACT-' . Str::upper(Str::random(6)),
             'expected_date' => now()->addDay(),
@@ -115,9 +118,11 @@ class WorkflowDemoSeeder extends Seeder
         $bonSortie = BonSortie::create([
             'bon_number' => BonSortie::generateBonNumber(),
             'warehouse_id' => $warehouse->id,
-            'destination' => 'Ligne Onduleuse DEMO',
+            'destination' => $productionLine?->name ?? 'Destination Libre DEMO',
+            'destinationable_type' => $productionLine ? ProductionLine::class : null,
+            'destinationable_id' => $productionLine?->id,
             'status' => 'draft',
-            'issued_date' => now(),
+            'issued_date' => now()->toDateString(),
             'notes' => 'Sortie de démonstration préparée via seeder.',
         ]);
 

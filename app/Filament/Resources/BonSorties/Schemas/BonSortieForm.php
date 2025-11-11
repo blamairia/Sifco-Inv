@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BonSorties\Schemas;
 
 use App\Models\Product;
+use App\Models\ProductionLine;
 use App\Models\Roll;
 use App\Models\StockQuantity;
 use Filament\Forms\Components\Actions\Action;
@@ -81,11 +82,46 @@ class BonSortieForm
                             })
                             ->helperText('Entrepôt d\'où sortent les produits'),
                         
+                        Select::make('destinationable_type')
+                            ->label('Type de destination')
+                            ->options([
+                                ProductionLine::class => 'Ligne de production',
+                            ])
+                            ->placeholder('Client / Destination libre')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                if (!$state) {
+                                    $set('destinationable_id', null);
+                                    $set('destination', null);
+                                } elseif ($state === ProductionLine::class && $get('destinationable_id')) {
+                                    $line = ProductionLine::find($get('destinationable_id'));
+                                    $set('destination', $line?->name);
+                                }
+                            })
+                            ->helperText('Choisissez une ligne de production ou laissez vide pour une destination libre.'),
+
+                        Select::make('destinationable_id')
+                            ->label('Ligne de production')
+                            ->options(fn () => ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                            ->searchable()
+                            ->preload()
+                            ->required(fn (callable $get) => $get('destinationable_type') === ProductionLine::class)
+                            ->hidden(fn (callable $get) => $get('destinationable_type') !== ProductionLine::class)
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $line = ProductionLine::find($state);
+                                    $set('destination', $line?->name);
+                                }
+                            })
+                            ->helperText('La destination sera remplie automatiquement avec le nom de la ligne sélectionnée.'),
+
                         TextInput::make('destination')
                             ->label('Destination')
-                            ->required()
+                            ->required(fn (callable $get) => $get('destinationable_type') !== ProductionLine::class)
                             ->maxLength(255)
-                            ->helperText('Ex: Production, Client XYZ, Service Maintenance'),
+                            ->disabled(fn (callable $get) => $get('destinationable_type') === ProductionLine::class)
+                            ->helperText('Ex: Client XYZ, Service Maintenance, etc.'),
                     ])
                     ->columns(2),
                 

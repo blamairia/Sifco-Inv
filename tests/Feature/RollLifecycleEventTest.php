@@ -3,13 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\BonEntree;
-use App\Models\BonEntreeItem;
 use App\Models\BonReintegration;
-use App\Models\BonReintegrationItem;
 use App\Models\BonSortie;
-use App\Models\BonSortieItem;
 use App\Models\BonTransfert;
-use App\Models\BonTransfertItem;
 use App\Models\Product;
 use App\Models\Roll;
 use App\Models\RollLifecycleEvent;
@@ -44,70 +40,82 @@ class RollLifecycleEventTest extends TestCase
 
         $this->warehouse = Warehouse::create([
             'name' => 'Test Warehouse',
-            'code' => 'TEST-WH',
-            'warehouse_type' => 'storage',
-            'address' => '123 Test St',
+            'is_system' => false,
         ]);
 
         $this->supplier = Supplier::create([
-            'name' => 'Test Supplier',
             'code' => 'SUP-001',
-            'contact_name' => 'John Doe',
+            'name' => 'Test Supplier',
+            'contact_person' => 'John Doe',
             'phone' => '123456789',
+            'email' => 'supplier@example.com',
+            'address' => 'Zone industrielle',
+            'payment_terms' => '30d',
+            'is_active' => true,
         ]);
-        
+
         $this->unit = Unit::firstOrCreate(
-            ['name' => 'kg'],
-            ['symbol' => 'kg', 'type' => 'weight']
+            ['name' => 'Kilogramme'],
+            ['symbol' => 'kg', 'description' => 'Unité de masse standard']
         );
 
         $this->product = Product::create([
-            'name' => 'Test Roll Product',
             'code' => 'ROLL-001',
-            'unit_id' => $this->unit->id,
+            'name' => 'Test Roll Product',
             'type' => 'papier_roll',
+            'unit_id' => $this->unit->id,
+            'product_type' => Product::TYPE_RAW_MATERIAL,
+            'is_active' => true,
+            'is_roll' => true,
+            'min_stock' => 0,
+            'safety_stock' => 0,
+            'grammage' => 80,
+            'laize' => 100,
+        ]);
+    }
+
+    protected function createPendingBonEntree(string $bonNumber = 'BE-TEST-001'): BonEntree
+    {
+        return BonEntree::create([
+            'bon_number' => $bonNumber,
+            'sourceable_type' => Supplier::class,
+            'sourceable_id' => $this->supplier->id,
+            'warehouse_id' => $this->warehouse->id,
+            'document_number' => 'DOC-' . $bonNumber,
+            'expected_date' => now()->addDay(),
+            'status' => 'pending',
+            'total_amount_ht' => 0,
+            'frais_approche' => 0,
+            'total_amount_ttc' => 0,
         ]);
     }
 
     public function test_roll_reception_creates_lifecycle_event(): void
     {
         $service = app(BonEntreeService::class);
+        $bonEntree = $this->createPendingBonEntree();
 
-        $bonEntree = BonEntree::create([
-            'bon_number' => 'BE-TEST-001',
-            'supplier_id' => $this->supplier->id,
-            'warehouse_id' => $this->warehouse->id,
-            'status' => 'pending',
-            'entry_type' => 'purchase',
-            'expected_date' => now()->addDay(),
-        ]);
-
-        $item = BonEntreeItem::create([
-            'bon_entree_id' => $bonEntree->id,
-            'product_id' => $this->product->id,
+        $bonEntree->bonEntreeItems()->create([
             'item_type' => 'bobine',
-            'qty_ordered' => 1,
+            'product_id' => $this->product->id,
             'qty_entered' => 1,
-            'price_ht' => 1000.0,
-            'price_ttc' => 1200.0,
             'weight_kg' => 250.0,
             'length_m' => 1500.0,
+            'price_ht' => 1000.0,
+            'price_ttc' => 1200.0,
             'ean_13' => '1234567890123',
-            'grammage' => 80,
-            'laize' => 100,
-            'quality' => 'A',
+            'batch_number' => 'LOT-001',
         ]);
 
-        $service->receive($bonEntree);
+        $service->receive($bonEntree->fresh());
 
-        $roll = Roll::where('ean_13', '1234567890123')->first();
-        $this->assertNotNull($roll);
+        $roll = Roll::where('ean_13', '1234567890123')->firstOrFail();
 
         $event = RollLifecycleEvent::where('roll_id', $roll->id)
             ->where('event_type', 'RECEPTION')
             ->first();
 
-        $this->assertNotNull($event, 'Reception lifecycle event should be created');
+        $this->assertNotNull($event);
         $this->assertEquals('BE-TEST-001', $event->reference_number);
         $this->assertEquals($this->warehouse->id, $event->warehouse_to_id);
         $this->assertEquals(1500.0, (float) $event->length_after_m);
@@ -117,17 +125,14 @@ class RollLifecycleEventTest extends TestCase
 
     public function test_roll_sortie_creates_lifecycle_event(): void
     {
-        // Create roll in stock
         $roll = Roll::create([
             'product_id' => $this->product->id,
             'warehouse_id' => $this->warehouse->id,
             'ean_13' => '1111111111111',
+            'status' => Roll::STATUS_IN_STOCK,
             'weight_kg' => 200.0,
             'length_m' => 1200.0,
-            'status' => Roll::STATUS_IN_STOCK,
-            'grammage' => 80,
-            'laize' => 100,
-            'quality' => 'A',
+            'cump_value' => 1000.0,
             'received_date' => now(),
         ]);
 
@@ -141,36 +146,33 @@ class RollLifecycleEventTest extends TestCase
             'cump_snapshot' => 1000.0,
         ]);
 
-        // Create sortie
         $bonSortie = BonSortie::create([
             'bon_number' => 'BS-TEST-001',
             'warehouse_id' => $this->warehouse->id,
             'destination' => 'Production',
             'status' => 'draft',
-            'sortie_type' => 'production',
-            'sortie_date' => now(),
-            'issued_date' => now(),
+            'issued_date' => now()->toDateString(),
+            'notes' => 'Sortie de test',
         ]);
 
-        BonSortieItem::create([
-            'bon_sortie_id' => $bonSortie->id,
+        $bonSortie->bonSortieItems()->create([
             'product_id' => $this->product->id,
-            'item_type' => 'bobine',
+            'item_type' => 'roll',
             'roll_id' => $roll->id,
             'qty_issued' => 1,
-            'weight_issued_kg' => 200.0,
-            'length_issued_m' => 1200.0,
+            'weight_kg' => 200.0,
+            'length_m' => 1200.0,
             'cump_at_issue' => 1000.0,
         ]);
 
         $service = app(BonSortieService::class);
-        $service->issue($bonSortie);
+        $service->issue($bonSortie->fresh());
 
         $event = RollLifecycleEvent::where('roll_id', $roll->id)
             ->where('event_type', 'SORTIE')
             ->first();
 
-        $this->assertNotNull($event, 'Sortie lifecycle event should be created');
+        $this->assertNotNull($event);
         $this->assertEquals('BS-TEST-001', $event->reference_number);
         $this->assertEquals($this->warehouse->id, $event->warehouse_from_id);
         $this->assertEquals(1200.0, (float) $event->length_before_m);
@@ -179,100 +181,88 @@ class RollLifecycleEventTest extends TestCase
 
     public function test_roll_reintegration_creates_lifecycle_event(): void
     {
-        // Create consumed roll
         $roll = Roll::create([
             'product_id' => $this->product->id,
             'warehouse_id' => $this->warehouse->id,
             'ean_13' => '2222222222222',
-            'weight' => 200.0,
-            'length_m' => 0,
             'status' => Roll::STATUS_CONSUMED,
-            'grammage' => 80,
-            'laize' => 100,
-            'quality' => 'A',
+            'weight_kg' => 200.0,
+            'length_m' => 0,
+            'cump_value' => 1000.0,
             'received_date' => now()->subDays(5),
         ]);
 
-        // Create a sortie record first (required for reintegration)
         $bonSortie = BonSortie::create([
             'bon_number' => 'BS-REF-001',
             'warehouse_id' => $this->warehouse->id,
             'destination' => 'Production',
             'status' => 'issued',
-            'sortie_type' => 'production',
-            'sortie_date' => now()->subDays(5),
-            'issued_date' => now()->subDays(5),
+            'issued_date' => now()->subDays(5)->toDateString(),
+            'notes' => 'Sortie précédente',
         ]);
 
-        // Create reintegration
         $bonReintegration = BonReintegration::create([
             'bon_number' => 'BR-TEST-001',
-            'warehouse_id' => $this->warehouse->id,
             'bon_sortie_id' => $bonSortie->id,
+            'warehouse_id' => $this->warehouse->id,
+            'return_date' => now()->toDateString(),
             'status' => 'draft',
-            'reintegration_date' => now(),
-            'return_date' => now(),
             'cump_at_return' => 1000.0,
+            'notes' => 'Retour partiel',
         ]);
 
-        BonReintegrationItem::create([
-            'bon_reintegration_id' => $bonReintegration->id,
-            'product_id' => $this->product->id,
+        $bonReintegration->bonReintegrationItems()->create([
             'item_type' => 'roll',
+            'product_id' => $this->product->id,
             'roll_id' => $roll->id,
             'qty_returned' => 1,
-            'value_returned' => 1000.0,
             'previous_weight_kg' => 200.0,
             'returned_weight_kg' => 50.0,
             'weight_delta_kg' => -150.0,
             'previous_length_m' => 0,
             'returned_length_m' => 300.0,
             'length_delta_m' => 300.0,
+            'cump_at_return' => 1000.0,
+            'value_returned' => 1000.0,
         ]);
 
         $service = app(BonReintegrationService::class);
-        $service->receive($bonReintegration);
+        $service->receive($bonReintegration->fresh());
 
         $event = RollLifecycleEvent::where('roll_id', $roll->id)
             ->where('event_type', 'REINTEGRATION')
             ->first();
 
-        $this->assertNotNull($event, 'Reintegration lifecycle event should be created');
+        $this->assertNotNull($event);
         $this->assertEquals('BR-TEST-001', $event->reference_number);
         $this->assertEquals($this->warehouse->id, $event->warehouse_to_id);
         $this->assertEquals(300.0, (float) $event->length_after_m);
         $this->assertEquals(50.0, (float) $event->weight_after_kg);
         $this->assertEquals(150.0, (float) $event->waste_weight_kg);
-        $this->assertEquals(0, (float) $event->waste_length_m);
+        $this->assertEquals(0.0, (float) $event->waste_length_m);
     }
 
     public function test_roll_transfer_creates_transfer_events(): void
     {
-        $warehouseFrom = $this->warehouse;
         $warehouseTo = Warehouse::create([
             'name' => 'Destination Warehouse',
-            'code' => 'DEST-WH',
-            'warehouse_type' => 'storage',
-            'address' => '456 Dest St',
+            'is_system' => false,
         ]);
 
-        // Create roll in source warehouse
         $roll = Roll::create([
             'product_id' => $this->product->id,
-            'warehouse_id' => $warehouseFrom->id,
+            'warehouse_id' => $this->warehouse->id,
             'ean_13' => '3333333333333',
+            'status' => Roll::STATUS_IN_STOCK,
             'weight_kg' => 180.0,
             'length_m' => 1100.0,
-            'status' => Roll::STATUS_IN_STOCK,
-            'grammage' => 80,
-            'laize' => 100,
-            'quality' => 'A',
+            'cump_value' => 1000.0,
             'received_date' => now(),
         ]);
 
         StockQuantity::create([
             'product_id' => $this->product->id,
-            'warehouse_id' => $warehouseFrom->id,
+            'warehouse_id' => $this->warehouse->id,
             'total_qty' => 1,
             'total_weight_kg' => 180.0,
             'total_length_m' => 1100.0,
@@ -280,50 +270,43 @@ class RollLifecycleEventTest extends TestCase
             'cump_snapshot' => 1000.0,
         ]);
 
-        // Create transfer
         $bonTransfert = BonTransfert::create([
             'bon_number' => 'BT-TEST-001',
-            'warehouse_from_id' => $warehouseFrom->id,
+            'warehouse_from_id' => $this->warehouse->id,
             'warehouse_to_id' => $warehouseTo->id,
+            'transfer_date' => now()->toDateString(),
             'status' => 'draft',
-            'transfer_date' => now(),
         ]);
 
-        BonTransfertItem::create([
-            'bon_transfert_id' => $bonTransfert->id,
-            'product_id' => $this->product->id,
+        $bonTransfert->bonTransfertItems()->create([
             'item_type' => 'roll',
+            'product_id' => $this->product->id,
             'roll_id' => $roll->id,
             'qty_transferred' => 1,
-            'weight_transferred_kg' => 180.0,
-            'length_transferred_m' => 1100.0,
             'cump_at_transfer' => 1000.0,
         ]);
 
         $service = app(BonTransfertService::class);
-        $service->transfer($bonTransfert);
+        $service->transfer($bonTransfert->fresh());
 
-        // Check transfer start event
         $transferEvent = RollLifecycleEvent::where('roll_id', $roll->id)
             ->where('event_type', 'TRANSFER')
             ->first();
 
-        $this->assertNotNull($transferEvent, 'Transfer start lifecycle event should be created');
+        $this->assertNotNull($transferEvent);
         $this->assertEquals('BT-TEST-001', $transferEvent->reference_number);
-        $this->assertEquals($warehouseFrom->id, $transferEvent->warehouse_from_id);
+        $this->assertEquals($this->warehouse->id, $transferEvent->warehouse_from_id);
         $this->assertEquals($warehouseTo->id, $transferEvent->warehouse_to_id);
         $this->assertEquals(1100.0, (float) $transferEvent->length_after_m);
         $this->assertEquals(180.0, (float) $transferEvent->weight_after_kg);
 
-        // Now receive the transfer
-        $service->receive($bonTransfert);
+        $service->receive($bonTransfert->fresh());
 
-        // Check transfer completed event
         $completedEvent = RollLifecycleEvent::where('roll_id', $roll->id)
             ->where('event_type', 'TRANSFER_COMPLETED')
             ->first();
 
-        $this->assertNotNull($completedEvent, 'Transfer completed lifecycle event should be created');
+        $this->assertNotNull($completedEvent);
         $this->assertEquals('BT-TEST-001', $completedEvent->reference_number);
         $this->assertEquals($warehouseTo->id, $completedEvent->warehouse_to_id);
         $this->assertEquals(1100.0, (float) $completedEvent->length_after_m);
@@ -333,64 +316,48 @@ class RollLifecycleEventTest extends TestCase
     public function test_lifecycle_events_maintain_chronological_order(): void
     {
         $service = app(BonEntreeService::class);
+        $bonEntree = $this->createPendingBonEntree('BE-LIFE-001');
 
-        // 1. Reception
-        $bonEntree = BonEntree::create([
-            'bon_number' => 'BE-LIFE-001',
-            'supplier_id' => $this->supplier->id,
-            'warehouse_id' => $this->warehouse->id,
-            'status' => 'pending',
-            'entry_type' => 'purchase',
-            'expected_date' => now()->addDay(),
-        ]);
-
-        BonEntreeItem::create([
-            'bon_entree_id' => $bonEntree->id,
-            'product_id' => $this->product->id,
+        $bonEntree->bonEntreeItems()->create([
             'item_type' => 'bobine',
-            'qty_ordered' => 1,
+            'product_id' => $this->product->id,
             'qty_entered' => 1,
-            'ean_13' => '9999999999999',
-            'unit_price' => 1000.0,
-            'price_ht' => 1000.0,
-            'price_ttc' => 1000.0,
             'weight_kg' => 250.0,
             'length_m' => 1500.0,
+            'price_ht' => 1000.0,
+            'price_ttc' => 1000.0,
+            'ean_13' => '9999999999999',
+            'batch_number' => 'LOT-LIFE',
         ]);
 
-        $service->receive($bonEntree);
+        $service->receive($bonEntree->fresh());
 
-        $roll = Roll::where('ean_13', '9999999999999')->first();
-        $this->assertNotNull($roll);
+        $roll = Roll::where('ean_13', '9999999999999')->firstOrFail();
 
-        sleep(1); // Ensure different timestamps
+        sleep(1);
 
-        // 2. Sortie
         $bonSortie = BonSortie::create([
             'bon_number' => 'BS-LIFE-001',
             'warehouse_id' => $this->warehouse->id,
             'destination' => 'Production',
             'status' => 'draft',
-            'sortie_type' => 'production',
-            'sortie_date' => now(),
-            'issued_date' => now(),
+            'issued_date' => now()->toDateString(),
+            'notes' => 'Sortie chronologique',
         ]);
 
-        BonSortieItem::create([
-            'bon_sortie_id' => $bonSortie->id,
+        $bonSortie->bonSortieItems()->create([
             'product_id' => $this->product->id,
-            'item_type' => 'bobine',
+            'item_type' => 'roll',
             'roll_id' => $roll->id,
             'qty_issued' => 1,
-            'weight_issued_kg' => 250.0,
-            'length_issued_m' => 1500.0,
+            'weight_kg' => 250.0,
+            'length_m' => 1500.0,
             'cump_at_issue' => 1000.0,
         ]);
 
         $sortieService = app(BonSortieService::class);
-        $sortieService->issue($bonSortie);
+        $sortieService->issue($bonSortie->fresh());
 
-        // Check events are in chronological order
         $events = RollLifecycleEvent::where('roll_id', $roll->id)
             ->orderBy('created_at')
             ->get();
@@ -398,6 +365,6 @@ class RollLifecycleEventTest extends TestCase
         $this->assertCount(2, $events);
         $this->assertEquals('RECEPTION', $events[0]->event_type);
         $this->assertEquals('SORTIE', $events[1]->event_type);
-        $this->assertTrue($events[0]->created_at < $events[1]->created_at);
+        $this->assertTrue($events[0]->created_at->lt($events[1]->created_at));
     }
 }

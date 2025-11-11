@@ -1,63 +1,136 @@
-# CartonStock MVP Plan – v2.0 (Restructured)
+<!-- AGENT INSTRUCTION:
+  Always think and act as a software architect when changing code, docs, or infra.
+  - Prioritize clear data contracts, tests, and minimal, atomic commits.
+  - Update README(s) and the three canonical docs (`APP_OVERVIEW.md`, `LOGIC.md`, `PLAN.md`) when you change behavior.
+  - Never create new markdown files besides these three; update them instead.
+-->
 
-## 🎯 Executive Summary
+# Implementation Plan — SIFCO Carton (concise)
 
-**Phase 1 COMPLETED:** Slices 1-2 created basic data structure.  
-**Phase 2 COMPLETED:** Architectural redesign for **SIFCO procedure alignment** + **scalability**.  
-**Phase 3 CURRENT:** Core workflows implementation (Entrée ✅, Sortie ✅, Transfert ✅, Ajustements/Réintégrations ⏳)
+Agent-mode: ARCHITECT (apply architecture-first, tests-first, commit-after-test discipline)
 
-**Progress Overview:**
-- ✅ Slice 1-2: Master data & initial structure
-- ✅ Slice 2.5: Architecture refactor (27 tables, migrations, models)
-- ✅ Slice 3: Bon d'Entrée workflow (CUMP calculation, roll creation)
-- ✅ Slice 4: Bon de Sortie workflow (stock issuance, Filament v4 fixes)
-- ✅ Slice 5: Bon de Transfert workflow (staged receive, metre-tracking propagation)
-- ⏳ Slice 5b: Roll reception + lifecycle metrics cleanup ← **IN PROGRESS**
-- 📋 Slice 6-9: Réintégration, Adjustments, Dashboard, Reports
+Current phase: Phase 2 — Foundation & Polymorphic Integration
 
-**Key Changes:**
-- ❌ Deprecated: Overcomplicated Product/Roll/PaperRollType hierarchy
-- ✅ Introduced: Explicit procedure tables (Bon d'Entrée, Bon de Sortie, Bon de Transfert, Bon de Réintégration)
-- ✅ Introduced: `stock_movements` table for complete audit trail + CUMP versioning
-- ✅ Renamed: `stock_levels` → `stock_quantities` for clarity
-- ✅ Flattened: Categories/Subcategories → Many-to-Many model
-- ✅ Scalable: Per-product + per-warehouse quantity tracking with separate tables
+In-progress: Service alignment for polymorphic flows (ID: todo #5). Next immediate tasks:
+- [x] Audit remaining services/seeders to ensure they hydrate `sourceable`/`destinationable` consistently (confirmed BonEntree/BonSortie services plus WorkflowDemoSeeder & BonEntreeTestSeeder only rely on polymorphic columns; no raw `supplier_id` lookups remain).
+- [ ] Extend service-level tests (BonEntreeService, BonSortieService) to cover production line destinations and `product_type`-specific behaviours.
+- [ ] Capture production line flow notes in `LOGIC.md` and confirm operators have guidance in Filament forms (docs refresh after code).
+
+- [x] Extend service-level tests for BonEntreeService and BonSortieService (unit tests added: `tests/Unit/BonEntreeServiceTest.php`, `tests/Unit/BonSortieServiceTest.php`).
+- [x] Capture production line flow notes in `LOGIC.md` and add Filament forms guidance (LOGIC.md updated).
+
+Commit discipline: after each major step (model+migration, seeder, product_type, each polymorphic migration, services, UI), write tests, run them, then make an atomic commit and push to your fork/branch.
+
+Issues & Agent Ops (top-of-plan quick summary):
+- Agent ops: maintain user management UI, brand update to "SIFCO Carton", Filament branding, and docs.
+- Issues: enable production-line as source/destination for bon d'entrée / bon de sortie; keep system decoupled now but data-ready for future linking; ensure metrics and audit trail for production consumption/production per line.
 
 ---
 
-## 🔄 High-Level Scope (v2.0 Aligned to SIFCO Procedure)
+## Phase 1: Foundation & Data Structure (Current)
 
-**Core:** Track products per warehouse with complete audit trail (Bon de réception, Bon d'entrée, Bon de sortie, Bon de transfert, Bon de réintégration).
+- ✅ Slice 1-2: Master data & initial structure
 
-**Features:**
-- **Réception/Entrée:** Receive materials + calculate CUMP (coût moyen pondéré / weighted average)
+1.  **[Done]** **Cleanup Documentation:**- ✅ Slice 2.5: Architecture refactor (27 tables, migrations, models)
+
+    -   Delete obsolete markdown files.- ✅ Slice 3: Bon d'Entrée workflow (CUMP calculation, roll creation)
+
+    -   Create `PLAN.md`, `LOGIC.md`, `APP_OVERVIEW.md`.- ✅ Slice 4: Bon de Sortie workflow (stock issuance, Filament v4 fixes)
+
+- ✅ Slice 5: Bon de Transfert workflow (staged receive, metre-tracking propagation)
+
+2.  **Create `ProductionLine` Model & Migration:**- ⏳ Slice 5b: Roll reception + lifecycle metrics cleanup ← **IN PROGRESS**
+
+    -   Run `php artisan make:model ProductionLine -m`.- 📋 Slice 6-9: Réintégration, Adjustments, Dashboard, Reports
+
+    -   Define `name` and `code` fields in the migration.
+
+**Key Changes:**
+
+3.  **Create `ProductionLine` Seeder:**- ❌ Deprecated: Overcomplicated Product/Roll/PaperRollType hierarchy
+
+    -   Run `php artisan make:seeder ProductionLineSeeder`.- ✅ Introduced: Explicit procedure tables (Bon d'Entrée, Bon de Sortie, Bon de Transfert, Bon de Réintégration)
+
+    -   Add initial data for "Fosber" and "Macarbox".- ✅ Introduced: `stock_movements` table for complete audit trail + CUMP versioning
+
+    -   Call this seeder from `DatabaseSeeder`.- ✅ Renamed: `stock_levels` → `stock_quantities` for clarity
+
+- ✅ Flattened: Categories/Subcategories → Many-to-Many model
+
+4.  **Add `product_type` to `Product` Model:**- ✅ Scalable: Per-product + per-warehouse quantity tracking with separate tables
+
+    -   Create migration to add `product_type` enum (`raw_material`, `semi_finished`, `finished_good`) to the `products` table.
+
+    -   Update the `Product` model's `$fillable` array.---
+
+
+
+## Phase 2: Polymorphic Relationship Integration## 🔄 High-Level Scope (v2.0 Aligned to SIFCO Procedure)
+
+
+
+1.  **Update `bon_entrees` Table:****Core:** Track products per warehouse with complete audit trail (Bon de réception, Bon d'entrée, Bon de sortie, Bon de transfert, Bon de réintégration).
+
+    -   Create migration to add `sourceable_type` (string) and `sourceable_id` (unsignedBigInteger).
+
+    -   Create a data migration script to transfer data from the old `supplier_id` to the new polymorphic columns (`sourceable_id` = `supplier_id`, `sourceable_type` = `App\Models\Supplier`).**Features:**
+
+    -   Create migration to drop the now-redundant `supplier_id` column.- **Réception/Entrée:** Receive materials + calculate CUMP (coût moyen pondéré / weighted average)
+
 - **Sorties:** Issue to production with CUMP valuation
-- **Transferts:** Move between warehouses preserving CUMP
-- **Réintégration:** Return goods at original CUMP
-- **Avis de Rupture:** Low-stock alerts based on min_stock + safety_stock
+
+2.  **Update `bon_sorties` Table:**- **Transferts:** Move between warehouses preserving CUMP
+
+    -   Create migration to add `destinationable_type` (string) and `destinationable_id` (unsignedBigInteger).- **Réintégration:** Return goods at original CUMP
+
+    -   *Action:* Analyze if a data migration is needed for existing `bon_sorties` to a default destination type (e.g., `App\Models\Client`).- **Avis de Rupture:** Low-stock alerts based on min_stock + safety_stock
+
 - **Valorisation:** Valuation report with CUMP snapshot at each warehouse/product
-- **Bobines Dimensions:** Group rolls by grammage, laize, quality for reporting & selection
-- **Bobines Metrics:** Persist metre length alongside weight for every movement & dashboard view
-- **Lifecycle Ledger:** Central log of roll reception → transfer → sortie → réintégration with weight/length deltas & waste flags
+
+3.  **Update Eloquent Models:**- **Bobines Dimensions:** Group rolls by grammage, laize, quality for reporting & selection
+
+    -   Modify `BonEntree.php` to define the `sourceable()` polymorphic relationship.- **Bobines Metrics:** Persist metre length alongside weight for every movement & dashboard view
+
+    -   Modify `BonSortie.php` to define the `destinationable()` polymorphic relationship.- **Lifecycle Ledger:** Central log of roll reception → transfer → sortie → réintégration with weight/length deltas & waste flags
+
+    -   Update `Supplier.php`, `Client.php`, and `ProductionLine.php` to define the other side of the relationships (e.g., `bonEntrees()`).
 
 **Procedure Documents:** Bon de réception → Bon d'entrée → stock_movements → Rolls + stock_quantities
 
+## Phase 3: Service & UI Implementation
+
 **Tech:** Laravel 11 + Filament v4 on Windows/MySQL. UI in French.
 
----
+1.  **Update Services:**
 
-## 📊 Slice Roadmap (v2.0)
+    -   Refactor `BonEntreeService` to use the `sourceable` relationship when creating records.---
 
-- [x] **Slice 1: Core master data** (Products, Warehouses, Suppliers) ✅ DONE
-- [x] **Slice 2: Stock storage structure** (stock_levels, rolls, hierarchy) ✅ DONE
-- [x] **Slice 2.5: Architectural Refactor** ✅ **COMPLETE**
-  - [x] Create new tables: stock_movements, stock_quantities, bon_* (all 4 types), rolls
-  - [x] Update models and relationships
+    -   Refactor `BonSortieService` to use the `destinationable` relationship.
+
+    -   Ensure stock movement logic correctly handles all source/destination types.## 📊 Slice Roadmap (v2.0)
+
+
+
+2.  **Update Filament `BonEntreeResource`:**- [x] **Slice 1: Core master data** (Products, Warehouses, Suppliers) ✅ DONE
+
+    -   In the form, add a `Select` field for `sourceable_type` ("Source Type") with options "Supplier" and "Production Line".- [x] **Slice 2: Stock storage structure** (stock_levels, rolls, hierarchy) ✅ DONE
+
+    -   Make the field `reactive`.- [x] **Slice 2.5: Architectural Refactor** ✅ **COMPLETE**
+
+    -   Conditionally display a `Select` for Suppliers or a `Select` for Production Lines based on the user's choice.  - [x] Create new tables: stock_movements, stock_quantities, bon_* (all 4 types), rolls
+
+    -   Update the resource table to display the source type and name correctly.  - [x] Update models and relationships
+
   - [x] Create Filament resources (Products, Rolls, Categories, Suppliers, Warehouses, Units, Users)
-  - [x] Add is_roll flag for product filtering
-  - [x] Migrate to MySQL 8.0.44
-  - [x] Seed test data
-- [x] **Slice 3: Bon d'Entrée Workflow** ✅ **COMPLETE** (Receipts with CUMP calculation)
+
+3.  **Update Filament `BonSortieResource`:**  - [x] Add is_roll flag for product filtering
+
+    -   Apply the same reactive UI pattern for `destinationable_type` ("Destination Type").  - [x] Migrate to MySQL 8.0.44
+
+    -   Conditionally show a `Select` for Clients or Production Lines.  - [x] Seed test data
+
+    -   Update the resource table to display the destination.- [x] **Slice 3: Bon d'Entrée Workflow** ✅ **COMPLETE** (Receipts with CUMP calculation)
+
 - [x] **Slice 4: Bon de Sortie Workflow** ✅ **COMPLETE** (Issues to production)
 - [x] **Slice 5: Bon de Transfert Workflow** ✅ **COMPLETE** (Inter-warehouse transfers with staged receive + metre propagation)
 - [x] **Slice 5a: Roll Dimension Grouping** ✅ **COMPLETE** (Dashboard groups bobines by warehouse + product attributes: grammage/laize/paper_type/flute with roll counts and totals)

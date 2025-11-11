@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Supplier extends Model
 {
@@ -21,8 +23,13 @@ class Supplier extends Model
         'is_active' => 'boolean',
     ];
 
-    public function bonReceptions()
+    public function bonReceptions(): HasMany
     {
         return $this->hasMany(BonReception::class);
+    }
+
+    public function bonEntrees(): MorphMany
+    {
+        return $this->morphMany(BonEntree::class, 'sourceable');
     }
 }

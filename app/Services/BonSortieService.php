@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BonSortie;
 use App\Models\BonSortieItem;
+use App\Models\ProductionLine;
 use App\Models\Roll;
 use App\Models\RollLifecycleEvent;
 use App\Models\StockMovement;
@@ -37,6 +38,12 @@ class BonSortieService
         DB::beginTransaction();
 
         try {
+            if ($bonSortie->destinationable instanceof ProductionLine && blank($bonSortie->destination)) {
+                $bonSortie->update([
+                    'destination' => $bonSortie->destinationable->name,
+                ]);
+            }
+
             $items = $bonSortie->bonSortieItems;
             Log::info("Processing {$items->count()} items for bon de sortie {$bonSortie->bon_number}");
 
@@ -157,7 +164,7 @@ class BonSortieService
         ]);
 
         // Update stock quantity
-    $this->updateStockQuantity($item->product_id, $bonSortie->warehouse_id, $item->qty_issued, 0, 0);
+        $this->updateStockQuantity($item->product_id, $bonSortie->warehouse_id, $item->qty_issued, 0, 0);
     }
 
     /**

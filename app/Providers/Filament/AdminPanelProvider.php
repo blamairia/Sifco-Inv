@@ -28,6 +28,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('SIFCO Carton')
+            ->brandLogo(asset('images/sifco-carton-logo.svg'))
+            ->brandLogoHeight('2.25rem')
+            ->favicon(asset('images/sifco-carton-logo.svg'))
             ->colors([
                 'primary' => Color::Amber,
             ])

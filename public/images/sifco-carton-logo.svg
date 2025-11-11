@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" role="img" aria-labelledby="title desc">
+  <title id="title">SIFCO Carton</title>
+  <desc id="desc">Stylised wordmark for SIFCO Carton</desc>
+  <rect x="4" y="12" width="72" height="56" rx="8" fill="#f59e0b" />
+  <path d="M32 24 L60 24 L60 52" fill="none" stroke="#1f2937" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M20 52 L52 52 L52 36" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="96" y="46" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="#1f2937" letter-spacing="1">
+    SIFCO
+  </text>
+  <text x="96" y="64" font-family="'Segoe UI', Arial, sans-serif" font-size="20" font-weight="500" fill="#4b5563" letter-spacing="3">
+    CARTON
+  </text>
+</svg>

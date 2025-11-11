@@ -31,10 +31,16 @@ class BonSortiesTable
                     ->searchable()
                     ->sortable(),
                 
-                TextColumn::make('destination')
+                TextColumn::make('destination_label')
                     ->label('Destination')
-                    ->searchable()
-                    ->sortable(),
+                    ->state(fn ($record) => $record->destinationable?->name ?? $record->destination)
+                    ->searchable(false),
+
+                TextColumn::make('destination_type')
+                    ->label('Type')
+                    ->badge()
+                    ->color(fn ($record) => $record->destinationable_type === \App\Models\ProductionLine::class ? 'info' : 'gray')
+                    ->state(fn ($record) => $record->destinationable_type === \App\Models\ProductionLine::class ? 'Production' : 'Libre'),
                 
                 TextColumn::make('status')
                     ->label('Statut')
@@ -95,6 +101,27 @@ class BonSortiesTable
                     ->relationship('warehouse', 'name')
                     ->searchable()
                     ->preload(),
+
+                SelectFilter::make('destination_type')
+                    ->label('Type de destination')
+                    ->options([
+                        'production' => 'Ligne de production',
+                        'custom' => 'Libre',
+                    ])
+                    ->query(function ($query, $value) {
+                        return $value === 'production'
+                            ? $query->where('destinationable_type', \App\Models\ProductionLine::class)
+                            : $query->whereNull('destinationable_type');
+                    }),
+
+                SelectFilter::make('destinationable_id')
+                    ->label('Ligne de production')
+                    ->options(fn () => \App\Models\ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->query(function ($query, $value) {
+                        return $query
+                            ->where('destinationable_type', \App\Models\ProductionLine::class)
+                            ->where('destinationable_id', $value);
+                    }),
             ])
             ->actions([
                 EditAction::make(),

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class BonEntree extends Model
 {
@@ -12,7 +13,8 @@ class BonEntree extends Model
 
     protected $fillable = [
         'bon_number',
-        'supplier_id',
+        'sourceable_type',
+        'sourceable_id',
         'document_number',
         'warehouse_id',
         'expected_date',
@@ -33,9 +35,19 @@ class BonEntree extends Model
     ];
 
     // Relationships
-    public function supplier(): BelongsTo
+    public function sourceable(): MorphTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->morphTo();
+    }
+
+    public function supplier(): ?Supplier
+    {
+        return $this->sourceable instanceof Supplier ? $this->sourceable : null;
+    }
+
+    public function productionLine(): ?ProductionLine
+    {
+        return $this->sourceable instanceof ProductionLine ? $this->sourceable : null;
     }
 
     public function warehouse(): BelongsTo

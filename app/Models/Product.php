@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
+    public const TYPE_RAW_MATERIAL = 'raw_material';
+    public const TYPE_SEMI_FINISHED = 'semi_finished';
+    public const TYPE_FINISHED_GOOD = 'finished_good';
+
     protected $fillable = [
         'code',
         'name',
@@ -17,6 +21,7 @@ class Product extends Model
         'type_papier',
         'extra_attributes',
         'unit_id',
+        'product_type',
         'is_active',
         'is_roll',
         'min_stock',
@@ -68,6 +73,15 @@ class Product extends Model
     public function getCategoryAttribute()
     {
         return $this->categories()->wherePivot('is_primary', true)->first();
+    }
+
+    public static function productTypes(): array
+    {
+        return [
+            self::TYPE_RAW_MATERIAL,
+            self::TYPE_SEMI_FINISHED,
+            self::TYPE_FINISHED_GOOD,
+        ];
     }
 
 }
