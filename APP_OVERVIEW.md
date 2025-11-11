@@ -7,7 +7,8 @@
 - **Product & Catalog Management:**
   - Manage a detailed catalog of products, including raw materials, semi-finished goods, and finished goods.
   - Organize products into categories and subcategories.
-  - Maintain a database of suppliers.
+  - Capture dimensional data for sheet/pallet products (width and length in millimetres).
+  - Maintain a database of suppliers and B2B clients.
 
 - **Stock Management:**
   - Track real-time stock levels across multiple warehouses.
@@ -24,6 +25,9 @@
   - Define and manage manufacturing production lines (e.g., Fosber, Macarbox).
   - Track raw materials and semi-finished products issued to production.
   - Record finished and semi-finished goods received from production.
+- **Client Dispatch:**
+  - Manage customer master data directly in Filament (list/create/edit).
+  - Route Bon de Sortie documents to clients or production lines with automatic destination labelling.
 
 - **Administration:**
   - Manage users, roles, and permissions.

@@ -11,13 +11,13 @@ Agent-mode: ARCHITECT (apply architecture-first, tests-first, commit-after-test 
 
 Current phase: Phase 2 — Foundation & Polymorphic Integration
 
-In-progress: Service alignment for polymorphic flows (ID: todo #5). Next immediate tasks:
-- [x] Audit remaining services/seeders to ensure they hydrate `sourceable`/`destinationable` consistently (confirmed BonEntree/BonSortie services plus WorkflowDemoSeeder & BonEntreeTestSeeder only rely on polymorphic columns; no raw `supplier_id` lookups remain).
-- [ ] Extend service-level tests (BonEntreeService, BonSortieService) to cover production line destinations and `product_type`-specific behaviours.
-- [ ] Capture production line flow notes in `LOGIC.md` and confirm operators have guidance in Filament forms (docs refresh after code).
-
-- [x] Extend service-level tests for BonEntreeService and BonSortieService (unit tests added: `tests/Unit/BonEntreeServiceTest.php`, `tests/Unit/BonSortieServiceTest.php`).
-- [x] Capture production line flow notes in `LOGIC.md` and add Filament forms guidance (LOGIC.md updated).
+In-progress: Slice 5e — Client destinations & sheet pallet handling. Next immediate tasks:
+- [x] Introduce B2B client master data (model, migration, seeder) and expose it via Filament.
+- [x] Allow Bon de Sortie to target clients alongside production lines, auto-filling destinations.
+- [x] Add sheet dimension support (width/length) to products and bon item repeaters with guarded queries pre-migration.
+- [x] Run migrations, seed clients, and execute the full test suite (16 passing assertions) after the feature rollout.
+- [ ] Mirror the sheet/palette repeater on Bon de Sortie to capture outbound sheets with dimensions.
+- [x] Update canonical docs (`PLAN.md`, `LOGIC.md`, `APP_OVERVIEW.md`) to reflect client handling and sheet attributes.
 
 Commit discipline: after each major step (model+migration, seeder, product_type, each polymorphic migration, services, UI), write tests, run them, then make an atomic commit and push to your fork/branch.
 
@@ -137,6 +137,7 @@ Issues & Agent Ops (top-of-plan quick summary):
 - [x] **Slice 5b: Roll Reception & Lifecycle Metrics** ✅ **COMPLETE** (Weight & metre length captured at Bon d'Entrée, persisted to rolls/movements/stock_quantities, migrations deployed)
 - [x] **Slice 5c: Roll Lifecycle Ledger** ✅ **COMPLETE** (Event log table + model created, waste tracking integrated, all services updated with lifecycle logging, comprehensive test suite 5/5 passing)
 - [x] **Slice 5d: Bobine Dashboard & Reporting** ✅ **COMPLETE** (Filament page with stats widgets, filtering by warehouse/category/status, grouping by laize/grammage/type, total weight/metrage summaries)
+- [x] **Slice 5e: B2B Clients & Sheet Pallets** ✅ **COMPLETE** (Client CRUD + seeder, sheet dimension migrations, guarded palette repeater queries, Bon de Sortie client selector)
 - [ ] **Slice 6: Bon de Réintégration Workflow** (Returns with CUMP preservation + waste metrics) (2 days)
 - [ ] **Slice 7: Stock Adjustments & Low-Stock Alerts** (Manual corrections + auto alerts) (2 days)
 - [ ] **Slice 8: Advanced Dashboard & Reports** (KPIs, charts, inventory status, trend analysis) (3 days)
@@ -398,6 +399,14 @@ Issues & Agent Ops (top-of-plan quick summary):
 - ✅ Roll status management (in_stock → consumed)
 - ✅ Stock movements audit trail
 - ✅ Stock quantity decrements
+
+### 4.6 Client Destinations & Sheet Pallets ✅ DONE
+- ✅ Added dedicated `clients` table, Eloquent model, and Filament CRUD (List/Create/Edit) so dispatch users can manage B2B recipients.
+- ✅ Seeded baseline clients via `ClientSeeder` (idempotent `updateOrCreate`) and linked it in `DatabaseSeeder`.
+- ✅ Extended products and bon item tables with optional `sheet_width_mm` / `sheet_length_mm` columns for pallet & sheet tracking.
+- ✅ Updated `BonEntreeForm` palette repeater to guard sheet filters via facade checks, preventing pre-migration SQL errors.
+- ✅ Enhanced `BonSortieForm` destination selection to support clients alongside production lines with auto-filled labels.
+- ✅ Ran `php artisan migrate`, `php artisan db:seed --class=ClientSeeder`, and the full `php artisan test` suite (16 tests, 82 assertions) on 2025-11-11.
 - ✅ Filament v4 compliance (proper namespace, relationship patterns)
 - ✅ Action buttons with confirmations
 - ✅ Success/error notifications
