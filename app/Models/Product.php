@@ -98,14 +98,14 @@ class Product extends Model
         return $this->category();
     }
 
-    public function scopeRolls(Builder $builder): Builder
+    public function scopeRolls(Builder $query): Builder
     {
-        return $builder->where('is_roll', true);
+        return $query->where('is_roll', true);
     }
 
-    public function scopeSheets(Builder $builder): Builder
+    public function scopeSheets(Builder $query): Builder
     {
-        return $builder->where('is_roll', false)
+        return $query->where('is_roll', false)
             ->where(function (Builder $subQuery): void {
                 $subQuery->whereNotNull('sheet_width_mm')
                     ->orWhereNotNull('sheet_length_mm');
