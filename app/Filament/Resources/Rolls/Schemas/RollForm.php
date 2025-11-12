@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Rolls\Schemas;
 
+use App\Models\Product;
 use App\Models\Roll;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
