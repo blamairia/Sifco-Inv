@@ -18,6 +18,7 @@ In-progress: Slice 5e — Client destinations & sheet pallet handling. Next imme
 - [x] Run migrations, seed clients, and execute the full test suite (16 passing assertions) after the feature rollout.
 - [ ] Mirror the sheet/palette repeater on Bon de Sortie to capture outbound sheets with dimensions.
 - [x] Update canonical docs (`PLAN.md`, `LOGIC.md`, `APP_OVERVIEW.md`) to reflect client handling and sheet attributes.
+- [x] Refresh Product resource UX: dynamic roll vs sheet sections, logical type selector, and category/primary-category pivots kept in sync.
 
 Commit discipline: after each major step (model+migration, seeder, product_type, each polymorphic migration, services, UI), write tests, run them, then make an atomic commit and push to your fork/branch.
 

@@ -7,6 +7,8 @@
 - **Product & Catalog Management:**
   - Manage a detailed catalog of products, including raw materials, semi-finished goods, and finished goods.
   - Organize products into categories and subcategories.
+  - Flag a primary reporting category when multiple categories apply.
+  - Choose between roll, consumable, or finished families to reveal context-specific attributes automatically.
   - Capture dimensional data for sheet/pallet products (width and length in millimetres).
   - Maintain a database of suppliers and B2B clients.
 

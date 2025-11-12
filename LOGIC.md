@@ -14,11 +14,13 @@ This document details the application's architecture and business logic, focusin
 - **Relationships:** `bonSorties()` morph-many, enabling audits per client. Seeder entries (FOSBER INDUSTRIES, MACARBOX AFRICA) are added via `updateOrCreate` to remain idempotent.
 
 ### 3. `Product`
-- **Purpose:** Extends the product model to classify items and capture dimensional data.
+- **Purpose:** Extends the product model to classify items, capture dimensional data, and drive dynamic UI behaviour.
 - **Key Fields:**
-    - `product_type` (enum: `raw_material`, `semi_finished`, `finished_good`).
+    - `type` (enum `papier_roll`, `consommable`, `fini`) governs Filament form sections.
+    - `product_type` (enum: `raw_material`, `semi_finished`, `finished_good`) controls service branching in stock flows.
     - `sheet_width_mm` / `sheet_length_mm` (nullable decimal, precision 10, scale 2) for sheet/pallet tracking.
-- **Rationale:** Type drives service branching, while sheet metrics synchronize pallet receipts and future outbound flows.
+    - Pivot flag `product_category.is_primary` identifies the reporting category.
+- **Rationale:** `type` toggles between roll-first and sheet/pallet UX, `product_type` informs Bon d'Entrée/Sortie service logic, while sheet metrics synchronize pallet receipts and future outbound flows.
 
 ### 4. `BonEntree` (Polymorphic Source)
 - **Purpose:** To record where goods came from. The original `supplier_id` will be replaced by a polymorphic relationship.
@@ -53,7 +55,13 @@ This document details the application's architecture and business logic, focusin
     2. The stock level of the issued products is **decremented** and valued at the stored CUMP snapshot.
 - **Note:** This is treated as consumption or client dispatch. Stock is removed from inventory and is not automatically added back elsewhere.
 
-## Filament Forms Guidance (Production Line & Client integration)
+## Filament Forms Guidance (Production Line, Clients & Products)
+
+- Product form (Filament):
+    - Adds paired selects for `type` (UI family) and `product_type` (logical class) with helper labels sourced from `Product::typeOptions()` and `Product::productTypeOptions()`.
+    - Automatically syncs the `is_roll` toggle with the selected family: setting the type to `papier_roll` forces `is_roll=true`, deselecting rolls hides paper-specific inputs.
+    - Paper attributes and sheet dimensions sections are reactive—only visible when relevant to the chosen product family.
+    - Category management supports multi-select with a dedicated "primary" selector; the pivot's `is_primary` bit is updated in `CreateProduct` / `EditProduct` pages immediately after persistence.
 
 - Bon d'Entrée form:
     - Add a Select field `sourceable_type` with options `[\App\Models\Supplier::class => 'Supplier', \App\Models\ProductionLine::class => 'Production Line']`.

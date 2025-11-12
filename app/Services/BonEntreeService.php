@@ -214,11 +214,17 @@ class BonEntreeService
      */
     protected function processProductItem(BonEntreeItem $item, BonEntree $bonEntree): void
     {
+        $quantity = $this->resolveItemQuantity($item);
+
+        if ($quantity <= 0) {
+            throw new Exception("Quantité invalide pour l'article {$item->id}.");
+        }
+
         // Calculate CUMP
         $newCump = CumpCalculator::calculate(
             $item->product_id,
             $bonEntree->warehouse_id,
-            $item->qty_entered,
+            $quantity,
             $item->price_ttc
         );
 
@@ -228,7 +234,7 @@ class BonEntreeService
             'product_id' => $item->product_id,
             'warehouse_to_id' => $bonEntree->warehouse_id,
             'movement_type' => 'RECEPTION',
-            'qty_moved' => $item->qty_entered,
+            'qty_moved' => $quantity,
             'cump_at_movement' => $newCump,
             'status' => 'confirmed',
             'reference_number' => $bonEntree->bon_number,
@@ -241,7 +247,7 @@ class BonEntreeService
         $this->updateStockQuantity(
             $item->product_id,
             $bonEntree->warehouse_id,
-            $item->qty_entered,
+            $quantity,
             $newCump
         );
     }
@@ -302,13 +308,7 @@ class BonEntreeService
         }
 
         // Calculate total quantity (bobines count as 1 each, products use qty_entered)
-        $totalQty = $bonEntree->bonEntreeItems->sum(function ($item) {
-            if ($item->isBobine()) {
-                return 1;
-            }
-
-            return $item->qty_entered;
-        });
+        $totalQty = $bonEntree->bonEntreeItems->sum(fn ($item) => $this->resolveItemQuantity($item));
 
         if ($totalQty == 0) {
             throw new Exception("Cannot distribute frais d'approche: total quantity is zero.");
@@ -318,9 +318,11 @@ class BonEntreeService
 
         // Update each item's price_ttc
         foreach ($bonEntree->bonEntreeItems as $item) {
-            $qtyForCalculation = $item->isBobine() ? 1 : $item->qty_entered;
+            $qtyForCalculation = $this->resolveItemQuantity($item);
             $fraisForItem = $fraisPerUnit * $qtyForCalculation;
-            $priceTtc = $item->price_ht + ($fraisForItem / $qtyForCalculation);
+            $priceTtc = $qtyForCalculation > 0
+                ? $item->price_ht + ($fraisForItem / $qtyForCalculation)
+                : $item->price_ht;
 
             $item->update(['price_ttc' => $priceTtc]);
         }
@@ -328,14 +330,32 @@ class BonEntreeService
         // Recalculate totals
         $bonEntree->update([
             'total_amount_ht' => $bonEntree->bonEntreeItems->sum(function ($item) {
-                $qty = $item->isBobine() ? 1 : $item->qty_entered;
+                $qty = $this->resolveItemQuantity($item);
                 return $qty * $item->price_ht;
             }),
             'total_amount_ttc' => $bonEntree->bonEntreeItems->sum(function ($item) {
-                $qty = $item->isBobine() ? 1 : $item->qty_entered;
+                $qty = $this->resolveItemQuantity($item);
                 return $qty * $item->price_ttc;
             }),
         ]);
+    }
+
+    /**
+     * Resolve quantity for any BonEntree item, enforcing sane defaults.
+     */
+    protected function resolveItemQuantity(BonEntreeItem $item): float
+    {
+        if ($item->isBobine()) {
+            return 1.0;
+        }
+
+        $quantity = (float) ($item->qty_entered ?? 0);
+
+        if ($quantity <= 0) {
+            throw new Exception("Quantité manquante ou invalide sur l'article {$item->id}.");
+        }
+
+        return $quantity;
     }
 
     /**
