@@ -12,11 +12,17 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Get;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
 
 class RollAdjustmentForm
 {
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema->components(self::schema());
+    }
+
     public static function schema(): array
     {
         return [
