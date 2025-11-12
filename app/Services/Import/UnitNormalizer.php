@@ -19,6 +19,11 @@ class UnitNormalizer
         'PIECE' => 'UNITE',
     ];
 
+    public function getMap(): array
+    {
+        return $this->map;
+    }
+
     public function normalize(?string $unit): string
     {
         $u = strtoupper(trim((string)($unit ?? '')));
@@ -26,6 +31,17 @@ class UnitNormalizer
 
         if ($u === '') {
             return 'UNITE';
+        }
+        // If the unit cell contains only numbers, it's likely misaligned; default to 'UNITE'
+        if (preg_match('/^\d+$/', $u)) {
+            return 'UNITE';
+        }
+        // If the unit value is a month name, treat it as misaligned header and fallback
+        $months = ['JAN', 'FEV', 'FÉV', 'MARS', 'AVR', 'MAI', 'JUIN', 'JUIL', 'AOUT', 'AOÛT', 'SEP', 'OCT', 'NOV', 'DEC'];
+        foreach ($months as $m) {
+            if (stripos($u, $m) !== false) {
+                return 'UNITE';
+            }
         }
         $u = $this->stripS($u);
 

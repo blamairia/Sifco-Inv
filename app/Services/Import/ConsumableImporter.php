@@ -22,13 +22,15 @@ class ConsumableImporter
     protected UnitNormalizer $unitNormalizer;
     protected CategorySuggester $categorySuggester;
     protected SkuGenerator $skuGenerator;
+    protected string $file;
 
-    public function __construct()
+    public function __construct(string $file = null)
     {
         $this->headers = new HeaderDetector();
         $this->unitNormalizer = new UnitNormalizer();
         $this->categorySuggester = new CategorySuggester();
         $this->skuGenerator = new SkuGenerator();
+        $this->file = $file ?? storage_path('app/ETAT CONSOMATION MC.xlsx');
     }
 
     public function import(string $file, bool $dryRun = true, ?int $limit = null): array
@@ -41,7 +43,9 @@ class ConsumableImporter
         $spreadsheet = IOFactory::load($file);
         $sheetCount = $spreadsheet->getSheetCount();
         $logs = [];
-        $summary = ['sheets' => $sheetCount, 'products' => 0, 'bon_entrees' => 0, 'bon_sorties' => 0, 'skipped_rows' => 0, 'issues' => []];
+    $summary = ['sheets' => $sheetCount, 'products' => 0, 'bon_entrees' => 0, 'bon_sorties' => 0, 'skipped_rows' => 0, 'issues' => []];
+    $skippedRows = [];
+    $validationIssues = [];
 
         for ($i = 0; $i < $sheetCount; $i++) {
             $sheet = $spreadsheet->getSheet($i);
@@ -81,7 +85,7 @@ class ConsumableImporter
                 $value = $this->toNumber($row[$mapping['VALEUR']] ?? 0);
                 $closing = $this->toNumber($row[$mapping['STOCK']] ?? 0);
 
-                if ($opening + $reception - $sortie !== $closing) {
+                if (abs(($opening + $reception - $sortie) - $closing) > 0.0001) {
                     $summary['issues'][] = [
                         'sheet' => $sheetTitle,
                         'row' => $r + 1,
@@ -92,6 +96,7 @@ class ConsumableImporter
                         'closing' => $closing,
                         'delta' => $closing - ($opening + $reception - $sortie),
                     ];
+                    $validationIssues[] = $summary['issues'][count($summary['issues'])-1];
                 }
 
                 // product identification and creation
@@ -100,7 +105,14 @@ class ConsumableImporter
                     $q->where('name', $unitName);
                 })->first();
 
-                if (!$product) {
+                    // Idempotency: check if product was previously created via import
+                    $productExternalId = sha1($legacyKey . '|product');
+                    $productImport = ImportRecord::where('external_id', $productExternalId)->first();
+                    if ($productImport) {
+                        $product = Product::find($productImport->model_id);
+                    }
+
+                    if (!$product) {
                     // create unit if needed
                     $unit = Unit::firstOrCreate(['name' => $unitName], ['symbol' => $unitName]);
                     // find category
@@ -121,6 +133,9 @@ class ConsumableImporter
                     ]);
 
                     $product->categories()->attach($subCategory->id, ['is_primary' => true]);
+                        if (! $dryRun) {
+                            ImportRecord::create(['external_id' => $productExternalId, 'model_type' => Product::class, 'model_id' => $product->id, 'payload' => ['legacy_key' => $legacyKey]]);
+                        }
                     $summary['products']++;
                 }
 
@@ -128,6 +143,13 @@ class ConsumableImporter
                 $date = $this->parseSheetDate($sheetTitle);
                 // external id for idempotency:
                 $externalBase = implode('|', [$sheetTitle, $r, $date, $descr, $unitName]);
+
+                // If unit is a month or numeric, consider the row malformed and skip
+                if (preg_match('/^\d+$/', (string)$row[$mapping['UNITE']] ?? '')) {
+                    $skippedRows[] = ['sheet' => $sheetTitle, 'row' => $r+1, 'reason' => 'UNIT_NUMERIC', 'row' => $row];
+                    $summary['skipped_rows']++;
+                    continue;
+                }
 
                 if ($reception > 0) {
                     $externalId = sha1($externalBase . '|RECEPTION|' . $reception);
@@ -201,8 +223,47 @@ class ConsumableImporter
 
         file_put_contents($logdir . '/profile.json', json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         file_put_contents($logdir . '/summary.json', json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        // validation issues CSV
+        $valCsv = fopen($logdir . '/validation_issues.csv', 'w');
+        if ($valCsv) {
+            fputcsv($valCsv, ['sheet','row','description','opening','reception','sortie','closing','delta']);
+            foreach ($validationIssues as $vi) {
+                fputcsv($valCsv, [$vi['sheet'],$vi['row'],$vi['description'],$vi['opening'],$vi['reception'],$vi['sortie'],$vi['closing'],$vi['delta']]);
+            }
+            fclose($valCsv);
+        }
+        // skipped rows dump
+        $skCsv = fopen($logdir . '/skipped_rows.csv', 'w');
+        if ($skCsv) {
+            fputcsv($skCsv, ['sheet','row','reason','raw_row']);
+            foreach ($skippedRows as $sk) {
+                fputcsv($skCsv, [$sk['sheet'],$sk['row'],$sk['reason'], json_encode($sk['row'])]);
+            }
+            fclose($skCsv);
+        }
 
         return ['summary' => $summary, 'logs' => $logs];
+    }
+
+    public function analyze(): array
+    {
+        // If phpspreadsheet available, do sheet-level header detection
+        if (class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class)) {
+            $spreadsheet = IOFactory::load($this->file);
+            $sheets = [];
+            for ($i = 0; $i < $spreadsheet->getSheetCount(); $i++) {
+                $sheet = $spreadsheet->getSheet($i);
+                $title = $sheet->getTitle();
+                $rows = $sheet->toArray(null, true, true, true);
+                $det = $this->headers->detect($rows);
+                $sheets[] = ['sheet' => $title, 'header' => $det, 'sample' => array_slice($rows, 0, 5)];
+            }
+            return $sheets;
+        }
+
+        // Use profileWorkbook if PhpSpreadsheet is not present
+        $profile = $this->profileWorkbook($this->file);
+        return $profile['profile'] ?? [];
     }
 
     protected function toNumber($value): float
@@ -303,7 +364,18 @@ class ConsumableImporter
         if (!is_dir($logdir)) mkdir($logdir, 0755, true);
     file_put_contents($logdir . '/profile.json', json_encode($profile, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     file_put_contents($logdir . '/unit_summary.json', json_encode(array_keys($units), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    file_put_contents($logdir . '/unique_combos.json', json_encode(['count' => count($seenCombos), 'samples' => array_slice(array_keys($seenCombos), 0, 20)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        file_put_contents($logdir . '/unique_combos.json', json_encode(['count' => count($seenCombos), 'samples' => array_slice(array_keys($seenCombos), 0, 20)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        // write unit synonyms
+        $unitNormalizer = new UnitNormalizer();
+    $unitMap = $unitNormalizer->getMap();
+        $uCsv = fopen($logdir . '/unit_synonyms.csv', 'w');
+        if ($uCsv) {
+            fputcsv($uCsv, ['variant','canonical']);
+            foreach ($unitMap as $variant => $canonical) {
+                fputcsv($uCsv, [$variant,$canonical]);
+            }
+            fclose($uCsv);
+        }
     return ['profile' => $profile, 'units' => array_keys($units), 'unique_count' => count($seenCombos)];
     }
 }

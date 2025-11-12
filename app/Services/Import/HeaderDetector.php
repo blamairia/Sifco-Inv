@@ -7,9 +7,9 @@ class HeaderDetector
     protected array $canonical = [
         'DESCRIPTION' => ['description', 'descr', 'libelle', 'article', 'designation'],
         'STOCK_INT' => ['stock_int', 'stock_ini', 'stock_initial', 'stock ouverture', 'opening_stock'],
-        'RECEPTION' => ['reception', 'received', 'in', 'arrivee'],
+    'RECEPTION' => ['reception', 'received', 'in', 'arrivee', 'entree', 'entrees', 'entrée', 'entrees'],
         'UNITE' => ['unite', 'unit', 'uom', 'u'],
-    'SORTIE' => ['sortie', 'issue', 'out', 'consommation', 'sortier'],
+    'SORTIE' => ['sortie', 'issue', 'out', 'consommation', 'sortier', 'sortie '],
         'PRIX' => ['prix', 'price', 'unit_price', 'price_ttc'],
         'VALEUR' => ['valeur', 'value', 'line_value'],
         'STOCK' => ['stock', 'closing_stock', 'stock_fin'],
