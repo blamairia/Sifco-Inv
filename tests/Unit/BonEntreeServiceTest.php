@@ -26,8 +26,7 @@ class BonEntreeServiceTest extends TestCase
         $product = Product::create([
             'code' => 'TEST-ROLL-001',
             'name' => 'Test Roll',
-            'type' => 'papier_roll',
-            'is_roll' => true,
+            'form_type' => Product::FORM_ROLL,
             'unit_id' => null,
             'product_type' => Product::TYPE_SEMI_FINISHED,
         ]);

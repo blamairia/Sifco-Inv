@@ -28,21 +28,17 @@ class CreateProduct extends CreateRecord
     private function syncPrimaryCategory(): void
     {
         $product = $this->getRecord();
-        $primaryCategoryId = $this->data['primary_category_id'] ?? null;
+        $categories = array_map('intval', $this->data['categories'] ?? []);
+        $primaryCategoryId = isset($this->data['primary_category_id'])
+            ? (int) $this->data['primary_category_id']
+            : null;
 
-        if ($primaryCategoryId) {
-            // Sync all categories first
-            $product->categories()->sync($this->data['categories']);
+        $product->categories()->sync($categories);
 
-            // Detach all, then re-attach the primary one with the pivot data.
-            // This ensures only one primary category is set.
-            $product->categories()->updateExistingPivot($primaryCategoryId, ['is_primary' => true]);
-
-            // Ensure other categories are not primary
-            $otherCategoryIds = array_diff($this->data['categories'], [$primaryCategoryId]);
-            if (!empty($otherCategoryIds)) {
-                $product->categories()->updateExistingPivot($otherCategoryIds, ['is_primary' => false]);
-            }
+        foreach ($categories as $categoryId) {
+            $product->categories()->updateExistingPivot($categoryId, [
+                'is_primary' => $primaryCategoryId !== null && $categoryId === $primaryCategoryId,
+            ]);
         }
     }
 }

@@ -218,7 +218,7 @@ class BonTransfertForm
                                             return [];
                                         }
                                         
-                                        return Product::where('is_roll', false)
+                                        return Product::where('form_type', '!=', Product::FORM_ROLL)
                                             ->where('is_active', true)
                                             ->whereHas('stockQuantities', function ($query) use ($warehouseFromId) {
                                                 $query->where('warehouse_id', $warehouseFromId)

@@ -52,7 +52,7 @@ class RollAdjustmentForm
 
                     Select::make('product_id')
                         ->label('Produit (bobine)')
-                        ->options(fn () => Product::query()->where('is_roll', true)->orderBy('name')->pluck('name', 'id')->toArray())
+                        ->options(fn () => Product::query()->where('form_type', Product::FORM_ROLL)->orderBy('name')->pluck('name', 'id')->toArray())
                         ->searchable()
                         ->preload()
                         ->required(fn (Get $get) => $get('operation') === 'add')

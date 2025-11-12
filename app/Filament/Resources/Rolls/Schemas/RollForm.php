@@ -16,7 +16,7 @@ class RollForm
             ->components([
                 Select::make('product_id')
                     ->label('Produit (Bobines uniquement)')
-                    ->relationship('product', 'name', fn ($query) => $query->where('is_roll', true))
+                    ->relationship('product', 'name', fn ($query) => $query->where('form_type', Product::FORM_ROLL))
                     ->required()
                     ->searchable()
                     ->preload()

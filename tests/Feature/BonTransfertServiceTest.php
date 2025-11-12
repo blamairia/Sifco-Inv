@@ -143,10 +143,9 @@ class BonTransfertServiceTest extends TestCase
         $product = Product::create([
             'code' => 'ROLL-001',
             'name' => 'Roll 001',
-            'type' => 'papier_roll',
+            'form_type' => Product::FORM_ROLL,
             'unit_id' => $unit->id,
             'is_active' => true,
-            'is_roll' => true,
         ]);
 
         $warehouseFrom = Warehouse::create(['name' => 'Source']);
@@ -203,10 +202,9 @@ class BonTransfertServiceTest extends TestCase
         $product = Product::create([
             'code' => 'PRD-001',
             'name' => 'Product 001',
-            'type' => 'consommable',
+            'form_type' => Product::FORM_CONSUMABLE,
             'unit_id' => $unit->id,
             'is_active' => true,
-            'is_roll' => false,
         ]);
 
         $warehouseFrom = Warehouse::create(['name' => 'Source']);

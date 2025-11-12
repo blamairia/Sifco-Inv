@@ -187,7 +187,7 @@ class BonEntreeForm
                                     ->relationship(
                                         'product',
                                         'name',
-                                        fn ($query) => $query->where('is_roll', true)->where('is_active', true)
+                                        fn ($query) => $query->where('form_type', Product::FORM_ROLL)->where('is_active', true)
                                     )
                                     ->searchable()
                                     ->preload()
@@ -307,7 +307,7 @@ class BonEntreeForm
                                         'product',
                                         'name',
                                         function ($query) {
-                                            $query->where('is_roll', false)
+                                            $query->where('form_type', Product::FORM_SHEET)
                                                 ->where('is_active', true);
 
                                             if (SchemaFacade::hasColumn('products', 'sheet_width_mm') || SchemaFacade::hasColumn('products', 'sheet_length_mm')) {
@@ -421,7 +421,7 @@ class BonEntreeForm
                                     ->relationship(
                                         'product',
                                         'name',
-                                        fn ($query) => $query->where('is_roll', false)->where('is_active', true)
+                                        fn ($query) => $query->where('form_type', '!=', Product::FORM_ROLL)->where('is_active', true)
                                     )
                                     ->searchable()
                                     ->preload()

@@ -27,7 +27,7 @@ class ProductResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return ProductsTable::configure($table);
+        return ProductsTable::make($table);
     }
 
     public static function getRelations(): array

@@ -41,24 +41,17 @@ class EditProduct extends EditRecord
     private function syncPrimaryCategory(): void
     {
         $product = $this->getRecord();
-        $primaryCategoryId = $this->data['primary_category_id'] ?? null;
+        $categories = array_map('intval', $this->data['categories'] ?? []);
+        $primaryCategoryId = isset($this->data['primary_category_id'])
+            ? (int) $this->data['primary_category_id']
+            : null;
 
-        if ($primaryCategoryId) {
-            // Sync all categories first
-            $product->categories()->sync($this->data['categories']);
+        $product->categories()->sync($categories);
 
-            // Set the new primary category
-            $product->categories()->updateExistingPivot($primaryCategoryId, ['is_primary' => true]);
-
-            // Ensure other associated categories are not primary
-            $otherCategoryIds = array_diff($this->data['categories'], [$primaryCategoryId]);
-            if (!empty($otherCategoryIds)) {
-                $product->categories()->updateExistingPivot($otherCategoryIds, ['is_primary' => false]);
-            }
-        } else {
-            // If no primary category is selected, sync categories and ensure none are primary
-            $product->categories()->sync($this->data['categories']);
-            $product->categories()->updateExistingPivot($this->data['categories'], ['is_primary' => false]);
+        foreach ($categories as $categoryId) {
+            $product->categories()->updateExistingPivot($categoryId, [
+                'is_primary' => $primaryCategoryId !== null && $categoryId === $primaryCategoryId,
+            ]);
         }
     }
 }

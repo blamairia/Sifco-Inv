@@ -25,8 +25,7 @@ class BonSortieServiceTest extends TestCase
         $product = Product::create([
             'code' => 'PROD-PS-001',
             'name' => 'Product Stock',
-            'type' => 'consommable',
-            'is_roll' => false,
+            'form_type' => Product::FORM_CONSUMABLE,
             'unit_id' => null,
             'product_type' => Product::TYPE_RAW_MATERIAL,
         ]);

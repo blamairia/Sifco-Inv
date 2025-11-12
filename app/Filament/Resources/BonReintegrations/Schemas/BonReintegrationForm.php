@@ -214,7 +214,7 @@ class BonReintegrationForm
                                 ->relationship(
                                     name: 'product',
                                     titleAttribute: 'name',
-                                    modifyQueryUsing: fn ($query) => $query->where('is_roll', false)
+                                    modifyQueryUsing: fn ($query) => $query->where('form_type', '!=', Product::FORM_ROLL)
                                 )
                                 ->searchable()
                                 ->preload()

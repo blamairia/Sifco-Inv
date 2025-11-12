@@ -8,18 +8,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
+    // Manufacturing Stage (Type Logique)
     public const TYPE_RAW_MATERIAL = 'raw_material';
     public const TYPE_SEMI_FINISHED = 'semi_finished';
     public const TYPE_FINISHED_GOOD = 'finished_good';
 
-    public const FORM_TYPE_PAPIER_ROLL = 'papier_roll';
-    public const FORM_TYPE_CONSUMABLE = 'consommable';
-    public const FORM_TYPE_FINISHED = 'fini';
+    // Physical Form (Forme Physique)
+    public const FORM_ROLL = 'roll';
+    public const FORM_SHEET = 'sheet';
+    public const FORM_CONSUMABLE = 'consumable';
+    public const FORM_OTHER = 'other';
 
     protected $fillable = [
         'code',
         'name',
-        'type',
+        'product_type',
+        'form_type',
         'description',
         'grammage',
         'laize',
@@ -27,9 +31,7 @@ class Product extends Model
         'type_papier',
         'extra_attributes',
         'unit_id',
-        'product_type',
         'is_active',
-        'is_roll',
         'min_stock',
         'safety_stock',
         'sheet_width_mm',
@@ -41,13 +43,12 @@ class Product extends Model
         'laize' => 'integer',
         'extra_attributes' => 'array',
         'is_active' => 'boolean',
-        'is_roll' => 'boolean',
         'min_stock' => 'decimal:2',
         'safety_stock' => 'decimal:2',
         'sheet_width_mm' => 'decimal:2',
         'sheet_length_mm' => 'decimal:2',
         'product_type' => 'string',
-        'type' => 'string',
+        'form_type' => 'string',
     ];
 
     // Many-to-Many with categories
@@ -98,36 +99,57 @@ class Product extends Model
         return $this->category();
     }
 
+    // Scopes for form types
     public function scopeRolls(Builder $query): Builder
     {
-        return $query->where('is_roll', true);
+        return $query->where('form_type', self::FORM_ROLL);
     }
 
     public function scopeSheets(Builder $query): Builder
     {
-        return $query->where('is_roll', false)
-            ->where(function (Builder $subQuery): void {
-                $subQuery->whereNotNull('sheet_width_mm')
-                    ->orWhereNotNull('sheet_length_mm');
-            });
+        return $query->where('form_type', self::FORM_SHEET);
     }
 
-    public function scopeOfProductType(Builder $builder, string $productType): Builder
+    public function scopeConsumables(Builder $query): Builder
     {
-        return $builder->where('product_type', $productType);
+        return $query->where('form_type', self::FORM_CONSUMABLE);
+    }
+
+    public function scopeOfFormType(Builder $query, string $formType): Builder
+    {
+        return $query->where('form_type', $formType);
+    }
+
+    public function scopeOfProductType(Builder $query, string $productType): Builder
+    {
+        return $query->where('product_type', $productType);
+    }
+
+    // Helper methods for form type checking
+    public function isRoll(): bool
+    {
+        return $this->form_type === self::FORM_ROLL;
     }
 
     public function isSheet(): bool
     {
-        return ! $this->is_roll && (
-            ! is_null($this->sheet_width_mm) ||
-            ! is_null($this->sheet_length_mm)
-        );
+        return $this->form_type === self::FORM_SHEET;
     }
 
-    public function isRoll(): bool
+    public function isConsumable(): bool
     {
-        return (bool) $this->is_roll;
+        return $this->form_type === self::FORM_CONSUMABLE;
+    }
+
+    // Helper methods for product type checking
+    public function isRawMaterial(): bool
+    {
+        return $this->product_type === self::TYPE_RAW_MATERIAL;
+    }
+
+    public function isSemiFinished(): bool
+    {
+        return $this->product_type === self::TYPE_SEMI_FINISHED;
     }
 
     public function isFinishedGood(): bool
@@ -135,6 +157,7 @@ class Product extends Model
         return $this->product_type === self::TYPE_FINISHED_GOOD;
     }
 
+    // Static option arrays
     public static function productTypes(): array
     {
         return [
@@ -153,18 +176,29 @@ class Product extends Model
         ];
     }
 
-    public static function typeOptions(): array
+    public static function formTypes(): array
     {
         return [
-            self::FORM_TYPE_PAPIER_ROLL => 'Papier en Bobine',
-            self::FORM_TYPE_CONSUMABLE => 'Consommable',
-            self::FORM_TYPE_FINISHED => 'Produit Fini',
+            self::FORM_ROLL,
+            self::FORM_SHEET,
+            self::FORM_CONSUMABLE,
+            self::FORM_OTHER,
         ];
     }
 
-    public static function labelForType(?string $type): string
+    public static function formTypeOptions(): array
     {
-        return self::typeOptions()[$type] ?? ($type ?? '—');
+        return [
+            self::FORM_ROLL => 'Bobine (Roll)',
+            self::FORM_SHEET => 'Feuille (Sheet)',
+            self::FORM_CONSUMABLE => 'Consommable',
+            self::FORM_OTHER => 'Autre',
+        ];
+    }
+
+    public static function labelForFormType(?string $formType): string
+    {
+        return self::formTypeOptions()[$formType] ?? ($formType ?? '—');
     }
 
     public static function labelForProductType(?string $type): string

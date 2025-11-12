@@ -62,11 +62,10 @@ class RollLifecycleEventTest extends TestCase
         $this->product = Product::create([
             'code' => 'ROLL-001',
             'name' => 'Test Roll Product',
-            'type' => 'papier_roll',
+            'form_type' => Product::FORM_ROLL,
             'unit_id' => $this->unit->id,
             'product_type' => Product::TYPE_RAW_MATERIAL,
             'is_active' => true,
-            'is_roll' => true,
             'min_stock' => 0,
             'safety_stock' => 0,
             'grammage' => 80,
