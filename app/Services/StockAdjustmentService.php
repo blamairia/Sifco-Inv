@@ -29,7 +29,7 @@ class StockAdjustmentService
                 $product = Product::query()->findOrFail($data['product_id'] ?? null);
 
                 if ($product->isRoll()) {
-                    throw new InvalidArgumentException('Utilisez l'interface des ajustements de bobines pour ce produit.');
+                    throw new InvalidArgumentException('Utilisez linterface des ajustements de bobines pour ce produit.');
                 }
 
                 $warehouseId = $data['warehouse_id'] ?? null;
