@@ -56,7 +56,7 @@ class CreateBonEntree extends CreateRecord
 
     protected function validateBusinessRules(array $data): void
     {
-    $status = 'draft';
+        $status = $data['status'] ?? 'draft';
         $bobines = $data['bobineItems'] ?? [];
         $products = $data['productItems'] ?? [];
         $hasItems = !empty($bobines) || !empty($products);
