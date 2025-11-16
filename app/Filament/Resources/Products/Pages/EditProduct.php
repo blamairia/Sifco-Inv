@@ -26,13 +26,23 @@ class EditProduct extends EditRecord
 
         unset($data['primary_category_id']);
 
+        // If the primary category is set but not present in the category list, add it to the categories array
+        if ($this->primaryCategoryId) {
+            $categories = $data['categories'] ?? [];
+            $categories = array_map('intval', $categories);
+            if (! in_array($this->primaryCategoryId, $categories, true)) {
+                $categories[] = $this->primaryCategoryId;
+            }
+            $data['categories'] = array_values(array_unique($categories));
+        }
+
         return $data;
     }
 
-    protected function afterSave(): void
+    public function afterSave(): void
     {
-        parent::afterSave();
-
+        // Parent EditRecord does not define afterSave() in this Filament version.
+        // Avoid calling parent::afterSave() to prevent PHP falling through to Livewire::__call.
         $this->syncPrimaryCategory();
     }
 

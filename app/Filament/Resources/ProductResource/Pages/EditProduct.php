@@ -19,11 +19,28 @@ class EditProduct extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Preserve the primary category selection in the livewire page data so syncPrimaryCategory can find it
+        if (isset($data['primary_category_id'])) {
+            $this->data['primary_category_id'] = (int) $data['primary_category_id'];
+        } else {
+            $this->data['primary_category_id'] = null;
+        }
+
+        // If the primary category is set but not present in the categories list, add it
+        if ($this->data['primary_category_id']) {
+            $categories = $data['categories'] ?? [];
+            $categories = array_map('intval', $categories);
+            if (! in_array($this->data['primary_category_id'], $categories, true)) {
+                $categories[] = $this->data['primary_category_id'];
+            }
+            $data['categories'] = array_values(array_unique($categories));
+        }
+
         unset($data['primary_category_id']);
         return $data;
     }
 
-    protected function afterSave(): void
+    public function afterSave(): void
     {
         $this->syncPrimaryCategory();
     }

@@ -37,7 +37,7 @@ class ProductsTable
                     ->badge()
                     ->color('info')
                     ->sortable(),
-                TextColumn::make('category.name')
+                TextColumn::make('categories.name')
                     ->label('Catégorie')
                     ->sortable()
                     ->searchable()

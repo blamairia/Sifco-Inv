@@ -210,7 +210,7 @@ class EditBonEntree extends EditRecord
         }
     }
 
-    protected function afterSave(): void
+    public function afterSave(): void
     {
         $bonEntree = $this->record;
         
