@@ -20,7 +20,7 @@ class CreateProduct extends CreateRecord
         return $data;
     }
 
-    protected function afterCreate(): void
+    public function afterCreate(): void
     {
         $this->syncPrimaryCategory();
     }

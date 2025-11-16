@@ -21,7 +21,7 @@ class CreateBonTransfert extends CreateRecord
         return $data;
     }
 
-    protected function afterCreate(): void
+    public function afterCreate(): void
     {
         $data = $this->form->getState();
         

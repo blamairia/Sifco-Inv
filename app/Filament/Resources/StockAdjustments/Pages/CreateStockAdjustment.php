@@ -28,7 +28,7 @@ class CreateStockAdjustment extends CreateRecord
         return $data;
     }
 
-    protected function afterCreate(): void
+    public function afterCreate(): void
     {
         // The record is already created, now we need to:
         // 1. Create stock movement
