@@ -38,8 +38,20 @@ class CreateBonEntree extends CreateRecord
     public function afterCreate(): void
     {
         // Recalculate totals after saving items
-        $this->record->refresh();
-        $this->record->recalculateTotals();
+        try {
+            $this->record->refresh();
+            $this->record->recalculateTotals();
+            Notification::make()
+                ->title('Bon d\'Entrée créé')
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Erreur lors du calcul des totaux')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
+        }
     }
 
     protected function validateBusinessRules(array $data): void
