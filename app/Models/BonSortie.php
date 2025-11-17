@@ -65,4 +65,22 @@ class BonSortie extends Model
         $count = static::whereDate('created_at', now()->toDateString())->count() + 1;
         return 'BSRT-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
     }
+
+    protected static function booted(): void
+    {
+        static::creating(function (BonSortie $model) {
+            if (empty($model->destination) && !empty($model->destinationable_type) && !empty($model->destinationable_id)) {
+                $relatedClass = $model->destinationable_type;
+                try {
+                    $related = $relatedClass::find($model->destinationable_id);
+                    if ($related) {
+                        // Prefer name, fallback to title or cast to string
+                        $model->destination = $related->name ?? ($related->title ?? (string) $related);
+                    }
+                } catch (\Throwable $e) {
+                    // don't break creation on lookup failure; leave destination as-is
+                }
+            }
+        });
+    }
 }

@@ -19,6 +19,19 @@ class CreateBonSortie extends CreateRecord
     {
         $data['status'] = 'draft';
 
+        // Ensure destination is set if destinationable is provided but front-end did not set destination
+        if (empty($data['destination']) && !empty($data['destinationable_type']) && !empty($data['destinationable_id'])) {
+            $class = $data['destinationable_type'];
+            try {
+                $related = $class::find($data['destinationable_id']);
+                if ($related) {
+                    $data['destination'] = $related->name ?? ($related->title ?? (string) $related);
+                }
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
         return $data;
     }
 }
