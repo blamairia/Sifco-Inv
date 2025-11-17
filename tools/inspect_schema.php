@@ -6,4 +6,4 @@ $kernel->bootstrap();
 
 use Illuminate\Support\Facades\Schema;
 
-print_r(Schema::getColumnListing('products'));
+print_r(Schema::getColumnListing('bon_entrees'));
