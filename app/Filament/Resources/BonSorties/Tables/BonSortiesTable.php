@@ -109,6 +109,10 @@ class BonSortiesTable
                         'custom' => 'Libre',
                     ])
                     ->query(function ($query, $value) {
+                        if (empty($value)) {
+                            return $query;
+                        }
+
                         return $value === 'production'
                             ? $query->where('destinationable_type', \App\Models\ProductionLine::class)
                             : $query->whereNull('destinationable_type');
@@ -118,6 +122,8 @@ class BonSortiesTable
                     ->label('Ligne de production')
                     ->options(fn () => \App\Models\ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->query(function ($query, $value) {
+                        if (empty($value)) return $query;
+
                         return $query
                             ->where('destinationable_type', \App\Models\ProductionLine::class)
                             ->where('destinationable_id', $value);

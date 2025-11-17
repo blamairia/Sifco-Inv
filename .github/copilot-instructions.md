@@ -1,61 +1,70 @@
 <!-- Copilot / AI Agent Instructions for SIFCO-inv -->
 
-This file contains quick, actionable guidance to help AI coding agents be productive in this repository.
+This file contains quick, actionable guidance to help AI coding agents and contributors be productive in this repository.
 
 1) Project summary
-- Laravel (v12), Filament v4, PHP 8.2 inventory/stock system. Key domain concepts: Products, Rolls (bobines), Warehouses, StockQuantities, StockMovements, and four procedures: Bon d'Entrée, Bon de Sortie, Bon de Transfert, Bon de Réintégration.
+- Laravel v12 + PHP 8.2, Filament v4 admin UI. This repo is an inventory/stock management system.
+- Key domain concepts: Product, Roll (bobine), Warehouse, StockQuantity, StockMovement, and business flows: Bon d'Entrée (receptions), Bon de Sortie (issues), Bon de Transfert (warehouse transfers), Bon de Réintégration (returns/putbacks).
 
 2) Where to look (key files/directories)
-- app/Models: domain models (Product, Roll, StockQuantity, StockMovement)
-- app/Services: business logic (BonEntreeService, BonSortieService, BonTransfertService, CumpCalculator)
-- app/Filament/Resources: UI (Products, BonEntrees, BonSorties, Rolls etc.) and pages
-- database/migrations, database/seeders: schema + seeders
-- APP_OVERVIEW.md, LOGIC.md, PLAN.md: canonical documentation. Keep them updated with behavior changes.
+- app/Models: domain models (e.g., `Product`, `Roll`, `StockQuantity`, `StockMovement`). Check `Roll::STATUS_*` constants and accessors.
+- app/Services: domain logic lives here (e.g., `BonEntreeService`, `BonSortieService`, `BonTransfertService`, `CumpCalculator`). Services use DB transactions and may throw Exceptions to bubble up errors.
+- app/Filament/Resources: Filament resources + pages — UI wiring and field validation. Examples: `CreateBonEntree` uses `mutateFormDataBeforeCreate` & `validateBusinessRules()`.
+- tools/: handy scripts for quick local checks: `create_bonentree_test.php`, `generate_check.php`, `gencode_update_sim.php`, `bon_entree_info.php` — use for manual verification.
+- database/migrations + database/seeders: schema + seeds.
+- APP_OVERVIEW.md, LOGIC.md, PLAN.md: canonical documentation and flow diagrams.
 
 3) Development & test workflow (commands)
-- Quick setup: composer install; npm install; copy .env.example to .env; php artisan key:generate; php artisan migrate; npm run build
-- Combined setup (composer script): composer run-script setup (defined in composer.json)
-- Local dev (one command to run the whole developer stack): composer run-script dev
-- Tests: composer test (php artisan test uses sqlite :memory: by default; use phpunit directly or composer test)
+- Quick setup (recommended):
+	- composer run-script setup
+	- or run the steps manually: `composer install; npm install; cp .env.example .env; php artisan key:generate; php artisan migrate; npm run build`
+- Dev: `composer run-script dev` runs server, queue listener, logs, and vite in parallel.
+- Tests: `composer test` (runs `php artisan test` — the default test environment uses SQLite :memory: in `phpunit.xml`).
+- Build assets: `npm run build`. Local dev watch: `npm run dev`/`npm run build --watch`.
 
 4) Architecture & conventions (patterns to follow)
-- Two-tier product attributes: `type` (UI family e.g., papier_roll/consommable/fini) and `product_type` (business classification: raw_material/semi_finished/finished_good). Use `Product::typeOptions()` / `productTypeOptions()` as local helpers.
-- `is_roll` boolean indicates physical bobines; `Roll` model persists per bobine data. Roll lifecycle: STATUS_IN_STOCK, RESERVED, CONSUMED, DAMAGED, ARCHIVED.
-- Business logic lives in app/Services. Use these services over embedding business logic in controllers. Example classes: `BonEntreeService::receive()`, `BonSortieService::issue()`, `CumpCalculator::calculate()`.
-- CUMP (weighted average) is calculated by `CumpCalculator`; stock movement and stock quantities are updated per service.
-- Filament forms often use 2 repeaters for Bobines vs Products (bon resources). For Filament, reactive fields, Section components and `modifyQueryUsing` are frequently used.
-- Use `Schema::hasColumn` guards for UI form fields that rely on new migrations (e.g., length/width fields). This avoids runtime failure when migrations are lagging in CI or local environments.
-- Polymorphism pattern: `BonEntree::sourceable` and `BonSortie::destinationable` (e.g., Supplier | ProductionLine | Client). Data migrations use `sourceable_type`/`id` and `destinationable_type`/`id` columns.
+- Two-tier product attributes: `type` (UI family, e.g., `papier_roll`, `consommable`, `fini`) vs `product_type` (business classification: `raw_material`, `semi_finished`, `finished_good`). Use `Product::typeOptions()` and `Product::productTypeOptions()`.
+- Products may be `is_roll` (bobines) or sheet/pallet items; rolls are persisted in the `Roll` model and tracked with lifecycle events. See `Roll::STATUS_*` constants and `RollLifecycleEvent` handlers.
+- Business logic belongs in `app/Services`. Services use `DB::beginTransaction()` / commit/rollback, Log::info for traceability, and throw Exceptions for precondition failures (tests assert these behaviors). Example flows:
+	- `BonEntreeService::receive()` → creates `Roll` records (for rolls), `StockMovement` and updates `StockQuantity` using `CumpCalculator::calculate()`.
+	- `BonSortieService::issue()` → consumes stock, potentially rolling/adjusting `Roll` records and emitting `RollLifecycleEvent`.
+- Filament patterns: use `mutateFormDataBeforeCreate()` to set form defaults (status, totals) and `afterCreate()` to trigger recalculation or notifications. Use `Schema::hasColumn` guards when referencing optional columns.
+- Movement numbering: `MOV-YYYYMMDD-XXXX` — generated by `generateMovementNumber()` helper (or in StockMovement creation in UI). Use existing helpers when creating movements.
 
 5) Tests & CI
-- phpunit.xml uses sqlite :memory: to run tests. Transactional DB state is assumed in many unit tests. When writing tests, use factories and seeders, and respect `php artisan migrate` in memory first.
-- Run `composer test` or `php artisan test` before creating PRs; CI will run the same.
+- `phpunit.xml` is configured to use `sqlite :memory` for fast tests. Tests assume transactional DB state and often `actingAs()` for authenticated behavior.
+- Use factories & seeders when creating entities in tests (e.g., `ProductFactory`, `RollFactory`).
+- Run `composer test` locally and avoid leaving tests failing on branches.
 
 6) Naming & numbering conventions
-- Stock movements use `MOV-YYYYMMDD-XXXX` generated by `generateMovementNumber()` in services. Use existing helpers when creating movements.
+- Movement numbers follow `MOV-YYYYMMDD-XXXX` — use generator helpers in services or `StockMovement::create` call sites.
+- Product codes are generated by `App\Models\Product::generateCode()` (see `tools/generate_check.php` and `gencode_update_sim.php` for usage). The UI `CreateProduct` may mutate data and call `generateCode()`.
 
 7) Common pitfalls & gotchas
-- Don't update pivot metadata manually when creating the Product; let `CreateProduct` / `EditProduct` sync `is_primary` pivot (see `CreateProduct::syncPrimaryCategory()`).
-- Services frequently throw `Exception` on precondition failures to bubble to callers—tests assert these exceptions in negative flows.
-- Some code relies on `Auth::id()` returning a value; use test user creation or `actingAs` in tests when needed.
-- When adding DB columns used by Filament forms (e.g., `length_m`), add migration + guard logic in the form to avoid runtime errors.
+- Changes in Filament forms must be backwards compatible: always guard optional columns with `Schema::hasColumn` to avoid runtime errors on environments without that migration.
+- Tests and services assume `Auth::id()` is set; use `actingAs($user)` in tests or default `Auth::id() ?? 1` used in some service call sites.
+- Avoid editing pivot `is_primary` manually. Use `CreateProduct::syncPrimaryCategory()` / Edit logic.
+- Services expect precondition checks — follow the service pattern of validating -> DB transaction -> actions -> commit.
 
 8) Example places to copy patterns from
-- `app/Services/BonEntreeService.php`: validate/receive workflow pattern; CUMP update; Roll creation.
-- `app/Services/BonSortieService.php`: issue; roll consumption; stock movement and quantity decrement.
-- `app/Models/Roll.php`: lifecycle constants and accessors for weight/cump/length.
-- `app/Filament/Resources/Products/Pages/CreateProduct.php`: pivot sync logic example.
-- `phpunit.xml`: memory sqlite setup for tests.
+- `app/Services/BonEntreeService.php` — reception flow, bobine roll creation, stock movements, CUMP usage.
+- `app/Services/BonSortieService.php` — issue flow & roll consumption logic.
+- `app/Services/CumpCalculator.php` — single-responsibility math for CUMP / cost averaging.
+- `app/Models/Roll.php` — roll lifecycle constants and accessors.
+- `app/Filament/Resources` & `app/Filament/Resources/*/Pages/*` — form mutators `mutateFormDataBeforeCreate`, `afterCreate`, notifications and validators.
+- `tools/` — small manual PHP scripts for quick checks (`create_bonentree_test.php`, `gencode_update_sim.php`).
 
 Product code generation
-- The generator is implemented at `App\Models\Product::generateCode()` and produces codes like `PROD-AB1-001` or `CONS-XY2-001` based on name and product type.
-- Server-side auto-generation happens in two places: `CreateProduct::mutateFormDataBeforeCreate()` will generate a code when the form is saved, and the `Product` model `creating` hook will generate one if it's missing (ensuring direct API or seed insertions also get codes).
-- Tests for the generator are in `tests/Feature/ProductCodeGenerationTest.php`.
+- `Product::generateCode()` forms product codes; it's used in the Filament `CreateProduct::mutateFormDataBeforeCreate()` and in a `Product` creating hook.
+- Use `tools/generate_check.php` / `tools/gencode_update_sim.php` to simulate and validate expected code generation.
 
 9) Pull request guidance for agents
-- Tests must pass locally. Update canonical docs (`APP_OVERVIEW.md`, `LOGIC.md`, `PLAN.md`) for behavior changes. Prefer small, single-purpose commits. Prefer adding or updating unit/feature tests when changing business logic.
+- Keep PRs small and focused. Run `composer test` and ensure local migration/setup runs.
+- Add or update automated tests for behavior changes (happy path + key edge cases).
+- Update `APP_OVERVIEW.md`, `LOGIC.md`, `PLAN.md` when changes affect business flows.
+- Preserve service and CUMP logic in `app/Services` for domain changes; prefer new service methods over controller or resource logic.
 
 10) Quick search hints for the agent
-- Search the repo for `BonEntreeService`, `BonSortieService`, `CumpCalculator`, `RollLifecycleEvent`, `StockMovement`, `StockQuantity`, `is_roll`, `product_type`, `sourceable_type`.
+- Useful search tokens: `BonEntreeService`, `BonSortieService`, `CumpCalculator`, `RollLifecycleEvent`, `StockMovement`, `StockQuantity`, `is_roll`, `product_type`, `sourceable_type`, `generateMovementNumber`, `mutateFormDataBeforeCreate`.
 
-If any section is unclear or you want this shortened or expanded, say which area you'd like more detail on (services, Filament forms, testing, migrations, or packaging commands).
+If any section is unclear or you want this shortened or expanded, say which area you'd like more detail on (services, Filament forms, testing, migrations, or packaging commands). 

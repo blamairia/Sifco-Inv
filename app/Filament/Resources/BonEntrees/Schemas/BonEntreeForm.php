@@ -131,12 +131,12 @@ class BonEntreeForm
                                 $products = $get('productItems') ?? [];
                                 $sheets = $get('sheetItems') ?? [];
 
-                                $bobinesTotal = collect($bobines)->sum(fn($item) => $item['price_ht'] ?? 0);
+                                $bobinesTotal = collect($bobines)->sum(fn($item) => (float) ($item['price_ht'] ?? 0));
                                 $productsTotal = collect($products)->sum(function ($item) {
-                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                    return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
                                 $sheetsTotal = collect($sheets)->sum(function ($item) {
-                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                    return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
 
                                 return number_format($bobinesTotal + $productsTotal + $sheetsTotal, 2) . ' DH';
@@ -159,15 +159,15 @@ class BonEntreeForm
                                 $products = $get('productItems') ?? [];
                                 $sheets = $get('sheetItems') ?? [];
 
-                                $bobinesTotal = collect($bobines)->sum(fn($item) => $item['price_ht'] ?? 0);
+                                $bobinesTotal = collect($bobines)->sum(fn($item) => (float) ($item['price_ht'] ?? 0));
                                 $productsTotal = collect($products)->sum(function ($item) {
-                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                    return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
                                 $sheetsTotal = collect($sheets)->sum(function ($item) {
-                                    return ($item['qty_entered'] ?? 0) * ($item['price_ht'] ?? 0);
+                                    return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
 
-                                $frais = $get('frais_approche') ?? 0;
+                                $frais = (float) ($get('frais_approche') ?? 0);
                                 return number_format($bobinesTotal + $productsTotal + $sheetsTotal + $frais, 2) . ' DH';
                             }),
                     ])
@@ -265,7 +265,7 @@ class BonEntreeForm
                                 
                                 Placeholder::make('line_total')
                                     ->label('Total')
-                                    ->content(fn ($get) => number_format($get('price_ttc') ?? 0, 2) . ' DH')
+                                    ->content(fn ($get) => number_format((float) ($get('price_ttc') ?? 0), 2) . ' DH')
                                     ->columnSpan(1),
                             ])
                             ->columns(12)
@@ -382,7 +382,7 @@ class BonEntreeForm
 
                                 Placeholder::make('line_total_sheet')
                                     ->label('Total Ligne')
-                                    ->content(fn ($get) => number_format(($get('qty_entered') ?? 0) * ($get('price_ttc') ?? 0), 2) . ' DH')
+                                    ->content(fn ($get) => number_format((float) ($get('qty_entered') ?? 0) * (float) ($get('price_ttc') ?? 0), 2) . ' DH')
                                     ->columnSpan(2),
                             ])
                             ->columns(12)
@@ -463,7 +463,7 @@ class BonEntreeForm
                                 
                                 Placeholder::make('line_total_ttc')
                                     ->label('Total Ligne')
-                                    ->content(fn ($get) => number_format(($get('qty_entered') ?? 0) * ($get('price_ttc') ?? 0), 2) . ' DH')
+                                    ->content(fn ($get) => number_format((float) ($get('qty_entered') ?? 0) * (float) ($get('price_ttc') ?? 0), 2) . ' DH')
                                     ->columnSpan(2),
                             ])
                             ->columns(12)

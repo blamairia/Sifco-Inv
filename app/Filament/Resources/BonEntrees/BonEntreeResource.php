@@ -9,6 +9,7 @@ use App\Filament\Resources\BonEntrees\Schemas\BonEntreeForm;
 use App\Filament\Resources\BonEntrees\Tables\BonEntreesTable;
 use App\Models\BonEntree;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,7 +21,7 @@ class BonEntreeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-down-circle';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Gestion des Bons';
+    protected static UnitEnum|string|null $navigationGroup = 'Gestion des Bons';
 
     protected static ?string $navigationLabel = 'Bons d\'Entrée';
 

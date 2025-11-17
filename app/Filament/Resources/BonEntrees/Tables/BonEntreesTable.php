@@ -120,6 +120,13 @@ class BonEntreesTable
                         \App\Models\ProductionLine::class => 'Ligne de production',
                     ])
                     ->query(function ($query, $value) {
+                        // Only apply filter when a value is selected. Returning the original
+                        // query avoids adding whereNull clauses which lead to contradictory
+                        // conditions being ANDed together and returning no rows.
+                        if (empty($value)) {
+                            return $query;
+                        }
+
                         return $query->where('sourceable_type', $value);
                     }),
 
@@ -127,6 +134,10 @@ class BonEntreesTable
                     ->label('Fournisseur')
                     ->options(fn () => \App\Models\Supplier::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->query(function ($query, $value) {
+                        if (empty($value)) {
+                            return $query;
+                        }
+
                         return $query
                             ->where('sourceable_type', \App\Models\Supplier::class)
                             ->where('sourceable_id', $value);
@@ -136,6 +147,10 @@ class BonEntreesTable
                     ->label('Ligne de production')
                     ->options(fn () => \App\Models\ProductionLine::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->query(function ($query, $value) {
+                        if (empty($value)) {
+                            return $query;
+                        }
+
                         return $query
                             ->where('sourceable_type', \App\Models\ProductionLine::class)
                             ->where('sourceable_id', $value);
