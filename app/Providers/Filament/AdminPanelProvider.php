@@ -29,11 +29,21 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('SIFCO Carton')
-            ->brandLogo(asset('images/sifco-carton-logo.svg'))
+            // use root logo in public (copied from repo root)
+            ->brandLogo(asset('logo.png'))
             ->brandLogoHeight('2.25rem')
             ->favicon(asset('images/sifco-carton-logo.svg'))
             ->colors([
-                'primary' => Color::Amber,
+                // Primary blue
+                'primary' => '#265DA6',
+                // Darker blue variant
+                'secondary' => '#23468C',
+                // Primary red for accents / danger
+                'danger' => '#F23545',
+                // Lighter red for UI accents
+                'warning' => '#F28D95',
+                // Neutral background
+                'neutral' => '#F2F2F2',
             ])
             ->darkMode(false)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
