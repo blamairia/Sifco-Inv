@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('SIFCO Carton')
             // use root logo in public (copied from repo root)
             ->brandLogo(asset('logo.png'))
-            ->brandLogoHeight('2.25rem')
+            ->brandLogoHeight('6rem')
             ->favicon(asset('images/sifco-carton-logo.svg'))
             ->colors([
                 // Primary blue
