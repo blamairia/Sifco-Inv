@@ -198,8 +198,6 @@ class BonEntreeForm
                                 TextInput::make('ean_13')
                                     ->label('Code EAN-13')
                                     ->required()
-                                    ->length(13)
-                                    ->numeric()
                                     ->placeholder('1234567890123')
                                     ->unique(table: 'bon_entree_items', ignorable: fn ($record) => $record)
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')

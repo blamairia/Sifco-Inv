@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "30136ca0c09136efa5b80ad86c9673b9",
+    "content-hash": "793630eecbb2ac2a13826392d9a025bb",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -614,6 +614,100 @@
                 }
             ],
             "time": "2025-02-21T08:52:11+00:00"
+        },
+        {
+            "name": "designthebox/barcode-field",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Jacotheron/barcode-field.git",
+                "reference": "3560cead1cd34816b6431680a87d658fa292e7c8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Jacotheron/barcode-field/zipball/3560cead1cd34816b6431680a87d658fa292e7c8",
+                "reference": "3560cead1cd34816b6431680a87d658fa292e7c8",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "filament/forms": "^4.0",
+                "filament/tables": "^4.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^7.9",
+                "nunomaduro/larastan": "^2.0.1",
+                "orchestra/testbench": "^8.0",
+                "pestphp/pest": "^2.1",
+                "pestphp/pest-plugin-arch": "^2.0",
+                "pestphp/pest-plugin-laravel": "^2.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan": "^1.12",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.0",
+                "spatie/laravel-ray": "^1.26"
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "DesignTheBox\\BarcodeField\\FilamentBarcodeScannerFieldServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DesignTheBox\\BarcodeField\\": "src/"
+                }
+            },
+            "scripts": {
+                "post-autoload-dump": [
+                    "@php ./vendor/bin/testbench package:discover --ansi"
+                ],
+                "analyse": [
+                    "vendor/bin/phpstan analyse"
+                ],
+                "test": [
+                    "vendor/bin/pest"
+                ],
+                "test-coverage": [
+                    "vendor/bin/pest --coverage"
+                ],
+                "format": [
+                    "vendor/bin/pint"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anthony Elleray",
+                    "email": "anthony.elleray@designthebox.com",
+                    "role": "Developer"
+                }
+            ],
+            "homepage": "https://github.com/Design-The-Box/barcode-field",
+            "keywords": [
+                "Design The Box",
+                "barcode_field",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/Design-The-Box/barcode-field/issues",
+                "source": "https://github.com/Design-The-Box/barcode-field"
+            },
+            "funding": [
+                {
+                    "type": "github",
+                    "url": "https://github.com/:vendor_name"
+                }
+            ],
+            "time": "2025-10-07T12:42:48+00:00"
         },
         {
             "name": "dflydev/dot-access-data",
@@ -10748,6 +10842,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "designthebox/barcode-field": 20,
         "filament/filament": 10
     },
     "prefer-stable": true,
