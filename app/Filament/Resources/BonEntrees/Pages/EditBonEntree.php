@@ -144,7 +144,7 @@ class EditBonEntree extends EditRecord
         $bobines = $data['bobineItems'] ?? [];
         $products = $data['productItems'] ?? [];
 
-    $bobinesHt = collect($bobines)->sum(fn ($item) => (float) ($item['price_ht'] ?? 0));
+    $bobinesHt = collect($bobines)->sum(fn ($item) => (float) ($item['qty_entered'] ?? 1) * (float) ($item['price_ht'] ?? 0));
     $productsHt = collect($products)->sum(fn ($item) => (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0));
 
         $data['total_amount_ht'] = $bobinesHt + $productsHt;

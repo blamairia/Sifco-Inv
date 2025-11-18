@@ -81,14 +81,14 @@ class StockMovementsTable
                 
                 TextColumn::make('cump_at_movement')
                     ->label('CUMP')
-                    ->money('MAD', locale: 'fr')
+                    ->money('DZD')
                     ->sortable()
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
                 
                 TextColumn::make('value_moved')
                     ->label('Valeur')
-                    ->money('MAD', locale: 'fr')
+                    ->money('DZD')
                     ->sortable()
                     ->alignEnd()
                     ->weight('bold'),

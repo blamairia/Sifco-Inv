@@ -131,7 +131,7 @@ class BonEntreeForm
                                 $products = $get('productItems') ?? [];
                                 $sheets = $get('sheetItems') ?? [];
 
-                                $bobinesTotal = collect($bobines)->sum(fn($item) => (float) ($item['price_ht'] ?? 0));
+                                $bobinesTotal = collect($bobines)->sum(fn($item) => (float) ($item['qty_entered'] ?? 1) * (float) ($item['price_ht'] ?? 0));
                                 $productsTotal = collect($products)->sum(function ($item) {
                                     return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
@@ -139,14 +139,14 @@ class BonEntreeForm
                                     return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
 
-                                return number_format($bobinesTotal + $productsTotal + $sheetsTotal, 2) . ' DH';
+                                return number_format($bobinesTotal + $productsTotal + $sheetsTotal, 2) . ' DZD';
                             }),
                         
                         TextInput::make('frais_approche')
                             ->label('Frais d\'Approche')
                             ->helperText('Transport, D3, transitaire, etc. (distribués sur validation)')
                             ->numeric()
-                            ->prefix('DH')
+                            ->prefix('DZD')
                             ->default(0)
                             ->required()
                             ->disabled(fn ($record) => $record && $record->status !== 'draft'),
@@ -159,7 +159,7 @@ class BonEntreeForm
                                 $products = $get('productItems') ?? [];
                                 $sheets = $get('sheetItems') ?? [];
 
-                                $bobinesTotal = collect($bobines)->sum(fn($item) => (float) ($item['price_ht'] ?? 0));
+                                $bobinesTotal = collect($bobines)->sum(fn($item) => (float) ($item['qty_entered'] ?? 1) * (float) ($item['price_ht'] ?? 0));
                                 $productsTotal = collect($products)->sum(function ($item) {
                                     return (float) ($item['qty_entered'] ?? 0) * (float) ($item['price_ht'] ?? 0);
                                 });
@@ -168,7 +168,7 @@ class BonEntreeForm
                                 });
 
                                 $frais = (float) ($get('frais_approche') ?? 0);
-                                return number_format($bobinesTotal + $productsTotal + $sheetsTotal + $frais, 2) . ' DH';
+                                return number_format($bobinesTotal + $productsTotal + $sheetsTotal + $frais, 2) . ' DZD';
                             }),
                     ])
                     ->columns(3),
@@ -241,10 +241,10 @@ class BonEntreeForm
                                     ->columnSpan(1),
                                 
                                 TextInput::make('price_ht')
-                                    ->label('Prix HT')
+                                    ->label('Prix HT (par unité)')
                                     ->numeric()
                                     ->required()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->default(0)
                                     ->live(onBlur: true)
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
@@ -254,10 +254,10 @@ class BonEntreeForm
                                     ->columnSpan(2),
                                 
                                 TextInput::make('price_ttc')
-                                    ->label('Prix TTC')
+                                    ->label('Prix TTC (par unité)')
                                     ->helperText('Après frais')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->default(0)
                                     ->disabled()
                                     ->dehydrated()
@@ -265,7 +265,7 @@ class BonEntreeForm
                                 
                                 Placeholder::make('line_total')
                                     ->label('Total')
-                                    ->content(fn ($get) => number_format((float) ($get('price_ttc') ?? 0), 2) . ' DH')
+                                    ->content(fn ($get) => number_format((float) ($get('price_ttc') ?? 0) * (float) ($get('qty_entered') ?? 1), 2) . ' DZD')
                                     ->columnSpan(1),
                             ])
                             ->columns(12)
@@ -360,10 +360,10 @@ class BonEntreeForm
                                     ->columnSpan(2),
 
                                 TextInput::make('price_ht')
-                                    ->label('Prix HT')
+                                    ->label('Prix HT (par unité)')
                                     ->numeric()
                                     ->required()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->default(0)
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(function ($state, callable $set) {
@@ -372,9 +372,9 @@ class BonEntreeForm
                                     ->columnSpan(2),
 
                                 TextInput::make('price_ttc')
-                                    ->label('Prix TTC')
+                                    ->label('Prix TTC (par unité)')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->default(0)
                                     ->disabled()
                                     ->dehydrated()
@@ -382,7 +382,7 @@ class BonEntreeForm
 
                                 Placeholder::make('line_total_sheet')
                                     ->label('Total Ligne')
-                                    ->content(fn ($get) => number_format((float) ($get('qty_entered') ?? 0) * (float) ($get('price_ttc') ?? 0), 2) . ' DH')
+                                    ->content(fn ($get) => number_format((float) ($get('qty_entered') ?? 0) * (float) ($get('price_ttc') ?? 0), 2) . ' DZD')
                                     ->columnSpan(2),
                             ])
                             ->columns(12)
@@ -439,10 +439,10 @@ class BonEntreeForm
                                     ->columnSpan(2),
                                 
                                 TextInput::make('price_ht')
-                                    ->label('Prix HT')
+                                    ->label('Prix HT (par unité)')
                                     ->numeric()
                                     ->required()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->default(0)
                                     ->live(onBlur: true)
                                     ->disabled(fn ($record) => $record && $record->bonEntree && $record->bonEntree->status === 'received')
@@ -452,10 +452,10 @@ class BonEntreeForm
                                     ->columnSpan(2),
                                 
                                 TextInput::make('price_ttc')
-                                    ->label('Prix TTC')
+                                    ->label('Prix TTC (par unité)')
                                     ->helperText('Après frais')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->default(0)
                                     ->disabled()
                                     ->dehydrated()
@@ -463,7 +463,7 @@ class BonEntreeForm
                                 
                                 Placeholder::make('line_total_ttc')
                                     ->label('Total Ligne')
-                                    ->content(fn ($get) => number_format((float) ($get('qty_entered') ?? 0) * (float) ($get('price_ttc') ?? 0), 2) . ' DH')
+                                    ->content(fn ($get) => number_format((float) ($get('qty_entered') ?? 0) * (float) ($get('price_ttc') ?? 0), 2) . ' DZD')
                                     ->columnSpan(2),
                             ])
                             ->columns(12)

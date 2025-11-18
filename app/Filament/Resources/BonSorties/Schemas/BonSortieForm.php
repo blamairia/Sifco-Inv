@@ -239,7 +239,7 @@ class BonSortieForm
                                 TextInput::make('cump_at_issue')
                                     ->label('CUMP')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->disabled()
                                     ->dehydrated()
                                     ->columnSpan(2),
@@ -249,7 +249,7 @@ class BonSortieForm
                                     ->content(function ($get) {
                                         $qty = $get('qty_issued') ?? 0;
                                         $cump = $get('cump_at_issue') ?? 0;
-                                        return number_format($qty * $cump, 2) . ' DH';
+                                        return number_format($qty * $cump, 2) . ' DZD';
                                     })
                                     ->columnSpan(2),
 
@@ -339,7 +339,7 @@ class BonSortieForm
                                     ->label('CUMP')
                                     ->helperText('Coût unitaire moyen')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->disabled()
                                     ->dehydrated()
                                     ->columnSpan(2),
@@ -349,7 +349,7 @@ class BonSortieForm
                                     ->content(function ($get) {
                                         $qty = $get('qty_issued') ?? 0;
                                         $cump = $get('cump_at_issue') ?? 0;
-                                        return number_format($qty * $cump, 2) . ' DH';
+                                        return number_format($qty * $cump, 2) . ' DZD';
                                     })
                                     ->columnSpan(2),
                             ])

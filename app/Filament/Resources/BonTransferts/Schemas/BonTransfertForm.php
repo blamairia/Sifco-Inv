@@ -161,7 +161,7 @@ class BonTransfertForm
                                 TextInput::make('cump_at_transfer')
                                     ->label('CUMP')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->disabled()
                                     ->dehydrated()
                                     ->columnSpan(2),
@@ -171,7 +171,7 @@ class BonTransfertForm
                                     ->content(function ($get) {
                                         $qty = $get('qty_transferred') ?? 0;
                                         $cump = $get('cump_at_transfer') ?? 0;
-                                        return number_format($qty * $cump, 2) . ' DH';
+                                        return number_format($qty * $cump, 2) . ' DZD';
                                     })
                                     ->columnSpan(2),
 
@@ -259,7 +259,7 @@ class BonTransfertForm
                                     ->label('CUMP')
                                     ->helperText('Coût unitaire moyen')
                                     ->numeric()
-                                    ->prefix('DH')
+                                    ->prefix('DZD')
                                     ->disabled()
                                     ->dehydrated()
                                     ->columnSpan(2),
@@ -269,7 +269,7 @@ class BonTransfertForm
                                     ->content(function ($get) {
                                         $qty = $get('qty_transferred') ?? 0;
                                         $cump = $get('cump_at_transfer') ?? 0;
-                                        return number_format($qty * $cump, 2) . ' DH';
+                                        return number_format($qty * $cump, 2) . ' DZD';
                                     })
                                     ->columnSpan(2),
                             ])

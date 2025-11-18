@@ -81,13 +81,13 @@ class StockQuantitiesTable
                 
                 TextColumn::make('cump_snapshot')
                     ->label('CUMP')
-                    ->money('MAD', locale: 'fr')
+                    ->money('DZD')
                     ->sortable()
                     ->alignEnd(),
                 
                 TextColumn::make('total_value')
                     ->label('Valeur Totale')
-                    ->money('MAD', locale: 'fr')
+                    ->money('DZD')
                     ->getStateUsing(fn (StockQuantity $record) => $record->total_qty * $record->cump_snapshot)
                     ->sortable()
                     ->alignEnd()

@@ -77,7 +77,7 @@ class BonSortiesTable
                             return $item->qty_issued * $item->cump_at_issue;
                         });
                     })
-                    ->money('MAD')
+                    ->money('DZD')
                     ->sortable(false),
                 
                 TextColumn::make('created_at')
@@ -183,7 +183,7 @@ class BonSortiesTable
                         }
                         
                         Notification::make()
-                            ->title("$count bon(s) confirmé(s)")
+                            ->title($count . ' bon(s) confirmé(s)')
                             ->success()
                             ->send();
                     }),
@@ -203,7 +203,7 @@ class BonSortiesTable
                         }
                         
                         Notification::make()
-                            ->title("$count bon(s) archivé(s)")
+                            ->title($count . ' bon(s) archivé(s)')
                             ->info()
                             ->send();
                     }),

@@ -46,10 +46,10 @@ class ViewStockQuantity extends ViewRecord
                     ->schema([
                         TextEntry::make('cump_snapshot')
                             ->label('CUMP')
-                            ->money('MAD', locale: 'fr'),
+                            ->money('DZD'),
                         TextEntry::make('total_value')
                             ->label('Valeur Totale')
-                            ->money('MAD', locale: 'fr')
+                            ->money('DZD')
                             ->getStateUsing(fn ($record) => $record->total_qty * $record->cump_snapshot)
                             ->weight('bold'),
                     ])

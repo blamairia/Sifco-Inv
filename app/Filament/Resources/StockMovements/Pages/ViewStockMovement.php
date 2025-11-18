@@ -59,8 +59,8 @@ class ViewStockMovement extends ViewRecord
                 Section::make('Quantités & Valorisation')
                     ->schema([
                         TextEntry::make('qty_moved')->label('Quantité')->numeric(decimalPlaces: 2),
-                        TextEntry::make('cump_at_movement')->label('CUMP')->money('MAD', locale: 'fr'),
-                        TextEntry::make('value_moved')->label('Valeur')->money('MAD', locale: 'fr')->weight('bold'),
+                        TextEntry::make('cump_at_movement')->label('CUMP')->money('DZD'),
+                        TextEntry::make('value_moved')->label('Valeur')->money('DZD')->weight('bold'),
                     ])
                     ->columns(3),
                 

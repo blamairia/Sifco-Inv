@@ -93,7 +93,7 @@ class BonEntreesTable
                 
                 TextColumn::make('total_amount_ttc')
                     ->label('Montant TTC')
-                    ->money('MAD')
+                    ->money('DZD')
                     ->sortable(),
                 
                 TextColumn::make('created_at')

@@ -79,7 +79,7 @@ class BonReintegrationForm
                     TextInput::make('cump_at_return')
                         ->label('CUMP de référence')
                         ->numeric()
-                        ->prefix('DH')
+                        ->prefix('DZD')
                         ->helperText('Valeur utilisée pour les produits standards si aucune autre n\'est fournie.'),
 
                     Hidden::make('status')
@@ -167,7 +167,7 @@ class BonReintegrationForm
                             TextInput::make('cump_at_return')
                                 ->label('CUMP appliqué')
                                 ->numeric()
-                                ->prefix('DH')
+                                ->prefix('DZD')
                                 ->columnSpan(2)
                                 ->disabled(fn ($record) => $record && $record->bonReintegration && $record->bonReintegration->status !== 'draft'),
 
@@ -234,7 +234,7 @@ class BonReintegrationForm
                             TextInput::make('cump_at_return')
                                 ->label('CUMP appliqué')
                                 ->numeric()
-                                ->prefix('DH')
+                                ->prefix('DZD')
                                 ->columnSpan(2)
                                 ->disabled(fn ($record) => $record && $record->bonReintegration && $record->bonReintegration->status !== 'draft')
                                 ->helperText('Laisser vide pour utiliser la valeur par défaut du bon.'),
@@ -245,7 +245,7 @@ class BonReintegrationForm
                                     $qty = (float) ($get('qty_returned') ?? 0);
                                     $cump = (float) ($get('cump_at_return') ?? 0);
                                     return $qty > 0 && $cump > 0
-                                        ? number_format($qty * $cump, 2) . ' DH'
+                                        ? number_format($qty * $cump, 2) . ' DZD'
                                         : '-';
                                 })
                                 ->columnSpan(2),
