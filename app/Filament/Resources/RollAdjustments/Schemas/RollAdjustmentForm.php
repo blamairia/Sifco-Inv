@@ -162,12 +162,12 @@ class RollAdjustmentForm
                         ->columnSpan(3),
 
                     TextInput::make('ean_13')
-                        ->label('Code EAN-13')
+                        ->label('Code EAN')
                         ->visible(fn (Get $get) => $get('operation') === 'add')
                         ->required(fn (Get $get) => $get('operation') === 'add')
-                        ->length(13)
+                        ->maxLength(64)
                         ->rules(fn (Get $get) => $get('operation') === 'add'
-                            ? ['digits:13', Rule::unique('rolls', 'ean_13')]
+                            ? ['string', 'max:64', Rule::unique('rolls', 'ean_13')]
                             : [])
                         ->columnSpan(4),
 
