@@ -9,3 +9,11 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Filament logo size override to ensure consistent height in sidebars and auth pages */
+.fi-logo,
+.fi-logo img {
+    height: 2.25rem !important;
+    max-height: 2.25rem !important;
+    width: auto !important;
+}
