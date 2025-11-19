@@ -14,11 +14,14 @@ class Product extends Model
     public const TYPE_RAW_MATERIAL = 'raw_material';
     public const TYPE_SEMI_FINISHED = 'semi_finished';
     public const TYPE_FINISHED_GOOD = 'finished_good';
+    // Non-fabrication logical types (non fabrication state)
+    public const TYPE_CONSUMABLE = 'consumable';
+    public const TYPE_EQUIPMENT = 'equipment';
+    public const TYPE_OTHER = 'other';
 
     // Physical Form (Forme Physique)
     public const FORM_ROLL = 'roll';
     public const FORM_SHEET = 'sheet';
-    public const FORM_CONSUMABLE = 'consumable';
     public const FORM_OTHER = 'other';
 
     protected $fillable = [
@@ -159,6 +162,30 @@ class Product extends Model
         return $this->product_type === self::TYPE_FINISHED_GOOD;
     }
 
+    /**
+     * Product-type check for consumables (logical type)
+     */
+    public function isConsumableProduct(): bool
+    {
+        return $this->product_type === self::TYPE_CONSUMABLE;
+    }
+
+    /**
+     * Product-type check for equipment (logical type)
+     */
+    public function isEquipmentProduct(): bool
+    {
+        return $this->product_type === self::TYPE_EQUIPMENT;
+    }
+
+    /**
+     * Product-type check for other types
+     */
+    public function isOtherProduct(): bool
+    {
+        return $this->product_type === self::TYPE_OTHER;
+    }
+
     // Static option arrays
     public static function productTypes(): array
     {
@@ -166,6 +193,9 @@ class Product extends Model
             self::TYPE_RAW_MATERIAL,
             self::TYPE_SEMI_FINISHED,
             self::TYPE_FINISHED_GOOD,
+            self::TYPE_CONSUMABLE,
+            self::TYPE_EQUIPMENT,
+            self::TYPE_OTHER,
         ];
     }
 
@@ -175,6 +205,9 @@ class Product extends Model
             self::TYPE_RAW_MATERIAL => 'Matière première',
             self::TYPE_SEMI_FINISHED => 'Semi-fini',
             self::TYPE_FINISHED_GOOD => 'Produit fini',
+            self::TYPE_CONSUMABLE => 'Consommable',
+            self::TYPE_EQUIPMENT => 'Équipement',
+            self::TYPE_OTHER => 'Autre',
         ];
     }
 
@@ -193,7 +226,6 @@ class Product extends Model
         return [
             self::FORM_ROLL => 'Bobine (Roll)',
             self::FORM_SHEET => 'Feuille (Sheet)',
-            self::FORM_CONSUMABLE => 'Consommable',
             self::FORM_OTHER => 'Autre',
         ];
     }
@@ -321,7 +353,7 @@ class Product extends Model
     {
         $form = $formType ?? $type;
 
-        $prefix = ($form === self::FORM_CONSUMABLE || $type === 'consommable') ? 'CONS' : 'PROD';
+        $prefix = ($form === self::FORM_OTHER || $type === 'consommable') ? 'CONS' : 'PROD';
 
         // If primary category name provided, prefer category abbreviation
         if ($primaryCategoryName) {

@@ -17,7 +17,7 @@ This document details the application's architecture and business logic, focusin
 - **Purpose:** Extends the product model to classify items, capture dimensional data, and drive dynamic UI behaviour.
 - **Key Fields:**
     - `type` (enum `papier_roll`, `consommable`, `fini`) governs Filament form sections.
-    - `product_type` (enum: `raw_material`, `semi_finished`, `finished_good`) controls service branching in stock flows.
+    - `product_type` (enum: `raw_material`, `semi_finished`, `finished_good`, `consumable`, `equipment`, `other`) controls service branching in stock flows. Non-fabrication logical types such as `consumable`, `equipment`, and `other` are available for items that should be tracked but are not part of the manufacturing flow.
     - `sheet_width_mm` / `sheet_length_mm` (nullable decimal, precision 10, scale 2) for sheet/pallet tracking.
     - Pivot flag `product_category.is_primary` identifies the reporting category.
 - **Rationale:** `type` toggles between roll-first and sheet/pallet UX, `product_type` informs Bon d'Entrée/Sortie service logic, while sheet metrics synchronize pallet receipts and future outbound flows.

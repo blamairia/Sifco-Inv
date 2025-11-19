@@ -68,22 +68,28 @@ class ProductSeeder extends Seeder
             'code' => 'CONS-FILM-006', 'name' => 'Film Étirable 500mm', 'form_type' => Product::FORM_CONSUMABLE,
             'extra_attributes' => json_encode(['width_mm' => 500]), 'unit_id' => $unitPcs?->id,
             'min_stock' => 100, 'safety_stock' => 50,
-            'product_type' => Product::TYPE_RAW_MATERIAL,
+            'product_type' => Product::TYPE_CONSUMABLE,
         ]);
         $p6->categories()->attach($catConsommable->id, ['is_primary' => true]);
         
         $p7 = Product::create([
             'code' => 'CONS-ADHE-007', 'name' => 'Adhésif Kraft 50mm', 'form_type' => Product::FORM_CONSUMABLE,
             'unit_id' => $unitPcs?->id, 'min_stock' => 200, 'safety_stock' => 100,
-            'product_type' => Product::TYPE_RAW_MATERIAL,
+            'product_type' => Product::TYPE_CONSUMABLE,
         ]);
         $p7->categories()->attach($catConsommable->id, ['is_primary' => true]);
         
         $p8 = Product::create([
             'code' => 'CONS-CALA-008', 'name' => 'Calage Papier Ondulé', 'form_type' => Product::FORM_CONSUMABLE,
             'unit_id' => $unitKg?->id, 'min_stock' => 500, 'safety_stock' => 250,
-            'product_type' => Product::TYPE_RAW_MATERIAL,
+            'product_type' => Product::TYPE_CONSUMABLE,
         ]);
+        $p9 = Product::create([
+            'code' => 'EQP-MCH-009', 'name' => 'Machine de Test 200', 'form_type' => Product::FORM_OTHER,
+            'unit_id' => $unitPcs?->id, 'min_stock' => 1, 'safety_stock' => 0,
+            'product_type' => Product::TYPE_EQUIPMENT,
+        ]);
+        $p9->categories()->attach($catFini->id, ['is_primary' => true]);
         $p8->categories()->attach($catConsommable->id, ['is_primary' => true]);
     }
 }

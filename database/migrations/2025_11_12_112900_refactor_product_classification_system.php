@@ -21,10 +21,10 @@ return new class extends Migration
 
         // Step 2: Add new form_type column
         Schema::table('products', function (Blueprint $table) {
-            $table->enum('form_type', ['roll', 'sheet', 'consumable', 'other'])
+            $table->enum('form_type', ['roll', 'sheet', 'other'])
                 ->nullable()
                 ->after('product_type')
-                ->comment('Physical form: roll (bobine), sheet (feuille), consumable, other');
+                ->comment('Physical form: roll (bobine), sheet (feuille), other');
         });
 
         // Step 3: Migrate existing data from type + is_roll to form_type
@@ -53,10 +53,10 @@ return new class extends Migration
 
         // Step 6: Update product_type to be enum for consistency
         Schema::table('products', function (Blueprint $table) {
-            $table->enum('product_type', ['raw_material', 'semi_finished', 'finished_good'])
+            $table->enum('product_type', ['raw_material', 'semi_finished', 'finished_good', 'consumable', 'equipment', 'other'])
                 ->default('raw_material')
                 ->change()
-                ->comment('Manufacturing stage: raw material, semi-finished, finished good');
+                ->comment('Manufacturing stage/logical type: raw material, semi-finished, finished good, consumable, equipment, other');
         });
 
         // Step 7: Add new indexes for form_type

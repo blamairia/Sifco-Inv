@@ -88,7 +88,7 @@ class ProductForm
                                 $set('code', $code);
                             }
                         })
-                        ->helperText('Matière première, Semi-fini, ou Produit fini'),
+                        ->helperText('Matière première, Semi-fini, Produit fini, Consommable, Équipement, ou Autre'),
 
                     Select::make('form_type')
                         ->label('Forme Physique')
@@ -125,6 +125,7 @@ class ProductForm
 
                     Select::make('unit_id')
                         ->label('Unité de Mesure')
+                        ->default(fn () => \App\Models\Unit::where('symbol', 'pcs')->first()?->id ?? null)
                         ->relationship('unit', 'name')
                         ->searchable()
                         ->preload()
