@@ -130,6 +130,11 @@ class BonSortiesTable
                     }),
             ])
             ->actions([
+                Action::make('export_pdf')
+                    ->label('Exporter PDF')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (BonSortie $record) => route('bonSortie.pdf', [$record]))
+                    ->openUrlInNewTab(true),
                 EditAction::make(),
                 ViewAction::make(),
                 Action::make('issue')

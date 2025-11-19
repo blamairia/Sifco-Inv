@@ -1,3 +1,116 @@
+@php
+    $companyName = config('app.name');
+    $logoPath = public_path('logo.svg');
+    $logoData = null;
+    if (file_exists($logoPath)) {
+        $svgContent = file_get_contents($logoPath);
+        $logoData = 'data:image/svg+xml;base64,' . base64_encode($svgContent);
+    }
+    $date = $bonSortie->issued_date ? $bonSortie->issued_date->format('d/m/Y') : now()->format('d/m/Y');
+    $items = $bonSortie->bonSortieItems;
+    $rollItems = $items->where('item_type', 'roll');
+    $productItems = $items->where('item_type', 'product');
+    $totalValue = $items->sum(fn($it) => ($it->qty_issued * ($it->cump_at_issue ?? 0)));
+@endphp
+
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bon de Sortie - {{ $bonSortie->bon_number }}</title>
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #222; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 16px; }
+        .title { font-weight: bold; font-size: 18px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        table th, table td { border: 1px solid #ddd; padding: 6px; font-size: 12px; }
+        .right { text-align: right; }
+        .total { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            @if($logoData)
+                <div class="title"><img src="{{ $logoData }}" alt="{{ $companyName }}" style="height:48px;" /></div>
+            @else
+                <div class="title">{{ $companyName }}</div>
+            @endif
+            <div>Bon de Sortie</div>
+            <div>N°: {{ $bonSortie->bon_number }}</div>
+        </div>
+        <div class="right">
+            <div>Date: {{ $date }}</div>
+            <div>Entrepôt: {{ $bonSortie->warehouse?->name }}</div>
+            <div>Destination: {{ $bonSortie->destination }}</div>
+        </div>
+    </div>
+
+    <div>
+        <strong>Bobines</strong>
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Produit</th>
+                    <th>Batch</th>
+                    <th>Poids (kg)</th>
+                    <th>Longueur (m)</th>
+                    <th>CUMP (DZD)</th>
+                    <th>Quantité</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($rollItems as $item)
+                    <tr>
+                        <td>{{ $item->roll?->ean_13 ?? '-' }}</td>
+                        <td>{{ $item->product?->name ?? ($item->roll?->product?->name ?? '-') }}</td>
+                        <td>{{ $item->roll?->batch_number ?? '-' }}</td>
+                        <td class="right">{{ number_format($item->weight_kg ?? 0, 3) }}</td>
+                        <td class="right">{{ number_format($item->length_m ?? 0, 3) }}</td>
+                        <td class="right">{{ number_format($item->cump_at_issue ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format($item->qty_issued ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format(($item->qty_issued * ($item->cump_at_issue ?? 0)), 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <strong>Produits</strong>
+        <table>
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th>Quantité</th>
+                    <th>CUMP (DZD)</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($productItems as $item)
+                    <tr>
+                        <td>{{ $item->product?->name }}</td>
+                        <td class="right">{{ number_format($item->qty_issued ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format($item->cump_at_issue ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format(($item->qty_issued * ($item->cump_at_issue ?? 0)), 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <div style="margin-top: 8px; float: right;">
+            <table>
+                <tr>
+                    <td class="total">Total</td>
+                    <td class="right total">{{ number_format($totalValue, 2) }} DZD</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
 <!doctype html>
 <html lang="fr">
 <head>
