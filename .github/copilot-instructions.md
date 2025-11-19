@@ -23,7 +23,7 @@ This file contains quick, actionable guidance to help AI coding agents and contr
 - Build assets: `npm run build`. Local dev watch: `npm run dev`/`npm run build --watch`.
 
 4) Architecture & conventions (patterns to follow)
-- Two-tier product attributes: `type` (UI family, e.g., `papier_roll`, `consommable`, `fini`) vs `product_type` (business classification: `raw_material`, `semi_finished`, `finished_good`). Use `Product::typeOptions()` and `Product::productTypeOptions()`.
+- Two-tier product attributes: `type` (UI family, e.g., `papier_roll`, `consommable`, `fini`) vs `product_type` (business classification: `raw_material`, `semi_finished`, `finished_good`, `consumable`, `equipment`, `other`). Use `Product::typeOptions()` and `Product::productTypeOptions()`.
 - Products may be `is_roll` (bobines) or sheet/pallet items; rolls are persisted in the `Roll` model and tracked with lifecycle events. See `Roll::STATUS_*` constants and `RollLifecycleEvent` handlers.
 - Business logic belongs in `app/Services`. Services use `DB::beginTransaction()` / commit/rollback, Log::info for traceability, and throw Exceptions for precondition failures (tests assert these behaviors). Example flows:
 	- `BonEntreeService::receive()` → creates `Roll` records (for rolls), `StockMovement` and updates `StockQuantity` using `CumpCalculator::calculate()`.
