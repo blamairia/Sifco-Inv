@@ -1,9 +1,14 @@
 @php
     $companyName = config('app.name');
-    $logoPath = public_path('logo.svg');
     $logoData = null;
-    if (file_exists($logoPath)) {
-        $svgContent = file_get_contents($logoPath);
+    $logoPngPath = public_path('logo.png');
+    $logoSvgPath = public_path('logo.svg');
+    // Prefer PNG only when the GD extension is available (Dompdf needs it to render PNG reliably)
+    if (extension_loaded('gd') && file_exists($logoPngPath)) {
+        $pngContent = file_get_contents($logoPngPath);
+        $logoData = 'data:image/png;base64,' . base64_encode($pngContent);
+    } elseif (file_exists($logoSvgPath)) {
+        $svgContent = file_get_contents($logoSvgPath);
         $logoData = 'data:image/svg+xml;base64,' . base64_encode($svgContent);
     }
     $date = $bonSortie->issued_date ? $bonSortie->issued_date->format('d/m/Y') : now()->format('d/m/Y');
