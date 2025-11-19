@@ -13,14 +13,30 @@ return new class extends Migration
 
         if ($driver === 'mysql') {
             // Alter bon_entree_items.ean_13 to allow longer values
-            DB::statement("DROP INDEX IF EXISTS `bon_entree_items_ean_13_unique` ON `bon_entree_items`");
+            try {
+                DB::statement("ALTER TABLE `bon_entree_items` DROP INDEX `bon_entree_items_ean_13_unique`");
+            } catch (\Throwable $e) {
+                // ignore if index doesn't exist
+            }
             DB::statement("ALTER TABLE `bon_entree_items` MODIFY `ean_13` VARCHAR(64) NULL COMMENT 'For bobines only'");
-            DB::statement("CREATE UNIQUE INDEX `bon_entree_items_ean_13_unique` ON `bon_entree_items` (`ean_13`)");
+            try {
+                DB::statement("ALTER TABLE `bon_entree_items` ADD UNIQUE INDEX `bon_entree_items_ean_13_unique` (`ean_13`)");
+            } catch (\Throwable $e) {
+                // ignore if index exists
+            }
 
             // Alter rolls.ean_13 to allow longer values
-            DB::statement("DROP INDEX IF EXISTS `rolls_ean_13_unique` ON `rolls`");
+            try {
+                DB::statement("ALTER TABLE `rolls` DROP INDEX `rolls_ean_13_unique`");
+            } catch (\Throwable $e) {
+                // ignore if index doesn't exist
+            }
             DB::statement("ALTER TABLE `rolls` MODIFY `ean_13` VARCHAR(64) NOT NULL COMMENT 'Unique barcode for this roll'");
-            DB::statement("CREATE UNIQUE INDEX `rolls_ean_13_unique` ON `rolls` (`ean_13`)");
+            try {
+                DB::statement("ALTER TABLE `rolls` ADD UNIQUE INDEX `rolls_ean_13_unique` (`ean_13`)");
+            } catch (\Throwable $e) {
+                // ignore if index exists
+            }
         } elseif ($driver === 'sqlite') {
             // SQLite has limited ALTER support; skip type changes in testing environments.
             DB::statement("DROP INDEX IF EXISTS bon_entree_items_ean_13_unique");
@@ -45,13 +61,21 @@ return new class extends Migration
         $driver = DB::getDriverName();
 
         if ($driver === 'mysql') {
-            DB::statement("DROP INDEX IF EXISTS `bon_entree_items_ean_13_unique` ON `bon_entree_items`");
+            try {
+                DB::statement("ALTER TABLE `bon_entree_items` DROP INDEX `bon_entree_items_ean_13_unique`");
+            } catch (\Throwable $e) {}
             DB::statement("ALTER TABLE `bon_entree_items` MODIFY `ean_13` VARCHAR(13) NULL COMMENT 'For bobines only'");
-            DB::statement("CREATE UNIQUE INDEX `bon_entree_items_ean_13_unique` ON `bon_entree_items` (`ean_13`)");
+            try {
+                DB::statement("ALTER TABLE `bon_entree_items` ADD UNIQUE INDEX `bon_entree_items_ean_13_unique` (`ean_13`)");
+            } catch (\Throwable $e) {}
 
-            DB::statement("DROP INDEX IF EXISTS `rolls_ean_13_unique` ON `rolls`");
+            try {
+                DB::statement("ALTER TABLE `rolls` DROP INDEX `rolls_ean_13_unique`");
+            } catch (\Throwable $e) {}
             DB::statement("ALTER TABLE `rolls` MODIFY `ean_13` VARCHAR(13) NOT NULL COMMENT 'Unique barcode for this roll'");
-            DB::statement("CREATE UNIQUE INDEX `rolls_ean_13_unique` ON `rolls` (`ean_13`)");
+            try {
+                DB::statement("ALTER TABLE `rolls` ADD UNIQUE INDEX `rolls_ean_13_unique` (`ean_13`)");
+            } catch (\Throwable $e) {}
         } elseif ($driver === 'sqlite') {
             DB::statement("DROP INDEX IF EXISTS bon_entree_items_ean_13_unique");
             DB::statement("DROP INDEX IF EXISTS rolls_ean_13_unique");

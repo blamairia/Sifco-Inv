@@ -69,9 +69,52 @@ class RollAdjustmentForm
                     Select::make('roll_id')
                         ->label('Bobine existante')
                         ->visible(fn (Get $get) => in_array($get('operation'), ['remove', 'damage', 'restore', 'weight_adjust'], true))
-                        ->options(fn (Get $get) => self::rollOptions($get))
+                        ->preload(false)
                         ->searchable()
-                        ->preload()
+                        ->getSearchResultsUsing(function ($search, $livewire) {
+                            $operation = $livewire->data['operation'] ?? null;
+                            $warehouseId = $livewire->data['warehouse_id'] ?? null;
+                            $productId = $livewire->data['product_id'] ?? null;
+
+                            $query = Roll::query()->with('product')->orderBy('ean_13');
+
+                            if ($warehouseId) {
+                                $query->where('warehouse_id', $warehouseId);
+                            }
+
+                            if ($productId) {
+                                $query->where('product_id', $productId);
+                            }
+
+                            $statuses = match ($operation) {
+                                'remove', 'damage', 'weight_adjust' => [Roll::STATUS_IN_STOCK],
+                                'restore' => [Roll::STATUS_DAMAGED, Roll::STATUS_CONSUMED, Roll::STATUS_ARCHIVED],
+                                default => null,
+                            };
+
+                            if ($statuses) {
+                                $query->whereIn('status', $statuses);
+                            }
+
+                            if ($search) {
+                                $query->where('ean_13', 'like', "%{$search}%");
+                            }
+
+                            return $query->limit(200)->get()->mapWithKeys(function (Roll $roll) {
+                                $productName = $roll->product?->name ?? 'Produit';
+                                return [
+                                    $roll->id => sprintf('%s - %.3f kg - %.3f m', $productName, $roll->weight, $roll->length),
+                                ];
+                            })->toArray();
+                        })
+                        ->getOptionLabelUsing(function ($value) {
+                            $roll = Roll::with('product')->find($value);
+                            if (! $roll) {
+                                return null;
+                            }
+                            $productName = $roll->product?->name ?? 'Produit';
+                            return sprintf('%s - %.3f kg - %.3f m', $productName, $roll->weight, $roll->length);
+                        })
                         ->live()
                         ->required(fn (Get $get) => in_array($get('operation'), ['remove', 'damage', 'restore', 'weight_adjust'], true))
                         ->afterStateUpdated(function ($state, callable $set) {
@@ -248,7 +291,7 @@ class RollAdjustmentForm
                 $productName = $roll->product?->name ?? 'Produit';
 
                 return [
-                    $roll->id => sprintf('%s - %s - %.3f kg - %.3f m', $roll->ean_13, $productName, $roll->weight, $roll->length),
+                    $roll->id => sprintf('%s - %.3f kg - %.3f m', $productName, $roll->weight, $roll->length),
                 ];
             })
             ->toArray();

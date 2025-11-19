@@ -98,13 +98,24 @@ class BonReintegrationForm
                         ->schema([
                             Select::make('roll_id')
                                 ->label('Bobine')
-                                ->relationship(
-                                    name: 'roll',
-                                    titleAttribute: 'ean_13',
-                                    modifyQueryUsing: fn ($query) => $query->whereIn('status', [Roll::STATUS_CONSUMED, Roll::STATUS_DAMAGED])
-                                )
+                                ->preload(false)
                                 ->searchable()
-                                ->preload()
+                                ->getSearchResultsUsing(function ($search, $livewire) {
+                                    $query = Roll::with('product')
+                                        ->whereIn('status', [Roll::STATUS_CONSUMED, Roll::STATUS_DAMAGED]);
+
+                                    if ($search) {
+                                        $query->where('ean_13', 'like', "%{$search}%");
+                                    }
+
+                                    return $query->limit(50)->get()->mapWithKeys(fn ($roll) => [
+                                        $roll->id => ($roll->product?->name ?? 'Bobine') . " | {$roll->weight} kg | {$roll->length} m",
+                                    ])->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value) {
+                                    $roll = Roll::with('product')->find($value);
+                                    return $roll ? ($roll->product?->name ?? 'Bobine') . " | {$roll->weight} kg | {$roll->length} m" : null;
+                                })
                                 ->required()
                                 ->reactive()
                                 ->disabled(fn ($record) => $record && $record->bonReintegration && $record->bonReintegration->status !== 'draft')
@@ -184,7 +195,7 @@ class BonReintegrationForm
                         ->collapsible()
                         ->disabled(fn (?BonReintegration $record) => $record?->status !== 'draft')
                         ->itemLabel(fn (array $state): ?string => match (true) {
-                            isset($state['roll_id']) => 'Bobine ' . (Roll::find($state['roll_id'])?->ean_13 ?? '#?'),
+                            isset($state['roll_id']) => (Roll::find($state['roll_id'])?->product?->name ?? 'Bobine') . ' | ' . (Roll::find($state['roll_id'])?->weight ?? '') . ' kg | ' . (Roll::find($state['roll_id'])?->length ?? '') . ' m',
                             default => 'Nouvelle bobine',
                         })
                         ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Schemas;
 use App\Models\Category;
 use App\Models\Product;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -65,6 +66,7 @@ class ProductForm
 
                     Select::make('product_type')
                         ->label('Type Logique (Stade de Fabrication)')
+                        ->placeholder('Sélectionnez le type logique')
                         ->options(Product::productTypeOptions())
                         ->default(Product::TYPE_RAW_MATERIAL)
                         ->required()
@@ -92,6 +94,7 @@ class ProductForm
 
                     Select::make('form_type')
                         ->label('Forme Physique')
+                        ->placeholder('Sélectionnez la forme physique')
                         ->options(Product::formTypeOptions())
                         ->default(Product::FORM_OTHER)
                         ->required()
@@ -128,7 +131,8 @@ class ProductForm
                         ->relationship('unit', 'name')
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->placeholder('Sélectionnez l’unité de mesure'),
 
                     Toggle::make('is_active')
                         ->label('Actif')
@@ -154,6 +158,7 @@ class ProductForm
                         ->searchable()
                         ->preload()
                         ->live()
+                        ->placeholder('Sélectionnez les catégories')    
                         ->afterStateUpdated(function (Set $set, Get $get, ?array $state) {
                             $primary = $get('primary_category_id');
 
@@ -171,6 +176,7 @@ class ProductForm
                             ->pluck('name', 'id'))
                         ->searchable()
                         ->live()
+                        ->placeholder('Sélectionnez la catégorie principale')
                         ->afterStateUpdated(function (Set $set, Get $get, ?int $state) {
                             if (! $state) {
                                 return;

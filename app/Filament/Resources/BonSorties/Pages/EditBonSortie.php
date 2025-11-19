@@ -16,6 +16,11 @@ class EditBonSortie extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('export_pdf')
+                ->label('Exporter (PDF)')
+                ->icon('heroicon-o-printer')
+                ->url(fn() => route('bonSortie.pdf', [$this->record]))
+                ->openUrlInNewTab(true),
             Actions\Action::make('issue')
                 ->label('Émettre')
                 ->icon('heroicon-o-arrow-up-circle')
