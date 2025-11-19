@@ -46,8 +46,8 @@ class WorkflowDemoSeeder extends Seeder
     $supplier = Supplier::query()->firstOrFail();
     $productionLine = ProductionLine::query()->first();
 
-        $rollProducts = Product::query()->where('is_roll', true)->take(2)->get();
-        $standardProduct = Product::query()->where('is_roll', false)->first();
+        $rollProducts = Product::query()->where('form_type', Product::FORM_ROLL)->take(2)->get();
+        $standardProduct = Product::query()->where('form_type', '!=', Product::FORM_ROLL)->first();
 
         if ($rollProducts->count() < 2 || ! $standardProduct) {
             $this->command?->warn('⚠️  Impossible de créer les jeux de données de démonstration : produits insuffisants.');

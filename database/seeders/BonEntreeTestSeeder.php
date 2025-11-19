@@ -31,8 +31,8 @@ class BonEntreeTestSeeder extends Seeder
         }
 
         // Get products (2 bobines + 2 normal products)
-        $bobineProducts = Product::where('is_roll', true)->take(2)->get();
-        $normalProducts = Product::where('is_roll', false)->take(2)->get();
+        $bobineProducts = Product::where('form_type', Product::FORM_ROLL)->take(2)->get();
+        $normalProducts = Product::where('form_type', '!=', Product::FORM_ROLL)->take(2)->get();
 
         if ($bobineProducts->count() < 2 || $normalProducts->count() < 2) {
             $this->command->error('❌ Not enough products. Need at least 2 bobines and 2 normal products.');

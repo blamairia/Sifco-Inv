@@ -24,7 +24,7 @@ class ProductSeeder extends Seeder
         $p1 = Product::create([
             'code' => 'PROD-KR80-001', 'name' => 'Kraft Blanc 80g/m²', 'form_type' => Product::FORM_ROLL,
             'description' => 'Papier kraft blanchi', 'grammage' => 80, 'laize' => 1600,
-            'type_papier' => 'Kraftliner', 'unit_id' => $unitRoll?->id, 'is_roll' => true,
+            'type_papier' => 'Kraftliner', 'unit_id' => $unitRoll?->id,
             'min_stock' => 50, 'safety_stock' => 20,
             'product_type' => Product::TYPE_RAW_MATERIAL,
         ]);
@@ -33,7 +33,7 @@ class ProductSeeder extends Seeder
         $p2 = Product::create([
             'code' => 'PROD-TS120-002', 'name' => 'Test 120g/m² Cannelure', 'form_type' => Product::FORM_ROLL,
             'grammage' => 120, 'laize' => 1400, 'flute' => 'B', 'type_papier' => 'Test/Fluting',
-            'unit_id' => $unitRoll?->id, 'is_roll' => true, 'min_stock' => 40, 'safety_stock' => 15,
+            'unit_id' => $unitRoll?->id, 'min_stock' => 40, 'safety_stock' => 15,
             'product_type' => Product::TYPE_RAW_MATERIAL,
         ]);
         $p2->categories()->attach($catTest->id, ['is_primary' => true]);
@@ -41,7 +41,7 @@ class ProductSeeder extends Seeder
         $p3 = Product::create([
             'code' => 'PROD-REC60-003', 'name' => 'Recyclé 60g/m²', 'form_type' => Product::FORM_ROLL,
             'grammage' => 60, 'laize' => 1500, 'type_papier' => 'Recyclé',
-            'unit_id' => $unitRoll?->id, 'is_roll' => true, 'min_stock' => 30, 'safety_stock' => 10,
+            'unit_id' => $unitRoll?->id, 'min_stock' => 30, 'safety_stock' => 10,
             'product_type' => Product::TYPE_RAW_MATERIAL,
         ]);
         $p3->categories()->attach($catRecycle->id, ['is_primary' => true]);
