@@ -11,6 +11,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use AlperenErsoy\FilamentExport\Actions\FilamentExportBulkAction;
+use AlperenErsoy\FilamentExport\Actions\FilamentExportHeaderAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use BackedEnum;
@@ -41,6 +43,10 @@ class BobineDashboard extends Page implements HasTable
         return $table
             ->query($this->getTableQuery())
             ->columns($this->getTableColumns())
+            ->headerActions([
+                FilamentExportHeaderAction::make('export')
+                    ->label('Exporter')
+            ])
             ->filters([
                 Tables\Filters\SelectFilter::make('warehouse_id')
                     ->label('Entrepôt')
@@ -77,6 +83,10 @@ class BobineDashboard extends Page implements HasTable
                             ])
                         )
                     ),
+            ])
+            ->bulkActions([
+                FilamentExportBulkAction::make('export')
+                    ->label('Exporter')
             ])
             ->defaultSort('roll_count', 'desc')
             ->defaultKeySort(false)
