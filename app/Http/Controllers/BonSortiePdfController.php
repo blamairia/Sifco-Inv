@@ -25,7 +25,8 @@ class BonSortiePdfController
         // Set a safe default paper and orientation
         $pdf->setPaper('A4', 'portrait');
 
-        // Render and return the download response
-        return $pdf->download($fileName);
+        // Render and return inline (open in browser) response
+        // Attachment => 0 tells Dompdf to render inline in the browser instead of forcing a download
+        return $pdf->stream($fileName);
     }
 }
