@@ -144,7 +144,7 @@ class BonEntreeForm
                         
                         TextInput::make('frais_approche')
                             ->label('Frais d\'Approche')
-                            ->helperText('Transport, D3, transitaire, etc. (distribués sur validation)')
+                            ->helperText('Transport, transitaire, etc.')
                             ->numeric()
                             ->prefix('DZD')
                             ->default(0)
