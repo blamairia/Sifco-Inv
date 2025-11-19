@@ -6,6 +6,7 @@ use App\Filament\Resources\BonSorties\BonSortieResource;
 use App\Models\BonSortie;
 use App\Services\BonSortieService;
 use Filament\Actions;
+use Barryvdh\DomPDF\Facade\Pdf as DomPdf;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Notifications\Notification;
 
@@ -16,6 +17,26 @@ class EditBonSortie extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('export_pdf')
+                ->label('Exporter en PDF')
+                ->icon('heroicon-o-document-download')
+                ->tooltip('Télécharger en PDF')
+                ->action(function () {
+                    $record = $this->record;
+                    $fileName = 'BonSortie-' . ($record->bon_number ?? $record->id) . '.pdf';
+
+                    if (class_exists(DomPdf::class)) {
+                        $pdf = DomPdf::loadView('bon_sorties.pdf', ['bonSortie' => $record]);
+                        return $pdf->download($fileName);
+                    }
+
+                    Notification::make()
+                        ->title('PDF non disponible')
+                        ->body('Veuillez installer le paquet barryvdh/laravel-dompdf: composer require barryvdh/laravel-dompdf')
+                        ->warning()
+                        ->send();
+                }),
+
             Actions\Action::make('issue')
                 ->label('Émettre')
                 ->icon('heroicon-o-arrow-up-circle')

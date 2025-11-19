@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "alperenersoy/filament-export": "^4.0",
+        "barryvdh/laravel-dompdf": "^2.1",
         "designthebox/barcode-field": "dev-main",
         "filament/filament": "4.0@beta",
         "laravel/framework": "^12.0",
