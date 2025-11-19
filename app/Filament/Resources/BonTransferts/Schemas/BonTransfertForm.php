@@ -96,37 +96,39 @@ class BonTransfertForm
                                 Hidden::make('item_type')->default('roll'),
                                 Select::make('roll_id')
                                     ->label('Bobine')
-                                    ->options(function ($get, $livewire) {
+                                    ->preload(false)
+                                    ->searchable()
+                                    ->getSearchResultsUsing(function ($search, $livewire) {
                                         $warehouseFromId = $livewire->data['warehouse_from_id'] ?? null;
-                                        
-                                        if (!$warehouseFromId) {
-                                            return [];
-                                        }
-                                        
-                                        // Get all already selected roll IDs
-                                        $selectedRollIds = collect($get('../../rollItems') ?? [])
+                                        if (!$warehouseFromId) return [];
+
+                                        // Get already selected roll IDs from all repeater rows
+                                        $selectedRollIds = collect($livewire->data['rollItems'] ?? [])
                                             ->pluck('roll_id')
                                             ->filter()
                                             ->toArray();
-                                        
-                                        $currentRollId = $get('roll_id');
-                                        
-                                        return Roll::with('bonEntreeItem')
+
+                                        $query = Roll::with('product')
                                             ->where('status', 'in_stock')
                                             ->where('warehouse_id', $warehouseFromId)
-                                            ->when(count($selectedRollIds) > 0, function ($query) use ($selectedRollIds, $currentRollId) {
-                                                $query->where(function ($q) use ($selectedRollIds, $currentRollId) {
-                                                    $q->whereNotIn('id', $selectedRollIds)
-                                                      ->orWhere('id', $currentRollId);
-                                                });
+                                            ->when($search, function ($q) use ($search) {
+                                                $q->where('ean_13', 'like', "%{$search}%");
                                             })
-                                            ->get()
-                                            ->mapWithKeys(fn ($roll) => [
-                                                $roll->id => "{$roll->ean_13} | {$roll->batch_number} | {$roll->weight} kg"
-                                            ])
-                                            ->toArray();
+                                            ->when(count($selectedRollIds) > 0, function ($q) use ($selectedRollIds) {
+                                                $q->whereNotIn('id', $selectedRollIds);
+                                            })
+                                            ->limit(50)
+                                            ->get();
+
+                                        return $query->mapWithKeys(fn ($roll) => [
+                                            $roll->id => ($roll->product?->name ?? 'Bobine') . " | {$roll->weight} kg | {$roll->length} m",
+                                        ])->toArray();
                                     })
-                                    ->searchable()
+                                    ->getOptionLabelUsing(function ($value) {
+                                        $roll = Roll::with('product')->find($value);
+                                        if (!$roll) return null;
+                                        return ($roll->product?->name ?? 'Bobine') . " | {$roll->weight} kg | {$roll->length} m";
+                                    })
                                     ->required()
                                     ->reactive()
                                     ->afterStateUpdated(function ($state, $set) {
@@ -182,7 +184,7 @@ class BonTransfertForm
                             ->reorderable(false)
                             ->collapsible()
                             ->itemLabel(fn (array $state): ?string => 
-                                $state['roll_id'] ? Roll::find($state['roll_id'])?->ean_13 : 'Nouvelle bobine'
+                                $state['roll_id'] ? (Roll::find($state['roll_id'])?->product?->name ?? 'Bobine') . " | " . (Roll::find($state['roll_id'])?->weight ?? '') . " kg | " . (Roll::find($state['roll_id'])?->length ?? '') . " m" : 'Nouvelle bobine'
                             )
                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                 $data['item_type'] = 'roll';
