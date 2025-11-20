@@ -5,6 +5,8 @@ namespace App\Filament\Resources\StockMovements\Tables;
 use App\Models\StockMovement;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
@@ -194,6 +196,20 @@ class StockMovementsTable
                     ->url(fn (StockMovement $record) => route('stockMovement.pdf', [$record]))
                     ->openUrlInNewTab(true),
                 // View only - no edit/delete
+            ])
+            ->toolbarActions([
+                Action::make('export_visible')
+                    ->label('Exporter (Visibles)')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn () => route('stockMovements.exportFilteredPdf', request()->query()))
+                    ->openUrlInNewTab(true),
+            ])
+            ->bulkActions([
+                BulkAction::make('export_selected')
+                    ->label('Exporter sélection')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (Collection $records) => route('stockMovements.exportMultiplePdf', ['ids' => implode(',', $records->pluck('id')->toArray())]))
+                    ->openUrlInNewTab(true),
             ])
             ->defaultSort('performed_at', 'desc')
             ->striped()

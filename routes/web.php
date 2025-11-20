@@ -17,3 +17,5 @@ Route::get('/admin/bon-entrees/{bonEntree}/pdf', [BonEntreePdfController::class,
 
 // PDF route for StockMovement
 Route::get('/admin/stock-movements/{stockMovement}/pdf', [StockMovementPdfController::class, 'show'])->name('stockMovement.pdf');
+Route::get('/admin/stock-movements/export/filtered', [StockMovementPdfController::class, 'exportFiltered'])->name('stockMovements.exportFilteredPdf');
+Route::get('/admin/stock-movements/export/multiple', [StockMovementPdfController::class, 'exportMultiple'])->name('stockMovements.exportMultiplePdf');
