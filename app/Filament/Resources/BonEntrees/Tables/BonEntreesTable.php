@@ -11,6 +11,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
+use App\Models\BonEntree;
 
 class BonEntreesTable
 {
@@ -164,6 +165,11 @@ class BonEntreesTable
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
+                Action::make('export_pdf')
+                    ->label('Exporter PDF')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (BonEntree $record) => route('bonEntree.pdf', [$record]))
+                    ->openUrlInNewTab(true),
                 EditAction::make(),
                 ViewAction::make(),
                 
