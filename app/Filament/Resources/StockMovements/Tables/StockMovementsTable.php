@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StockMovements\Tables;
 
 use App\Models\StockMovement;
 use Filament\Tables\Table;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
@@ -187,6 +188,11 @@ class StockMovementsTable
                     }),
             ])
             ->recordActions([
+                Action::make('export_pdf')
+                    ->label('Exporter PDF')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (StockMovement $record) => route('stockMovement.pdf', [$record]))
+                    ->openUrlInNewTab(true),
                 // View only - no edit/delete
             ])
             ->defaultSort('performed_at', 'desc')
