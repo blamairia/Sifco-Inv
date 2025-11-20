@@ -13,12 +13,14 @@
 
     $date = $bonEntree->received_date ? $bonEntree->received_date->format('d/m/Y') : now()->format('d/m/Y');
     $items = $bonEntree->bonEntreeItems ?? collect([]);
-    $rollItems = $items->where('item_type', 'roll');
+    $rollItems = $items->where('item_type', 'bobine');
+    $palletItems = $items->where('item_type', 'pallet');
     $productItems = $items->where('item_type', 'product');
     // Pre-calc totals
     $rollTotal = $rollItems->sum(fn($it) => ($it->qty_entered ?? 1) * ($it->price_ttc ?? $it->roll?->price ?? 0));
+    $palletTotal = $palletItems->sum(fn($it) => ($it->qty_entered ?? 1) * ($it->price_ttc ?? 0));
     $productTotal = $productItems->sum(fn($it) => ($it->qty_entered ?? 0) * ($it->price_ttc ?? 0));
-    $grandTotal = $rollTotal + $productTotal;
+    $grandTotal = $rollTotal + $palletTotal + $productTotal;
 @endphp
 
 <!doctype html>
@@ -86,11 +88,38 @@
             </tbody>
         </table>
 
+        <h2>Palettes</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th>Largeur (mm)</th>
+                    <th>Longueur (mm)</th>
+                    <th>Quantité</th>
+                    <th>Prix TTC</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($palletItems as $item)
+                    <tr>
+                        <td>{{ $item->product?->name }}</td>
+                        <td class="right">{{ number_format($item->sheet_width_mm ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format($item->sheet_length_mm ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format($item->qty_entered ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format($item->price_ttc ?? 0, 2) }}</td>
+                        <td class="right">{{ number_format(($item->qty_entered * ($item->price_ttc ?? 0)), 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
         <h2>Produits</h2>
         <table>
             <thead>
                 <tr>
                     <th>Produit</th>
+                    <th>Code</th>
                     <th>Quantité</th>
                     <th>Prix TTC</th>
                     <th>Valeur</th>
@@ -100,6 +129,7 @@
                 @foreach ($productItems as $item)
                     <tr>
                         <td>{{ $item->product?->name }}</td>
+                        <td>{{ $item->product?->code ?? '-' }}</td>
                         <td class="right">{{ number_format($item->qty_entered ?? 0, 2) }}</td>
                         <td class="right">{{ number_format($item->price_ttc ?? 0, 2) }}</td>
                         <td class="right">{{ number_format(($item->qty_entered * ($item->price_ttc ?? 0)), 2) }}</td>
@@ -113,6 +143,10 @@
                 <tr>
                     <td class="total">Total Bobines</td>
                     <td class="right total">{{ number_format($rollTotal, 2) }} DZD</td>
+                </tr>
+                <tr>
+                    <td class="total">Total Palettes</td>
+                    <td class="right total">{{ number_format($palletTotal, 2) }} DZD</td>
                 </tr>
                 <tr>
                     <td class="total">Total Produits</td>

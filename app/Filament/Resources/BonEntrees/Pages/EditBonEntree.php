@@ -17,6 +17,12 @@ class EditBonEntree extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Export PDF Action
+            Actions\Action::make('export_pdf')
+                ->label('Exporter PDF')
+                ->icon('heroicon-o-printer')
+                ->url(fn ($record) => route('bonEntree.pdf', [$record]))
+                ->openUrlInNewTab(true),
             // Validate Action
             Actions\Action::make('validate')
                 ->label('Valider')
