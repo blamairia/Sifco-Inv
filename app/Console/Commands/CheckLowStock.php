@@ -77,6 +77,7 @@ class CheckLowStock extends Command
                     $existingAlert->update([
                         'current_qty' => $stockQty->total_qty,
                         'severity' => $severity,
+                        'alert_type' => $severity === 'HIGH' ? 'safety_stock_reached' : 'min_stock_reached',
                     ]);
                     $alertsUpdated++;
                     $this->warn("Updated alert for {$product->name} at {$stockQty->warehouse->name} - Severity: {$severity}");
@@ -87,9 +88,8 @@ class CheckLowStock extends Command
                     'product_id' => $product->id,
                     'warehouse_id' => $stockQty->warehouse_id,
                     'current_qty' => $stockQty->total_qty,
-                    'min_stock' => $product->min_stock,
-                    'safety_stock' => $product->safety_stock,
                     'severity' => $severity,
+                    'alert_type' => $severity === 'HIGH' ? 'safety_stock_reached' : 'min_stock_reached',
                     'status' => 'ACTIVE',
                 ]);
 
@@ -149,10 +149,10 @@ class CheckLowStock extends Command
         $admins = User::all();
 
         foreach ($admins as $admin) {
-            Notification::make()
+                Notification::make()
                 ->warning()
                 ->title('Alerte Stock Faible')
-                ->body("Le produit {$alert->product->name} dans l'entrepôt {$alert->warehouse->name} a un niveau de stock faible: {$alert->current_qty} unités (Min: {$alert->min_stock})")
+                ->body("Le produit {$alert->product->name} dans l'entrepôt {$alert->warehouse->name} a un niveau de stock faible: {$alert->current_qty} unités (Min: {$alert->product->min_stock}, Safety: {$alert->product->safety_stock})")
                 ->actions([
                     FilamentAction::make('view')
                         ->label("Voir l'alerte")

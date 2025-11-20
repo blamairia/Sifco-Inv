@@ -32,28 +32,31 @@ class LowStockAlertForm
                         Grid::make(3)
                             ->schema([
                                 Placeholder::make('current_qty')
-                                    ->label('Quantité Actuelle')
-                                    ->content(fn($record) => number_format($record->current_qty, 2) . ' unités'),
+                                            ->label('Quantité Actuelle')
+                                            ->content(fn($record) => number_format($record->current_qty, 2) . ' unités'),
                                     
                                 Placeholder::make('min_stock')
                                     ->label('Stock Minimum')
-                                    ->content(fn($record) => number_format($record->min_stock, 2) . ' unités'),
+                                    ->content(fn($record) => number_format($record->product?->min_stock ?? $record->min_stock, 2) . ' unités'),
                                     
                                 Placeholder::make('safety_stock')
                                     ->label('Stock de Sécurité')
-                                    ->content(fn($record) => $record->safety_stock ? number_format($record->safety_stock, 2) . ' unités' : '—'),
+                                    ->content(fn($record) => ($record->product?->safety_stock ?? $record->safety_stock) ? number_format($record->product?->safety_stock ?? $record->safety_stock, 2) . ' unités' : '—'),
                             ]),
                             
                         Grid::make(2)
                             ->schema([
                                 Placeholder::make('severity')
                                     ->label('Sévérité')
-                                    ->content(fn($record) => match ($record->severity) {
-                                        'CRITICAL' => '🔴 Critique',
-                                        'HIGH' => '🟠 Élevée',
-                                        'MEDIUM' => '🟡 Moyenne',
-                                        'LOW' => '🔵 Faible',
-                                        default => $record->severity,
+                                    ->content(function ($record) {
+                                        $sev = $record->computeSeverity() ?? $record->severity;
+                                        return match ($sev) {
+                                            'CRITICAL' => '🔴 Critique',
+                                            'HIGH' => '🟠 Élevée',
+                                            'MEDIUM' => '🟡 Moyenne',
+                                            'LOW' => '🔵 Faible',
+                                            default => $sev,
+                                        };
                                     }),
                                     
                                 Placeholder::make('status')

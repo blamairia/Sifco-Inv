@@ -36,34 +36,50 @@ class LowStockAlertsTable
                     ->sortable()
                     ->color(fn($record) => $record->current_qty <= 0 ? 'danger' : 'gray'),
                     
-                TextColumn::make('min_stock')
+                TextColumn::make('product.min_stock')
                     ->label('Stock Min')
                     ->numeric(decimalPlaces: 2)
                     ->suffix(' unités')
                     ->sortable(),
                     
-                TextColumn::make('safety_stock')
+                TextColumn::make('product.safety_stock')
                     ->label('Stock Sécurité')
                     ->numeric(decimalPlaces: 2)
                     ->suffix(' unités')
                     ->sortable(),
+                TextColumn::make('diff_vs_min')
+                    ->label('Diff (Qté - Min)')
+                    ->getStateUsing(function (LowStockAlert $record) {
+                        $min = $record->product?->min_stock ?? $record->min_stock ?? 0;
+                        return ($record->current_qty ?? 0) - $min;
+                    })
+                    ->formatStateUsing(fn($state) => number_format($state, 2) . ' unités')
+                    ->sortable()
+                    ->color(fn($value) => $value < 0 ? 'danger' : ($value <= 0 ? 'warning' : 'success'))
+                    ->alignEnd(),
                     
                 TextColumn::make('severity')
                     ->label('Sévérité')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'CRITICAL' => 'danger',
-                        'HIGH' => 'warning',
-                        'MEDIUM' => 'info',
-                        'LOW' => 'gray',
-                        default => 'gray',
+                    ->formatStateUsing(function ($state, $record) {
+                        $sev = $record->computeSeverity() ?? $state;
+                        return match ($sev) {
+                            'CRITICAL' => 'Critique',
+                            'HIGH' => 'Élevée',
+                            'MEDIUM' => 'Moyenne',
+                            'LOW' => 'Faible',
+                            default => $sev ?? '—',
+                        };
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'CRITICAL' => 'Critique',
-                        'HIGH' => 'Élevée',
-                        'MEDIUM' => 'Moyenne',
-                        'LOW' => 'Faible',
-                        default => $state,
+                    ->color(function ($state, $record) {
+                        $sev = $record->computeSeverity() ?? $state;
+                        return match ($sev) {
+                            'CRITICAL' => 'danger',
+                            'HIGH' => 'warning',
+                            'MEDIUM' => 'info',
+                            'LOW' => 'gray',
+                            default => 'gray',
+                        };
                     })
                     ->sortable(),
                     

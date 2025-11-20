@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,7 @@ use Illuminate\Support\Str;
 
 class Product extends Model
 {
+    use HasFactory;
     // Manufacturing Stage (Type Logique)
     public const TYPE_RAW_MATERIAL = 'raw_material';
     public const TYPE_SEMI_FINISHED = 'semi_finished';

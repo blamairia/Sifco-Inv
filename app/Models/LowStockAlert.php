@@ -13,8 +13,7 @@ class LowStockAlert extends Model
         'product_id',
         'warehouse_id',
         'current_qty',
-        'min_stock',
-        'safety_stock',
+        // min_stock and safety_stock are read from Product; no longer stored on alert
         'severity',
         'status',
         'notes',
@@ -24,8 +23,7 @@ class LowStockAlert extends Model
 
     protected $casts = [
         'current_qty' => 'decimal:2',
-        'min_stock' => 'decimal:2',
-        'safety_stock' => 'decimal:2',
+        // stored on Product; not casted on alert anymore
         'resolved_at' => 'datetime',
     ];
 
@@ -97,5 +95,33 @@ class LowStockAlert extends Model
     public function isSafetyStockAlert(): bool
     {
         return $this->alert_type === 'safety_stock_reached';
+    }
+
+    /**
+     * Compute severity based on current quantity and product thresholds.
+     */
+    public function computeSeverity(): ?string
+    {
+        $currentQty = (float) ($this->current_qty ?? 0);
+        $minStock = (float) ($this->product?->min_stock ?? $this->min_stock ?? 0);
+        $safetyStock = (float) ($this->product?->safety_stock ?? $this->safety_stock ?? 0);
+
+        if ($currentQty <= 0) {
+            return 'CRITICAL';
+        }
+
+        if ($safetyStock > 0 && $currentQty <= $safetyStock) {
+            return 'HIGH';
+        }
+
+        if ($minStock > 0 && $currentQty <= $minStock) {
+            return 'MEDIUM';
+        }
+
+        if ($minStock > 0 && $currentQty <= $minStock * 1.1) {
+            return 'LOW';
+        }
+
+        return null;
     }
 }
