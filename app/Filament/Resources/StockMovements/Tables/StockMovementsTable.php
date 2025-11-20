@@ -208,8 +208,7 @@ class StockMovementsTable
                 BulkAction::make('export_selected')
                     ->label('Exporter sélection')
                     ->icon('heroicon-o-printer')
-                    ->url(fn (Collection $records) => route('stockMovements.exportMultiplePdf', ['ids' => implode(',', $records->pluck('id')->toArray())]))
-                    ->openUrlInNewTab(true),
+                    ->action(fn (Collection $records) => redirect()->to(route('stockMovements.exportMultiplePdf', ['ids' => implode(',', $records->pluck('id')->toArray())]))),
             ])
             ->defaultSort('performed_at', 'desc')
             ->striped()
