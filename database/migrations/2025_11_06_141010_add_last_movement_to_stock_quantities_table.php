@@ -14,7 +14,7 @@ return new class extends Migration
                     ->nullable()
                     ->after('cump_snapshot')
                     ->constrained('stock_movements')
-                    ->nullOnDelete();
+                    ->noActionOnDelete();
             }
         });
     }

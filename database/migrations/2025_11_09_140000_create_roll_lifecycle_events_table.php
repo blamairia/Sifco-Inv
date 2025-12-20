@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('roll_lifecycle_events', function (Blueprint $table) {
             $table->id();
             $table->foreignId('roll_id')->constrained('rolls')->cascadeOnDelete();
-            $table->foreignId('stock_movement_id')->nullable()->constrained('stock_movements')->nullOnDelete();
+            $table->foreignId('stock_movement_id')->nullable()->constrained('stock_movements')->noActionOnDelete();
             $table->string('event_type')->comment('RECEPTION, TRANSFER, SORTIE, REINTEGRATION, ADJUSTMENT');
             $table->string('reference_number')->nullable()->comment('Related bon number');
             
@@ -30,11 +30,11 @@ return new class extends Migration
             $table->string('waste_reason')->nullable();
             
             // Source/destination
-            $table->foreignId('warehouse_from_id')->nullable()->constrained('warehouses')->nullOnDelete();
-            $table->foreignId('warehouse_to_id')->nullable()->constrained('warehouses')->nullOnDelete();
+            $table->foreignId('warehouse_from_id')->nullable()->constrained('warehouses')->noActionOnDelete();
+            $table->foreignId('warehouse_to_id')->nullable()->constrained('warehouses')->noActionOnDelete();
             
             // Event metadata
-            $table->foreignId('triggered_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('triggered_by_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->json('metadata')->nullable()->comment('Event-specific data like roll_spec changes');
             $table->text('notes')->nullable();
             $table->timestamps();

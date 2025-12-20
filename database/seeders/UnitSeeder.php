@@ -18,7 +18,10 @@ class UnitSeeder extends Seeder
         ];
 
         foreach ($units as $unit) {
-            \App\Models\Unit::create($unit);
+            \App\Models\Unit::firstOrCreate(
+                ['name' => $unit['name']],
+                $unit
+            );
         }
     }
 }

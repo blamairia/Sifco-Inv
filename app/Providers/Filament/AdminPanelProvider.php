@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Auth\CustomLogin::class)
             ->databaseTransactions(true)
             ->brandName('SIFCO Carton')
             // use root logo in public (copied from repo root)

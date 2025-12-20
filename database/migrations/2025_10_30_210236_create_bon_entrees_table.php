@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('bon_number')->unique();
             $table->foreignId('bon_reception_id')->constrained('bon_receptions')->cascadeOnDelete();
-            $table->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->noActionOnDelete();
             $table->date('receipt_date');
             $table->enum('status', ['draft', 'entered', 'confirmed', 'archived'])->default('draft');
-            $table->foreignId('entered_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('entered_by_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamp('entered_at')->nullable();
             $table->decimal('total_amount_ttc', 15, 2)->default(0)->comment('Including frais d\'approche');
             $table->decimal('total_amount_ht', 15, 2)->default(0)->comment('Before frais');

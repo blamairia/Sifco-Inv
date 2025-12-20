@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('bon_transfert_items', function (Blueprint $table) {
             $table->string('item_type', 20)->default('product')->after('id')->comment('roll or product');
-            $table->foreignId('roll_id')->nullable()->after('product_id')->constrained('rolls')->nullOnDelete()->comment('If item_type=roll, reference to the roll');
+            $table->foreignId('roll_id')->nullable()->after('product_id')->constrained('rolls')->noActionOnDelete()->comment('If item_type=roll, reference to the roll');
         });
     }
 

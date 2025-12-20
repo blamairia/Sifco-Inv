@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('delivery_note_ref')->nullable()->comment('Bon de livraison fournisseur');
             $table->string('purchase_order_ref')->nullable()->comment('Bon de commande');
             $table->enum('status', ['received', 'verified', 'conformity_issue', 'rejected'])->default('received');
-            $table->foreignId('verified_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('verified_by_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamp('verified_at')->nullable();
             $table->text('notes')->nullable();
             $table->json('conformity_issues')->nullable()->comment('{missing, surplus, damaged}');

@@ -24,6 +24,22 @@ return new class extends Migration
                 DB::statement('DROP INDEX IF EXISTS "bon_entrees_status_index"');
             }
 
+            if (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+                // Drop indices explicitly for SQL Server
+                DB::statement("IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'bon_entrees_warehouse_id_receipt_date_index' AND object_id = OBJECT_ID('bon_entrees')) DROP INDEX bon_entrees.bon_entrees_warehouse_id_receipt_date_index");
+                DB::statement("IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'bon_entrees_status_index' AND object_id = OBJECT_ID('bon_entrees')) DROP INDEX bon_entrees.bon_entrees_status_index");
+                
+                // Drop check constraints on status column
+                DB::statement("
+                    DECLARE @sql NVARCHAR(MAX) = N'';
+                    SELECT @sql += N'ALTER TABLE bon_entrees DROP CONSTRAINT ' + name + N';'
+                    FROM sys.check_constraints
+                    WHERE parent_object_id = OBJECT_ID('bon_entrees')
+                    AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('bon_entrees'), 'status', 'ColumnId');
+                    IF @sql IS NOT NULL EXEC sp_executesql @sql;
+                ");
+            }
+
             // Drop old columns
             $table->dropColumn(['bon_reception_id', 'entered_by_id', 'entered_at', 'receipt_date', 'status']);
             

@@ -40,24 +40,75 @@ return new class extends Migration
         ]);
 
         // Step 4: Make form_type non-nullable after migration
-        Schema::table('products', function (Blueprint $table) {
-            $table->enum('form_type', ['roll', 'sheet', 'consumable', 'other'])
-                ->nullable(false)
-                ->change();
-        });
+        if (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+            DB::statement("ALTER TABLE products ALTER COLUMN form_type NVARCHAR(255) NOT NULL");
+            DB::statement("ALTER TABLE products ADD CONSTRAINT products_form_type_check CHECK (form_type IN ('roll', 'sheet', 'consumable', 'other'))");
+        } else {
+            Schema::table('products', function (Blueprint $table) {
+                // Keep the old enum change for other drivers if needed, or use DB::statement for generic
+                $table->enum('form_type', ['roll', 'sheet', 'consumable', 'other'])
+                    ->default('other')
+                    ->nullable(false)
+                    ->change();
+            });
+        }
 
         // Step 5: Drop old redundant columns
+        if (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+            DB::statement("
+                DECLARE @sql NVARCHAR(MAX) = N'';
+                SELECT @sql += N'ALTER TABLE products DROP CONSTRAINT ' + name + N';'
+                FROM sys.check_constraints
+                WHERE parent_object_id = OBJECT_ID('products')
+                AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('products'), 'type', 'ColumnId');
+                IF @sql IS NOT NULL EXEC sp_executesql @sql;
+            ");
+        }
         Schema::table('products', function (Blueprint $table) {
             $table->dropColumn(['type', 'is_roll']);
         });
 
         // Step 6: Update product_type to be enum for consistency
-        Schema::table('products', function (Blueprint $table) {
-            $table->enum('product_type', ['raw_material', 'semi_finished', 'finished_good', 'consumable', 'equipment', 'other'])
-                ->default('raw_material')
-                ->change()
-                ->comment('Manufacturing stage/logical type: raw material, semi-finished, finished good, consumable, equipment, other');
-        });
+        if (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+            DB::statement("
+                DECLARE @sql NVARCHAR(MAX) = N'';
+                
+                -- Drop check constraints
+                SELECT @sql += N'ALTER TABLE products DROP CONSTRAINT ' + name + N';'
+                FROM sys.check_constraints
+                WHERE parent_object_id = OBJECT_ID('products')
+                AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('products'), 'product_type', 'ColumnId');
+                
+                -- Drop default constraints
+                SELECT @sql += N'ALTER TABLE products DROP CONSTRAINT ' + name + N';'
+                FROM sys.default_constraints
+                WHERE parent_object_id = OBJECT_ID('products')
+                AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('products'), 'product_type', 'ColumnId');
+
+                IF @sql IS NOT NULL EXEC sp_executesql @sql;
+            ");
+            DB::statement("ALTER TABLE products ALTER COLUMN product_type NVARCHAR(255) NOT NULL");
+            DB::statement("ALTER TABLE products ADD CONSTRAINT products_product_type_check CHECK (product_type IN ('raw_material', 'semi_finished', 'finished_good', 'consumable', 'equipment', 'other'))");
+            
+            DB::statement("
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.default_constraints
+                    WHERE parent_object_id = OBJECT_ID('products')
+                    AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('products'), 'product_type', 'ColumnId')
+                )
+                BEGIN
+                    ALTER TABLE products ADD DEFAULT 'raw_material' FOR product_type
+                END
+            ");
+        } else {
+            Schema::table('products', function (Blueprint $table) {
+                $table->enum('product_type', ['raw_material', 'semi_finished', 'finished_good', 'consumable', 'equipment', 'other'])
+                    ->default('raw_material')
+                    ->change()
+                    ->comment('Manufacturing stage/logical type: raw material, semi-finished, finished good, consumable, equipment, other');
+            });
+        }
 
         // Step 7: Add new indexes for form_type
         Schema::table('products', function (Blueprint $table) {

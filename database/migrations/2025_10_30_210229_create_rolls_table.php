@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('rolls', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->noActionOnDelete();
             $table->string('ean_13', 13)->unique()->comment('Unique barcode for this roll');
             $table->string('batch_number')->nullable()->comment('Supplier batch');
             $table->date('received_date');

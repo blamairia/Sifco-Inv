@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('adjustment_number')->unique();
             $table->foreignId('roll_id')->constrained('rolls')->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->noActionOnDelete();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->noActionOnDelete();
             $table->enum('adjustment_type', ['ADD', 'REMOVE', 'DAMAGE', 'RESTORE']);
             $table->enum('previous_status', ['in_stock', 'reserved', 'consumed', 'damaged', 'archived'])->nullable();
             $table->enum('new_status', ['in_stock', 'reserved', 'consumed', 'damaged', 'archived']);
             $table->text('reason');
-            $table->foreignId('adjusted_by')->constrained('users')->restrictOnDelete();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('adjusted_by')->constrained('users')->noActionOnDelete();
+            $table->foreignId('approved_by')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamp('approved_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();

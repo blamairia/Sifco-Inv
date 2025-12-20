@@ -13,21 +13,21 @@ class WarehouseSeeder extends Seeder
     public function run(): void
     {
         // Main Warehouse (Magasin Principal)
-        Warehouse::create([
-            'name' => 'Magasin Principal - Siège',
-            'is_system' => false,
-        ]);
+        Warehouse::firstOrCreate(
+            ['name' => 'Magasin Principal - Siège'],
+            ['is_system' => false]
+        );
 
         // Secondary Warehouse (Magasin Secondaire)
-        Warehouse::create([
-            'name' => 'Magasin Secondaire - Production',
-            'is_system' => false,
-        ]);
+        Warehouse::firstOrCreate(
+            ['name' => 'Magasin Secondaire - Production'],
+            ['is_system' => false]
+        );
 
         // Transit/Quarantine Warehouse (Magasin Tampon)
-        Warehouse::create([
-            'name' => 'Magasin Tampon - Conformité',
-            'is_system' => false,
-        ]);
+        Warehouse::firstOrCreate(
+            ['name' => 'Magasin Tampon - Conformité'],
+            ['is_system' => false]
+        );
     }
 }

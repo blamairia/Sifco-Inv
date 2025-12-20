@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('bon_reintegration_items', function (Blueprint $table) {
             $table->enum('item_type', ['product', 'roll'])->default('product')->after('bon_reintegration_id');
-            $table->foreignId('roll_id')->nullable()->after('product_id')->constrained('rolls')->nullOnDelete();
+            $table->foreignId('roll_id')->nullable()->after('product_id')->constrained('rolls')->noActionOnDelete();
             $table->decimal('previous_weight_kg', 12, 3)->nullable()->after('qty_returned');
             $table->decimal('returned_weight_kg', 12, 3)->nullable()->after('previous_weight_kg');
             $table->decimal('weight_delta_kg', 12, 3)->nullable()->after('returned_weight_kg');

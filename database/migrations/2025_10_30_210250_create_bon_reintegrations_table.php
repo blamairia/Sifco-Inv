@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('bon_number')->unique();
             $table->foreignId('bon_sortie_id')->constrained('bon_sorties')->cascadeOnDelete();
-            $table->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->noActionOnDelete();
             $table->date('return_date');
             $table->enum('status', ['draft', 'received', 'verified', 'confirmed', 'archived'])->default('draft');
-            $table->foreignId('verified_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('verified_by_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamp('verified_at')->nullable();
             $table->decimal('cump_at_return', 12, 2)->comment('CUMP from original issue date');
             $table->text('notes')->nullable();

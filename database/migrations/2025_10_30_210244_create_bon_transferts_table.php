@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::create('bon_transferts', function (Blueprint $table) {
             $table->id();
             $table->string('bon_number')->unique();
-            $table->foreignId('warehouse_from_id')->constrained('warehouses')->cascadeOnDelete();
-            $table->foreignId('warehouse_to_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->foreignId('warehouse_from_id')->constrained('warehouses')->noActionOnDelete();
+            $table->foreignId('warehouse_to_id')->constrained('warehouses')->noActionOnDelete();
             $table->date('transfer_date');
             $table->enum('status', ['draft', 'in_transit', 'received', 'confirmed', 'cancelled', 'archived'])->default('draft');
-            $table->foreignId('requested_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('requested_by_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamp('transferred_at')->nullable();
             $table->timestamp('received_at')->nullable();
-            $table->foreignId('received_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('received_by_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->text('notes')->nullable();
             $table->timestamps();
             

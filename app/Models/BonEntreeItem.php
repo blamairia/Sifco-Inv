@@ -25,7 +25,7 @@ class BonEntreeItem extends Model
         'sheet_length_mm',
         'price_ht',
         'price_ttc',
-        // line_total_ttc is a generated column: qty_entered * price_ttc
+        'line_total_ttc', // Added for Azure SQL compatibility (storedAs not supported)
     ];
 
     protected $casts = [

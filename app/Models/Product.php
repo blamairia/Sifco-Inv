@@ -24,6 +24,7 @@ class Product extends Model
     // Physical Form (Forme Physique)
     public const FORM_ROLL = 'roll';
     public const FORM_SHEET = 'sheet';
+    public const FORM_CONSUMABLE = 'consumable';
     public const FORM_OTHER = 'other';
 
     protected $fillable = [
@@ -228,6 +229,7 @@ class Product extends Model
         return [
             self::FORM_ROLL => 'Bobine (Roll)',
             self::FORM_SHEET => 'Feuille (Sheet)',
+            self::FORM_CONSUMABLE => 'Consommable',
             self::FORM_OTHER => 'Autre',
         ];
     }

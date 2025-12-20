@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rolls', function (Blueprint $table) {
-            $table->foreignId('bon_entree_item_id')->nullable()->after('id')->constrained('bon_entree_items')->nullOnDelete()->comment('Link to source bon entree item');
+            $table->foreignId('bon_entree_item_id')->nullable()->after('id')->constrained('bon_entree_items')->noActionOnDelete()->comment('Link to source bon entree item');
             
             $table->index('bon_entree_item_id');
         });

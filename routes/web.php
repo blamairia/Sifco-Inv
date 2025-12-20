@@ -6,7 +6,7 @@ use App\Http\Controllers\BonEntreePdfController;
 use App\Http\Controllers\StockMovementPdfController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/admin');
 });
 
 // PDF route for BonSortie

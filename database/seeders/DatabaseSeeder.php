@@ -21,7 +21,8 @@ class DatabaseSeeder extends Seeder
             ProductionLineSeeder::class,
             ClientSeeder::class,
             ProductSeeder::class,
-            WorkflowDemoSeeder::class,
+            // Note: WorkflowDemoSeeder removed - uses sp_msforeachtable not available in Azure SQL
+            // Use ComprehensiveDemoSeeder for demo data instead
         ]);
     }
 }

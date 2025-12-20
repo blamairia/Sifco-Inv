@@ -1,0 +1,14 @@
+services:
+  sifco-inv-app:
+    container_name: sifco-inv-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9001:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./:/var/www/html
+      - ./storage:/var/www/html/storage
+    restart: unless-stopped

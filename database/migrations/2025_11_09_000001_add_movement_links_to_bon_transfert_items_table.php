@@ -14,7 +14,7 @@ return new class extends Migration
                     ->nullable()
                     ->after('roll_id')
                     ->constrained('stock_movements')
-                    ->nullOnDelete();
+                    ->noActionOnDelete();
             }
 
             if (! Schema::hasColumn('bon_transfert_items', 'movement_in_id')) {
@@ -22,7 +22,7 @@ return new class extends Migration
                     ->nullable()
                     ->after('movement_out_id')
                     ->constrained('stock_movements')
-                    ->nullOnDelete();
+                    ->noActionOnDelete();
             }
 
             if (! Schema::hasColumn('bon_transfert_items', 'weight_transferred_kg')) {

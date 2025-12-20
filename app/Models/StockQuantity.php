@@ -14,6 +14,7 @@ class StockQuantity extends Model
         'product_id',
         'warehouse_id',
         'total_qty',
+        'available_qty', // Added for Azure SQL (not computed column)
         'total_weight_kg',
         'total_length_m',
         'reserved_qty',

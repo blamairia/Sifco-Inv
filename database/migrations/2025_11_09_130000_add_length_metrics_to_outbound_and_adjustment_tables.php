@@ -27,6 +27,14 @@ return new class extends Migration
                         WHERE r.id = bon_sortie_items.roll_id
                     )"),
                 ]);
+        } elseif (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+            DB::statement(<<<SQL
+                UPDATE bsi
+                SET bsi.length_m = COALESCE(r.length_m, 0)
+                FROM bon_sortie_items bsi
+                JOIN rolls r ON r.id = bsi.roll_id
+                WHERE bsi.item_type = 'roll' AND bsi.roll_id IS NOT NULL AND (bsi.length_m IS NULL OR bsi.length_m = 0)
+            SQL);
         } else {
             DB::statement(<<<SQL
                 UPDATE bon_sortie_items bsi
@@ -62,6 +70,16 @@ return new class extends Migration
                     ))"),
                     'length_delta_m' => DB::raw('COALESCE(length_delta_m, 0)'),
                 ]);
+        } elseif (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+            DB::statement(<<<SQL
+                UPDATE bri
+                SET bri.previous_length_m = COALESCE(bri.previous_length_m, r.length_m),
+                    bri.returned_length_m = COALESCE(bri.returned_length_m, r.length_m),
+                    bri.length_delta_m = COALESCE(bri.length_delta_m, 0)
+                FROM bon_reintegration_items bri
+                LEFT JOIN rolls r ON r.id = bri.roll_id
+                WHERE bri.item_type = 'roll'
+            SQL);
         } else {
             DB::statement(<<<SQL
                 UPDATE bon_reintegration_items bri
@@ -100,6 +118,16 @@ return new class extends Migration
                     )"),
                     'length_delta_m' => DB::raw('COALESCE(length_delta_m, 0)'),
                 ]);
+        } elseif (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+            DB::statement(<<<SQL
+                UPDATE ra
+                SET ra.previous_length_m = COALESCE(ra.previous_length_m, r.length_m),
+                    ra.new_length_m = COALESCE(ra.new_length_m, r.length_m),
+                    ra.length_delta_m = COALESCE(ra.length_delta_m, 0)
+                FROM roll_adjustments ra
+                JOIN rolls r ON r.id = ra.roll_id
+                WHERE ra.previous_length_m IS NULL AND ra.new_length_m IS NULL
+            SQL);
         } else {
             DB::statement(<<<SQL
                 UPDATE roll_adjustments ra

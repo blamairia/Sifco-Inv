@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bon_sortie_items', function (Blueprint $table) {
-            $table->foreignId('roll_id')->nullable()->after('product_id')->constrained('rolls')->nullOnDelete();
+            $table->foreignId('roll_id')->nullable()->after('product_id')->constrained('rolls')->noActionOnDelete();
             $table->decimal('qty_issued', 15, 2)->nullable()->change();
         });
     }

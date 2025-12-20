@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('stock_quantities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->noActionOnDelete();
             $table->decimal('total_qty', 15, 2)->default(0);
             $table->decimal('reserved_qty', 15, 2)->default(0)->comment('For future use');
             $table->decimal('available_qty', 15, 2)->storedAs('total_qty - reserved_qty');
