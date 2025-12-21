@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class ConsumptionStatsWidget extends BaseWidget
 {
+    protected static ?int $sort = 6;
     protected int $periodDays = 30;
 
     protected function getStats(): array

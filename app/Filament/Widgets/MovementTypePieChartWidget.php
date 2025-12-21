@@ -15,7 +15,7 @@ class MovementTypePieChartWidget extends ChartWidget
     
     protected int | string | array $columnSpan = 1;
     
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 1;
     
     protected ?string $maxHeight = '280px';
 

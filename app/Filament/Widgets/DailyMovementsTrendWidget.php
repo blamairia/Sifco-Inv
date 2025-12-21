@@ -15,7 +15,7 @@ class DailyMovementsTrendWidget extends ChartWidget
     
     protected int | string | array $columnSpan = 1;
     
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 2;
     
     protected ?string $maxHeight = '280px';
 

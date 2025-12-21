@@ -15,7 +15,7 @@ class MovementValueChartWidget extends ChartWidget
     
     protected int | string | array $columnSpan = 'full';
     
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 3;
     
     protected ?string $maxHeight = '280px';
 

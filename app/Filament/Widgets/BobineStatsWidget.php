@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class BobineStatsWidget extends BaseWidget
 {
+    protected static ?int $sort = 5;
     protected function getStats(): array
     {
         $stats = Roll::query()

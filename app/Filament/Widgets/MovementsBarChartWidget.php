@@ -15,7 +15,7 @@ class MovementsBarChartWidget extends ChartWidget
     
     protected int | string | array $columnSpan = 'full';
     
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
     
     protected ?string $maxHeight = '300px';
 

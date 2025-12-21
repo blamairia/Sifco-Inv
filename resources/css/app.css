@@ -12,9 +12,37 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-/* Filament logo size override for sidebars */
-.fi-logo,
-.fi-logo img {
+/* Filament sidebar logo styling - larger and more prominent */
+.fi-sidebar .fi-logo,
+.fi-sidebar .fi-logo img {
+    height: 2.75rem !important;
+    max-height: 2.75rem !important;
+    width: auto !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Collapsed sidebar logo */
+.fi-sidebar-nav-collapsed .fi-logo,
+.fi-sidebar-nav-collapsed .fi-logo img {
+    height: 2rem !important;
+    max-height: 2rem !important;
+}
+
+/* Brand name in sidebar */
+.fi-sidebar-header {
+    padding: 1rem 0.75rem !important;
+}
+
+/* Logo container styling */
+.fi-sidebar-header a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Topbar logo */
+.fi-topbar .fi-logo,
+.fi-topbar .fi-logo img {
     height: 2.25rem !important;
     max-height: 2.25rem !important;
     width: auto !important;
