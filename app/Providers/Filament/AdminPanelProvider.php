@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(\App\Filament\Auth\CustomLogin::class)
+            ->login(\Filament\Auth\Pages\Login::class)
             ->databaseTransactions(true)
             ->brandName('SIFCO Carton')
             // use root logo in public (copied from repo root)
@@ -48,6 +48,10 @@ class AdminPanelProvider extends PanelProvider
                 'neutral' => '#F2F2F2',
             ])
             ->darkMode(false)
+            ->renderHook(
+                'panels::head.end',
+                fn () => view('filament.partials.custom-styles')
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -59,7 +63,12 @@ class AdminPanelProvider extends PanelProvider
                 FilamentInfoWidget::class,
             ])
             ->plugins([
-             FilamentAwinTheme::make(),
+             \DiogoGPinto\AuthUIEnhancer\AuthUIEnhancerPlugin::make()
+                ->showEmptyPanelOnMobile(false)
+                ->formPanelPosition('right')
+                ->emptyPanelBackgroundImageUrl(asset('images/auth-background.png'))
+                ->emptyPanelBackgroundImageOpacity('100%'),
+             // FilamentAwinTheme::make(), // Temporarily disabled to test AuthUIEnhancer
             ])
             ->middleware([
                 EncryptCookies::class,

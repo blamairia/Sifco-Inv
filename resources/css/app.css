@@ -4,6 +4,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../vendor/diogogpinto/filament-auth-ui-enhancer/resources/views/**/*.blade.php';
 @import '../../vendor/alperenersoy/filament-export/resources/css/filament-export.css';
 
 @theme {
@@ -11,7 +12,7 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-/* Filament logo size override to ensure consistent height in sidebars and auth pages */
+/* Filament logo size override to ensure consistent height in sidebars */
 .fi-logo,
 .fi-logo img {
     height: 2.25rem !important;
@@ -20,352 +21,75 @@
 }
 
 /* ==========================================
-   SIFCO Carton - Modern Login Page Styling
+   AuthUIEnhancer Split-Screen Layout Fixes
    ========================================== */
 
-/* Login page background */
-.fi-simple-layout {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
+/* Main wrapper - split screen layout */
+.custom-auth-wrapper {
+    display: flex !important;
+    flex-direction: column;
     min-height: 100vh;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .custom-auth-wrapper {
+        flex-direction: row !important;
+    }
+
+    .custom-auth-wrapper.lg\:flex-row-reverse {
+        flex-direction: row-reverse !important;
+    }
+}
+
+/* Empty panel (background image side) */
+.custom-auth-empty-panel {
+    display: none;
     position: relative;
-    overflow: hidden;
-}
-
-/* Add animated gradient overlay */
-.fi-simple-layout::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-        radial-gradient(circle at 20% 50%, rgba(38, 93, 166, 0.2) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(35, 70, 140, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 40% 80%, rgba(242, 53, 69, 0.1) 0%, transparent 40%);
-    animation: bgFloat 20s ease-in-out infinite;
-    pointer-events: none;
-}
-
-@keyframes bgFloat {
-
-    0%,
-    100% {
-        transform: translateY(0) scale(1);
-    }
-
-    50% {
-        transform: translateY(-20px) scale(1.02);
-    }
-}
-
-/* Floating geometric shapes */
-.fi-simple-layout::after {
-    content: '';
-    position: absolute;
-    top: 10%;
-    left: 5%;
-    width: 120px;
-    height: 120px;
-    background: linear-gradient(135deg, rgba(38, 93, 166, 0.15), rgba(35, 70, 140, 0.1));
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    animation: float 8s ease-in-out infinite;
-    pointer-events: none;
-}
-
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
-    }
-
-    33% {
-        transform: translateY(-15px) rotate(5deg);
-    }
-
-    66% {
-        transform: translateY(10px) rotate(-5deg);
-    }
-}
-
-/* Login card container */
-.fi-simple-main-ctn {
-    background: rgba(255, 255, 255, 0.03) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 24px !important;
-    box-shadow:
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease !important;
-    padding: 2.5rem !important;
-    position: relative;
-    z-index: 10;
-}
-
-.fi-simple-main-ctn:hover {
-    transform: translateY(-4px);
-    box-shadow:
-        0 35px 60px -15px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 0 40px rgba(38, 93, 166, 0.15) !important;
-}
-
-/* Logo container styling */
-.fi-simple-header {
-    margin-bottom: 2rem !important;
-}
-
-.fi-simple-header .fi-logo {
-    height: 5rem !important;
-    max-height: 5rem !important;
-    padding: 1.25rem 1.5rem !important;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)) !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-.fi-simple-header .fi-logo img {
-    height: 100% !important;
-    max-height: 100% !important;
-}
-
-/* Page heading styling */
-.fi-simple-header-heading {
-    color: #ffffff !important;
-    font-size: 1.75rem !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.025em !important;
-    margin-top: 1.5rem !important;
-}
-
-.fi-simple-header-subheading {
-    color: rgba(255, 255, 255, 0.6) !important;
-    font-size: 0.9375rem !important;
-    margin-top: 0.5rem !important;
-}
-
-.fi-simple-header-subheading a {
-    color: #60a5fa !important;
-    font-weight: 500;
-}
-
-.fi-simple-header-subheading a:hover {
-    color: #93c5fd !important;
-}
-
-/* Demo Credentials Card */
-.demo-credentials-card {
-    background: linear-gradient(135deg, rgba(38, 93, 166, 0.2), rgba(35, 70, 140, 0.15)) !important;
-    border: 1px solid rgba(38, 93, 166, 0.3) !important;
-    border-radius: 16px !important;
-    padding: 1.25rem !important;
-    margin-bottom: 1.5rem !important;
-}
-
-.demo-header {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    margin-bottom: 0.875rem;
-}
-
-.demo-icon {
-    width: 2rem;
-    height: 2rem;
-    background: linear-gradient(135deg, #265DA6, #23468C);
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
+    flex-grow: 1;
     justify-content: center;
+    padding: 1rem;
 }
 
-.demo-icon svg {
-    width: 1.125rem;
-    height: 1.125rem;
-    color: white;
+@media (min-width: 1024px) {
+    .custom-auth-empty-panel {
+        display: flex !important;
+        flex-direction: column;
+    }
 }
 
-.demo-title {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.demo-row {
+/* Form panel */
+.custom-auth-form-panel {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.625rem 0.875rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 0.625rem;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-    transition: background 0.2s ease;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem 1rem;
+    width: 100%;
+    background-color: white;
 }
 
-.demo-row:last-child {
-    margin-bottom: 0;
-}
-
-.demo-row:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.demo-row:active {
-    transform: scale(0.98);
-}
-
-.demo-label {
-    font-size: 0.8125rem;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 500;
-}
-
-.demo-value {
-    font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
-    font-size: 0.875rem;
-    color: #60a5fa;
-    font-weight: 500;
-    padding: 0.25rem 0.625rem;
-    background: rgba(96, 165, 250, 0.1);
-    border-radius: 0.375rem;
-    transition: all 0.2s ease;
-}
-
-.demo-row:hover .demo-value {
-    background: rgba(96, 165, 250, 0.2);
-    color: #93c5fd;
-}
-
-/* Form Field Labels */
-.fi-simple-page .fi-fo-field-wrp label,
-.fi-simple-page .fi-input-label {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-weight: 500 !important;
-    font-size: 0.875rem !important;
-}
-
-/* Form Input Styling */
-.fi-simple-page .fi-input-wrp {
-    border-radius: 0.75rem !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    transition: all 0.3s ease !important;
-}
-
-.fi-simple-page .fi-input-wrp:focus-within {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(38, 93, 166, 0.5) !important;
-    box-shadow: 0 0 0 3px rgba(38, 93, 166, 0.2) !important;
-}
-
-.fi-simple-page .fi-input {
-    background: transparent !important;
-    color: white !important;
-    font-size: 0.9375rem !important;
-}
-
-.fi-simple-page .fi-input::placeholder {
-    color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Password field hint link */
-.fi-simple-page .fi-input-hint a,
-.fi-simple-page .fi-link {
-    color: #60a5fa !important;
-    font-size: 0.875rem !important;
-}
-
-.fi-simple-page .fi-input-hint a:hover,
-.fi-simple-page .fi-link:hover {
-    color: #93c5fd !important;
-}
-
-/* Checkbox styling */
-.fi-simple-page .fi-checkbox-input {
-    border-radius: 0.375rem !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    background: transparent !important;
-}
-
-.fi-simple-page .fi-checkbox-input:checked {
-    background-color: #265DA6 !important;
-    border-color: #265DA6 !important;
-}
-
-.fi-simple-page .fi-checkbox-label {
-    color: rgba(255, 255, 255, 0.7) !important;
-    font-size: 0.875rem !important;
-}
-
-/* Submit Button */
-.fi-simple-page .fi-btn-primary {
-    background: linear-gradient(135deg, #265DA6, #23468C) !important;
-    border: none !important;
-    border-radius: 0.75rem !important;
-    padding: 0.875rem 1.5rem !important;
-    font-weight: 600 !important;
-    font-size: 0.9375rem !important;
-    letter-spacing: 0.025em !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 4px 15px rgba(38, 93, 166, 0.4) !important;
-}
-
-.fi-simple-page .fi-btn-primary:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(38, 93, 166, 0.5) !important;
-}
-
-.fi-simple-page .fi-btn-primary:active {
-    transform: translateY(0) !important;
-}
-
-/* Button loading state */
-.fi-simple-page .fi-btn-primary .fi-btn-spinner {
-    color: white !important;
-}
-
-/* Footer / additional links area */
-.fi-simple-footer {
-    color: rgba(255, 255, 255, 0.4) !important;
-    font-size: 0.8125rem !important;
-    margin-top: 1.5rem !important;
-    padding-top: 1.25rem !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-
-/* Custom scrollbar for login page */
-.fi-simple-layout::-webkit-scrollbar {
-    width: 8px;
-}
-
-.fi-simple-layout::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.fi-simple-layout::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-}
-
-.fi-simple-layout::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-    .fi-simple-main-ctn {
-        margin: 1rem !important;
-        padding: 1.5rem !important;
+@media (min-width: 640px) {
+    .custom-auth-form-panel {
+        padding: 3rem 1.5rem;
     }
+}
 
-    .fi-simple-header-heading {
-        font-size: 1.5rem !important;
+@media (min-width: 1024px) {
+    .custom-auth-form-panel {
+        width: var(--form-panel-width, 50%);
+        padding: 3rem 5rem;
     }
+}
 
-    .fi-simple-layout::after {
-        display: none;
+@media (min-width: 1280px) {
+    .custom-auth-form-panel {
+        padding: 3rem 9rem;
     }
+}
+
+/* Form wrapper */
+.custom-auth-form-wrapper {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 24rem;
 }
