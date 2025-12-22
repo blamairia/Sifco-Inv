@@ -212,17 +212,39 @@
     }
 }
 
-/* Form wrapper - centered content with better width */
+/* Form wrapper - override the max-w-sm constraint from plugin */
 .custom-auth-form-wrapper {
     margin: 0 auto;
     width: 100%;
-    max-width: 28rem;
+    max-width: 26rem !important;
+    /* Balanced width - not too narrow, not too wide */
+    padding: 1.5rem 0.5rem !important;
+}
+
+.custom-auth-form-wrapper.max-w-sm {
+    max-width: 26rem !important;
+}
+
+@media (min-width: 640px) {
+    .custom-auth-form-wrapper {
+        padding: 2rem 1.5rem !important;
+    }
 }
 
 @media (min-width: 1024px) {
     .custom-auth-form-wrapper {
-        max-width: 26rem;
+        max-width: 24rem !important;
+        padding: 2rem 0 !important;
     }
+}
+
+/* Reduce the excessive padding on Filament simple page content */
+.fi-simple-page .fi-simple-page-content {
+    padding: 0 !important;
+}
+
+.fi-simple-page .fi-simple-main-ctn {
+    padding: 0 !important;
 }
 
 /* Logo styling in form panel */
