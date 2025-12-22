@@ -1,6 +1,6 @@
 <x-filament-panels::page.simple>
-    {{-- Demo Credentials Card --}}
-    <div class="demo-credentials-card" style="margin-bottom: 1.5rem;">
+    {{-- Demo Credentials Card with Click-to-Copy --}}
+    <div class="demo-credentials-card">
         <div class="demo-header">
             <div class="demo-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -8,17 +8,46 @@
                 </svg>
             </div>
             <span class="demo-title">Demo Credentials</span>
+            <span class="demo-hint">Click to copy</span>
         </div>
-        <div class="demo-row" onclick="document.querySelector('input[name=email]').value='admin@sifco.dz'; document.querySelector('input[name=password]').value='admin';" style="cursor: pointer;">
+        <div class="demo-row" onclick="copyToClipboard(this, 'admin@sifco.dz')">
             <span class="demo-label">Email</span>
-            <span class="demo-value">admin@sifco.dz</span>
+            <div class="demo-value-container">
+                <span class="demo-value">admin@sifco.dz</span>
+                <span class="demo-copied">Copied!</span>
+            </div>
         </div>
-        <div class="demo-row" onclick="document.querySelector('input[name=email]').value='admin@sifco.dz'; document.querySelector('input[name=password]').value='admin';" style="cursor: pointer;">
+        <div class="demo-row" onclick="copyToClipboard(this, 'admin')">
             <span class="demo-label">Password</span>
-            <span class="demo-value">admin</span>
+            <div class="demo-value-container">
+                <span class="demo-value">admin</span>
+                <span class="demo-copied">Copied!</span>
+            </div>
         </div>
     </div>
+
+    <script>
+        function copyToClipboard(element, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Add copied class to show feedback
+                element.classList.add('copied');
+                
+                // Also fill in the form fields
+                if (text.includes('@')) {
+                    document.querySelector('input[name=email]').value = text;
+                } else {
+                    document.querySelector('input[name=password]').value = text;
+                }
+                
+                // Remove copied class after animation
+                setTimeout(() => {
+                    element.classList.remove('copied');
+                }, 1500);
+            });
+        }
+    </script>
 
     {{-- Login Form - properly rendered via content schema --}}
     {{ $this->content }}
 </x-filament-panels::page.simple>
+
