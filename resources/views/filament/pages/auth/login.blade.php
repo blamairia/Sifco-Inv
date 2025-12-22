@@ -10,10 +10,10 @@
             <span class="demo-title">Demo Credentials</span>
             <span class="demo-hint">Click to copy</span>
         </div>
-        <div class="demo-row" onclick="copyToClipboard(this, 'admin@sifco.dz')">
+        <div class="demo-row" onclick="copyToClipboard(this, 'admin@demo.com')">
             <span class="demo-label">Email</span>
             <div class="demo-value-container">
-                <span class="demo-value">admin@sifco.dz</span>
+                <span class="demo-value">admin@demo.com</span>
                 <span class="demo-copied">Copied!</span>
             </div>
         </div>
