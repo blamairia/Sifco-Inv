@@ -50,6 +50,7 @@
 
 /* ==========================================
    AuthUIEnhancer Split-Screen Layout
+   Premium Mobile-First Design
    ========================================== */
 
 /* Main wrapper - split screen layout */
@@ -58,11 +59,13 @@
     flex-direction: column;
     min-height: 100vh;
     width: 100%;
+    background: linear-gradient(180deg, #265DA6 0%, #1a4a8a 100%);
 }
 
 @media (min-width: 1024px) {
     .custom-auth-wrapper {
         flex-direction: row !important;
+        background: #f8fafc;
     }
 
     .custom-auth-wrapper.lg\:flex-row-reverse {
@@ -70,39 +73,120 @@
     }
 }
 
-/* Empty panel (background image side) - 60% width (3/5) */
+/* Empty panel (background image side) - Hero section on mobile */
 .custom-auth-empty-panel {
-    display: none;
+    display: flex !important;
     position: relative;
     justify-content: center;
-    align-items: center;
-    padding: 2rem;
-    background-color: #f8fafc;
+    align-items: flex-end;
+    padding: 0;
+    background: linear-gradient(180deg, #265DA6 0%, #1a4a8a 50%, #23468C 100%);
+    /* Mobile: taller hero section */
+    height: 280px;
+    min-height: 280px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+/* Decorative background pattern for mobile hero */
+.custom-auth-empty-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Gradient overlay at bottom for smooth transition */
+.custom-auth-empty-panel::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Make the background image container position correctly */
+.custom-auth-empty-panel>div[style*="background-image"] {
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    background-size: cover !important;
+    background-position: center top !important;
+    opacity: 1 !important;
+}
+
+@media (min-width: 640px) {
+    .custom-auth-empty-panel {
+        height: 320px;
+        min-height: 320px;
+    }
 }
 
 @media (min-width: 1024px) {
     .custom-auth-empty-panel {
-        display: flex !important;
         flex-direction: column;
+        justify-content: center;
+        align-items: center;
         width: 60%;
+        height: auto;
+        min-height: 100vh;
         flex-shrink: 0;
+        padding: 2rem;
+        background: #f8fafc;
+    }
+
+    .custom-auth-empty-panel::before,
+    .custom-auth-empty-panel::after {
+        display: none;
+    }
+
+    .custom-auth-empty-panel>div[style*="background-image"] {
+        background-position: center center !important;
     }
 }
 
-/* Form panel - 40% width (2/5) */
+/* Form panel - Card style on mobile with overlap effect */
 .custom-auth-form-panel {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 2.5rem 1.5rem;
+    justify-content: flex-start;
+    padding: 0;
     width: 100%;
     background-color: white;
-    min-height: 100vh;
+    flex-grow: 1;
+    position: relative;
+    z-index: 10;
+    /* Card overlap effect on mobile */
+    margin-top: -32px;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.custom-auth-form-panel .custom-auth-form-wrapper {
+    padding: 2rem 1.5rem 2.5rem;
 }
 
 @media (min-width: 640px) {
     .custom-auth-form-panel {
-        padding: 3rem 2.5rem;
+        margin-top: -40px;
+        border-radius: 32px 32px 0 0;
+    }
+
+    .custom-auth-form-panel .custom-auth-form-wrapper {
+        padding: 2.5rem 2rem 3rem;
     }
 }
 
@@ -110,12 +194,20 @@
     .custom-auth-form-panel {
         width: 40%;
         flex-shrink: 0;
+        margin-top: 0;
+        border-radius: 0;
+        box-shadow: none;
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    .custom-auth-form-panel .custom-auth-form-wrapper {
         padding: 3rem 3.5rem;
     }
 }
 
 @media (min-width: 1280px) {
-    .custom-auth-form-panel {
+    .custom-auth-form-panel .custom-auth-form-wrapper {
         padding: 3rem 5rem;
     }
 }
@@ -127,13 +219,33 @@
     max-width: 26rem;
 }
 
-/* Logo styling in form panel - larger and centered */
+/* Logo styling in form panel */
 .custom-auth-form-panel .fi-logo,
 .custom-auth-form-panel .fi-logo img {
-    height: 5rem !important;
-    max-height: 5rem !important;
+    height: 4rem !important;
+    max-height: 4rem !important;
     width: auto !important;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Hide logo on mobile - the illustration provides branding */
+@media (max-width: 1023px) {
+
+    .custom-auth-form-panel .fi-logo,
+    .custom-auth-form-panel .fi-logo img,
+    .fi-simple-header-logo {
+        display: none !important;
+    }
+}
+
+@media (min-width: 1024px) {
+
+    .custom-auth-form-panel .fi-logo,
+    .custom-auth-form-panel .fi-logo img {
+        height: 5rem !important;
+        max-height: 5rem !important;
+        display: block !important;
+    }
 }
 
 /* Center the logo container */
@@ -144,22 +256,37 @@
     width: 100%;
 }
 
-/* Improve heading typography */
+/* Improve heading typography - mobile first */
 .fi-simple-header-heading {
-    font-size: 1.75rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     color: #1e293b !important;
-    margin-top: 1rem !important;
-    margin-bottom: 0.25rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.125rem !important;
     text-align: center !important;
+}
+
+@media (min-width: 1024px) {
+    .fi-simple-header-heading {
+        font-size: 1.75rem !important;
+        margin-top: 1rem !important;
+        margin-bottom: 0.25rem !important;
+    }
 }
 
 /* Subheading styling */
 .fi-simple-header-subheading {
-    font-size: 0.9375rem !important;
+    font-size: 0.875rem !important;
     color: #64748b !important;
-    margin-bottom: 1.5rem !important;
+    margin-bottom: 1.25rem !important;
     text-align: center !important;
+}
+
+@media (min-width: 1024px) {
+    .fi-simple-header-subheading {
+        font-size: 0.9375rem !important;
+        margin-bottom: 1.5rem !important;
+    }
 }
 
 

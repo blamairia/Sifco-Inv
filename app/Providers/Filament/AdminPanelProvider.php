@@ -64,7 +64,8 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->plugins([
              \DiogoGPinto\AuthUIEnhancer\AuthUIEnhancerPlugin::make()
-                ->showEmptyPanelOnMobile(false)
+                ->showEmptyPanelOnMobile(true)
+                ->mobileFormPanelPosition('bottom')
                 ->formPanelPosition('right')
                 ->emptyPanelBackgroundImageUrl(asset('images/auth-background.png'))
                 ->emptyPanelBackgroundImageOpacity('100%'),
