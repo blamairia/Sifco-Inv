@@ -1,0 +1,49 @@
+name: Trigger auto deployment for sifco-inv
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ master ]
+    paths:
+    - '**'
+    - '.github/workflows/sifco-inv-AutoDeployTrigger-03ddfff6-e01a-4cce-9fb4-e243fd40564f.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.SIFCOINV_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.SIFCOINV_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.SIFCOINV_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: heartlineregistry.azurecr.io
+          registryUsername: ${{ secrets.SIFCOINV_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.SIFCOINV_REGISTRY_PASSWORD }}
+          containerAppName: sifco-inv
+          resourceGroup: portfolio
+          imageToBuild: heartlineregistry.azurecr.io/sifco-inv:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
